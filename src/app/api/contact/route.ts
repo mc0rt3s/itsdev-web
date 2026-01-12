@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
     const { data: emailResult, error } = await resend.batch.send([
       {
         // Email al equipo de ItsDev
-        from: 'ItsDev Web <onboarding@resend.dev>',
+        from: 'ItsDev Web <noreply@sender.itsdev.cl>',
         to: ['contacto@itsdev.cl'],
         replyTo: data.email,
         subject: `🚀 Nuevo contacto: ${data.nombre}${data.empresa ? ` - ${data.empresa}` : ''}`,
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
       },
       {
         // Email de confirmación al usuario
-        from: 'ItsDev <onboarding@resend.dev>',
+        from: 'ItsDev <noreply@sender.itsdev.cl>',
         to: [data.email],
         subject: '✅ Recibimos tu mensaje - ItsDev',
         html: userEmailHtml,
