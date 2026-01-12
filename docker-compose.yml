@@ -12,18 +12,26 @@ services:
     environment:
       - NODE_ENV=production
     labels:
-      # Traefik labels
+      # Traefik - Habilitar
       - "traefik.enable=true"
+      
+      # Router HTTPS
       - "traefik.http.routers.itsdev-web.rule=Host(`itsdev.cl`) || Host(`www.itsdev.cl`)"
       - "traefik.http.routers.itsdev-web.entrypoints=websecure"
-      - "traefik.http.routers.itsdev-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.itsdev-web.tls.certresolver=letsresolver"
       - "traefik.http.services.itsdev-web.loadbalancer.server.port=3000"
-      # Redirect www to non-www (opcional)
-      - "traefik.http.middlewares.itsdev-redirect.redirectregex.regex=^https://www\\.itsdev\\.cl/(.*)"
-      - "traefik.http.middlewares.itsdev-redirect.redirectregex.replacement=https://itsdev.cl/$${1}"
-      - "traefik.http.routers.itsdev-web.middlewares=itsdev-redirect"
+      
+      # Router HTTP -> Redirect a HTTPS
+      - "traefik.http.routers.itsdev-web-http.rule=Host(`itsdev.cl`) || Host(`www.itsdev.cl`)"
+      - "traefik.http.routers.itsdev-web-http.entrypoints=web"
+      - "traefik.http.routers.itsdev-web-http.middlewares=redirect-to-https"
+      
+      # Middleware redirect HTTP -> HTTPS
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+      
     networks:
-      - traefik-net
+      - traefik
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
       interval: 30s
@@ -32,5 +40,5 @@ services:
       start_period: 40s
 
 networks:
-  traefik-net:
+  traefik:
     external: true
