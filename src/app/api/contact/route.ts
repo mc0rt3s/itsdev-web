@@ -154,18 +154,20 @@ export async function POST(request: NextRequest) {
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f0f0f0; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
           .card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-          .header { background: #224859; padding: 30px; text-align: center; }
-          .header img { max-width: 200px; height: auto; }
-          .title-section { background: linear-gradient(135deg, #7AA228 0%, #5a8a1a 100%); padding: 24px 30px; text-align: center; }
-          .title-section h1 { color: white; margin: 0; font-size: 24px; }
-          .title-section p { color: rgba(255,255,255,0.9); margin: 6px 0 0; font-size: 15px; }
-          .content { padding: 30px; }
-          .message { background: #f8f9fa; padding: 25px; border-radius: 12px; border-left: 4px solid #7AA228; }
-          .message p { margin: 0 0 12px; }
+          .header { background: #224859; padding: 28px 30px; text-align: center; }
+          .logo-text { color: white; font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -1px; }
+          .logo-text span { color: #7AA228; }
+          .tagline { color: rgba(255,255,255,0.7); font-size: 11px; letter-spacing: 2px; margin: 4px 0 0; }
+          .title-bar { background: #7AA228; padding: 16px 30px; text-align: center; }
+          .title-bar h1 { color: white; margin: 0; font-size: 18px; font-weight: 600; }
+          .content { padding: 28px 30px; }
+          .message { margin: 0; }
+          .message p { margin: 0 0 14px; color: #444; font-size: 15px; }
           .message p:last-child { margin: 0; }
-          .cta { text-align: center; margin: 25px 0 10px; }
-          .cta a { display: inline-block; background: #25D366; color: white; padding: 14px 28px; border-radius: 30px; text-decoration: none; font-weight: 600; }
-          .footer { background: #224859; padding: 20px 30px; text-align: center; color: rgba(255,255,255,0.8); font-size: 13px; }
+          .cta { text-align: center; margin: 24px 0 8px; }
+          .cta a { display: inline-block; background: #25D366; color: white; padding: 12px 24px; border-radius: 25px; text-decoration: none; font-weight: 600; font-size: 14px; }
+          .footer { background: #224859; padding: 18px 30px; text-align: center; color: rgba(255,255,255,0.8); font-size: 12px; }
+          .footer p { margin: 0; }
           .footer a { color: #7AA228; text-decoration: none; }
         </style>
       </head>
@@ -173,13 +175,13 @@ export async function POST(request: NextRequest) {
         <div class="container">
           <div class="card">
             <div class="header">
-              <img src="https://itsdev.cl/logo-dark.svg" alt="ItsDev" />
+              <p class="logo-text">ITS<span>-Dev</span></p>
+              <p class="tagline">SOLUCIONES TECNOLÓGICAS</p>
             </div>
-            <div class="title-section">
+            <div class="title-bar">
               <h1>¡Gracias por contactarnos!</h1>
-              <p>Hemos recibido tu mensaje</p>
             </div>
-          <div class="content">
+            <div class="content">
               <div class="message">
                 <p>Hola <strong>${data.nombre}</strong>,</p>
                 <p>Gracias por tu interés en ItsDev. Hemos recibido tu mensaje y nos pondremos en contacto contigo en las próximas <strong>24 horas hábiles</strong>.</p>
@@ -190,8 +192,8 @@ export async function POST(request: NextRequest) {
               </div>
             </div>
             <div class="footer">
-              <p style="margin:0 0 8px;"><strong>ItsDev</strong> - Soluciones Tecnológicas que Funcionan</p>
-              <p style="margin:0;">📧 <a href="mailto:contacto@itsdev.cl">contacto@itsdev.cl</a> | 📱 <a href="tel:+56975362904">+56 9 7536 2904</a></p>
+              <p><strong>ItsDev</strong> - Soluciones Tecnológicas que Funcionan</p>
+              <p style="margin-top:6px;">📧 <a href="mailto:contacto@itsdev.cl">contacto@itsdev.cl</a> · 📱 <a href="tel:+56975362904">+56 9 7536 2904</a></p>
             </div>
           </div>
         </div>
