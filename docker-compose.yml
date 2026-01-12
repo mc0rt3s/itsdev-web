@@ -12,33 +12,47 @@ services:
     environment:
       - NODE_ENV=production
     labels:
-      # Traefik - Habilitar
       - "traefik.enable=true"
       
-      # Router HTTPS
-      - "traefik.http.routers.itsdev-web.rule=Host(`itsdev.cl`) || Host(`www.itsdev.cl`)"
-      - "traefik.http.routers.itsdev-web.entrypoints=websecure"
-      - "traefik.http.routers.itsdev-web.tls.certresolver=letsresolver"
+      # HTTPS Router (con www)
+      - "traefik.http.routers.itsdev-www.rule=Host(`www.itsdev.cl`)"
+      - "traefik.http.routers.itsdev-www.entrypoints=web,websecure"
+      - "traefik.http.routers.itsdev-www.tls=true"
+      - "traefik.http.routers.itsdev-www.tls.certresolver=letsresolver"
+      - "traefik.http.routers.itsdev-www.service=itsdev-web"
+      
+      # HTTPS Router (sin www)
+      - "traefik.http.routers.itsdev.rule=Host(`itsdev.cl`)"
+      - "traefik.http.routers.itsdev.entrypoints=web,websecure"
+      - "traefik.http.routers.itsdev.tls=true"
+      - "traefik.http.routers.itsdev.tls.certresolver=letsresolver"
+      - "traefik.http.routers.itsdev.service=itsdev-web"
+      
+      # HTTP Router (con www) - redirige a HTTPS
+      - "traefik.http.routers.itsdev-www-http.rule=Host(`www.itsdev.cl`)"
+      - "traefik.http.routers.itsdev-www-http.entrypoints=web"
+      - "traefik.http.routers.itsdev-www-http.middlewares=itsdev-https-redirect"
+      
+      # HTTP Router (sin www) - redirige a HTTPS
+      - "traefik.http.routers.itsdev-http.rule=Host(`itsdev.cl`)"
+      - "traefik.http.routers.itsdev-http.entrypoints=web"
+      - "traefik.http.routers.itsdev-http.middlewares=itsdev-https-redirect"
+      
+      # Middleware para redirección HTTPS
+      - "traefik.http.middlewares.itsdev-https-redirect.redirectscheme.scheme=https"
+      
+      # Servicio
       - "traefik.http.services.itsdev-web.loadbalancer.server.port=3000"
       
-      # Router HTTP -> Redirect a HTTPS
-      - "traefik.http.routers.itsdev-web-http.rule=Host(`itsdev.cl`) || Host(`www.itsdev.cl`)"
-      - "traefik.http.routers.itsdev-web-http.entrypoints=web"
-      - "traefik.http.routers.itsdev-web-http.middlewares=redirect-to-https"
-      
-      # Middleware redirect HTTP -> HTTPS
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
-      
     networks:
-      - traefik
+      - itsdev-net
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
 networks:
-  traefik:
+  itsdev-net:
     external: true
