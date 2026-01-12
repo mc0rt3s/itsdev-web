@@ -141,21 +141,36 @@ export async function POST(request: NextRequest) {
       <head>
         <meta charset="utf-8">
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #7AA228 0%, #224859 100%); padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center; }
-          .header h1 { color: white; margin: 0; font-size: 28px; }
-          .header p { color: rgba(255,255,255,0.9); margin: 10px 0 0; }
+          .logo-section { background: #224859; padding: 30px; text-align: center; border-radius: 12px 12px 0 0; }
+          .logo { display: inline-block; }
+          .logo-icon { display: inline-block; background: #7AA228; color: white; font-weight: bold; font-size: 24px; width: 50px; height: 50px; line-height: 50px; border-radius: 12px; text-align: center; vertical-align: middle; }
+          .logo-text { display: inline-block; vertical-align: middle; margin-left: 12px; }
+          .logo-text h2 { color: white; margin: 0; font-size: 28px; font-weight: bold; letter-spacing: -1px; }
+          .logo-text p { color: #7AA228; margin: 0; font-size: 12px; letter-spacing: 1px; }
+          .header { background: linear-gradient(135deg, #7AA228 0%, #5a8a1a 100%); padding: 30px; text-align: center; }
+          .header h1 { color: white; margin: 0; font-size: 26px; }
+          .header p { color: rgba(255,255,255,0.9); margin: 8px 0 0; font-size: 16px; }
           .content { background: #f8f9fa; padding: 30px; }
-          .message { background: white; padding: 25px; border-radius: 12px; margin-bottom: 20px; }
+          .message { background: white; padding: 25px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #7AA228; }
           .cta { text-align: center; margin: 30px 0; }
           .cta a { display: inline-block; background: #25D366; color: white; padding: 14px 28px; border-radius: 30px; text-decoration: none; font-weight: 600; }
           .footer { background: #224859; padding: 25px; border-radius: 0 0 12px 12px; text-align: center; color: rgba(255,255,255,0.8); font-size: 14px; }
-          .footer a { color: #7AA228; }
+          .footer a { color: #7AA228; text-decoration: none; }
         </style>
       </head>
       <body>
         <div class="container">
+          <div class="logo-section">
+            <div class="logo">
+              <span class="logo-icon">&lt;/&gt;</span>
+              <div class="logo-text">
+                <h2>ITS-Dev</h2>
+                <p>SOLUCIONES TECNOLÓGICAS</p>
+              </div>
+            </div>
+          </div>
           <div class="header">
             <h1>¡Gracias por contactarnos!</h1>
             <p>Hemos recibido tu mensaje</p>
