@@ -77,57 +77,67 @@ export async function POST(request: NextRequest) {
       <head>
         <meta charset="utf-8">
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f0f0f0; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #7AA228 0%, #224859 100%); padding: 30px; border-radius: 12px 12px 0 0; }
-          .header h1 { color: white; margin: 0; font-size: 24px; }
-          .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 12px 12px; }
-          .field { margin-bottom: 20px; }
-          .field-label { font-weight: 600; color: #224859; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
-          .field-value { margin-top: 5px; padding: 12px; background: white; border-radius: 8px; border-left: 3px solid #7AA228; }
-          .message-box { background: white; padding: 20px; border-radius: 8px; border-left: 3px solid #7AA228; white-space: pre-wrap; }
-          .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-          .badge { display: inline-block; background: #7AA228; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+          .card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+          .header { background: #224859; padding: 24px 30px; display: flex; align-items: center; }
+          .logo-icon { background: #7AA228; color: white; font-weight: bold; font-size: 18px; width: 44px; height: 44px; line-height: 44px; border-radius: 10px; text-align: center; display: inline-block; }
+          .header-text { display: inline-block; margin-left: 15px; }
+          .header-text h1 { color: white; margin: 0; font-size: 20px; }
+          .header-text p { color: #7AA228; margin: 2px 0 0; font-size: 11px; letter-spacing: 1px; }
+          .content { padding: 30px; }
+          .contact-card { background: #f8f9fa; border-radius: 12px; padding: 24px; border-left: 4px solid #7AA228; }
+          .contact-name { font-size: 22px; font-weight: 700; color: #224859; margin: 0 0 4px; }
+          .contact-company { font-size: 14px; color: #7AA228; margin: 0 0 16px; font-weight: 500; }
+          .contact-info { margin: 16px 0; }
+          .contact-row { display: flex; align-items: center; margin: 8px 0; }
+          .contact-icon { color: #7AA228; margin-right: 10px; font-size: 14px; }
+          .contact-link { color: #224859; text-decoration: none; font-size: 15px; }
+          .contact-link:hover { color: #7AA228; }
+          .divider { height: 1px; background: #e0e0e0; margin: 20px 0; }
+          .message-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+          .message-text { color: #333; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }
+          .footer { background: #f8f9fa; padding: 16px 30px; text-align: center; border-top: 1px solid #eee; }
+          .badge { display: inline-block; background: #7AA228; color: white; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 500; }
         </style>
       </head>
       <body>
         <div class="container">
-          <div class="header">
-            <h1>📬 Nuevo mensaje de contacto</h1>
-          </div>
-          <div class="content">
-            <div class="field">
-              <div class="field-label">Nombre</div>
-              <div class="field-value">${data.nombre}</div>
+          <div class="card">
+            <div class="header">
+              <span class="logo-icon">&lt;/&gt;</span>
+              <div class="header-text">
+                <h1>Nuevo Contacto</h1>
+                <p>FORMULARIO WEB</p>
+              </div>
             </div>
-            
-            ${data.empresa ? `
-            <div class="field">
-              <div class="field-label">Empresa</div>
-              <div class="field-value">${data.empresa}</div>
+            <div class="content">
+              <div class="contact-card">
+                <h2 class="contact-name">${data.nombre}</h2>
+                ${data.empresa ? `<p class="contact-company">${data.empresa}</p>` : ''}
+                
+                <div class="contact-info">
+                  <div class="contact-row">
+                    <span class="contact-icon">📧</span>
+                    <a href="mailto:${data.email}" class="contact-link">${data.email}</a>
+                  </div>
+                  ${data.telefono ? `
+                  <div class="contact-row">
+                    <span class="contact-icon">📱</span>
+                    <a href="tel:${data.telefono}" class="contact-link">${data.telefono}</a>
+                  </div>
+                  ` : ''}
+                </div>
+                
+                <div class="divider"></div>
+                
+                <div class="message-label">Mensaje</div>
+                <div class="message-text">${data.mensaje}</div>
+              </div>
             </div>
-            ` : ''}
-            
-            <div class="field">
-              <div class="field-label">Email</div>
-              <div class="field-value"><a href="mailto:${data.email}">${data.email}</a></div>
+            <div class="footer">
+              <span class="badge">itsdev.cl</span>
             </div>
-            
-            ${data.telefono ? `
-            <div class="field">
-              <div class="field-label">Teléfono</div>
-              <div class="field-value"><a href="tel:${data.telefono}">${data.telefono}</a></div>
-            </div>
-            ` : ''}
-            
-            <div class="field">
-              <div class="field-label">Mensaje</div>
-              <div class="message-box">${data.mensaje}</div>
-            </div>
-          </div>
-          <div class="footer">
-            <span class="badge">itsdev.cl</span>
-            <p>Este mensaje fue enviado desde el formulario de contacto</p>
           </div>
         </div>
       </body>
