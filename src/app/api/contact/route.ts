@@ -151,54 +151,48 @@ export async function POST(request: NextRequest) {
       <head>
         <meta charset="utf-8">
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f0f0f0; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .logo-section { background: #224859; padding: 30px; text-align: center; border-radius: 12px 12px 0 0; }
-          .logo { display: inline-block; }
-          .logo-icon { display: inline-block; background: #7AA228; color: white; font-weight: bold; font-size: 24px; width: 50px; height: 50px; line-height: 50px; border-radius: 12px; text-align: center; vertical-align: middle; }
-          .logo-text { display: inline-block; vertical-align: middle; margin-left: 12px; }
-          .logo-text h2 { color: white; margin: 0; font-size: 28px; font-weight: bold; letter-spacing: -1px; }
-          .logo-text p { color: #7AA228; margin: 0; font-size: 12px; letter-spacing: 1px; }
-          .header { background: linear-gradient(135deg, #7AA228 0%, #5a8a1a 100%); padding: 30px; text-align: center; }
-          .header h1 { color: white; margin: 0; font-size: 26px; }
-          .header p { color: rgba(255,255,255,0.9); margin: 8px 0 0; font-size: 16px; }
-          .content { background: #f8f9fa; padding: 30px; }
-          .message { background: white; padding: 25px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #7AA228; }
-          .cta { text-align: center; margin: 30px 0; }
+          .card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+          .header { background: #224859; padding: 30px; text-align: center; }
+          .header img { max-width: 200px; height: auto; }
+          .title-section { background: linear-gradient(135deg, #7AA228 0%, #5a8a1a 100%); padding: 24px 30px; text-align: center; }
+          .title-section h1 { color: white; margin: 0; font-size: 24px; }
+          .title-section p { color: rgba(255,255,255,0.9); margin: 6px 0 0; font-size: 15px; }
+          .content { padding: 30px; }
+          .message { background: #f8f9fa; padding: 25px; border-radius: 12px; border-left: 4px solid #7AA228; }
+          .message p { margin: 0 0 12px; }
+          .message p:last-child { margin: 0; }
+          .cta { text-align: center; margin: 25px 0 10px; }
           .cta a { display: inline-block; background: #25D366; color: white; padding: 14px 28px; border-radius: 30px; text-decoration: none; font-weight: 600; }
-          .footer { background: #224859; padding: 25px; border-radius: 0 0 12px 12px; text-align: center; color: rgba(255,255,255,0.8); font-size: 14px; }
+          .footer { background: #224859; padding: 20px 30px; text-align: center; color: rgba(255,255,255,0.8); font-size: 13px; }
           .footer a { color: #7AA228; text-decoration: none; }
         </style>
       </head>
       <body>
         <div class="container">
-          <div class="logo-section">
-            <div class="logo">
-              <span class="logo-icon">&lt;/&gt;</span>
-              <div class="logo-text">
-                <h2>ITS-Dev</h2>
-                <p>SOLUCIONES TECNOLÓGICAS</p>
+          <div class="card">
+            <div class="header">
+              <img src="https://itsdev.cl/logo-dark.svg" alt="ItsDev" />
+            </div>
+            <div class="title-section">
+              <h1>¡Gracias por contactarnos!</h1>
+              <p>Hemos recibido tu mensaje</p>
+            </div>
+          <div class="content">
+              <div class="message">
+                <p>Hola <strong>${data.nombre}</strong>,</p>
+                <p>Gracias por tu interés en ItsDev. Hemos recibido tu mensaje y nos pondremos en contacto contigo en las próximas <strong>24 horas hábiles</strong>.</p>
+                <p>Si tu consulta es urgente, puedes contactarnos directamente por WhatsApp:</p>
+              </div>
+              <div class="cta">
+                <a href="https://wa.me/56975362904?text=Hola%2C%20acabo%20de%20enviar%20un%20formulario%20desde%20itsdev.cl">💬 Escribir por WhatsApp</a>
               </div>
             </div>
-          </div>
-          <div class="header">
-            <h1>¡Gracias por contactarnos!</h1>
-            <p>Hemos recibido tu mensaje</p>
-          </div>
-          <div class="content">
-            <div class="message">
-              <p>Hola <strong>${data.nombre}</strong>,</p>
-              <p>Gracias por tu interés en ItsDev. Hemos recibido tu mensaje y nos pondremos en contacto contigo en las próximas <strong>24 horas hábiles</strong>.</p>
-              <p>Si tu consulta es urgente, puedes contactarnos directamente por WhatsApp:</p>
+            <div class="footer">
+              <p style="margin:0 0 8px;"><strong>ItsDev</strong> - Soluciones Tecnológicas que Funcionan</p>
+              <p style="margin:0;">📧 <a href="mailto:contacto@itsdev.cl">contacto@itsdev.cl</a> | 📱 <a href="tel:+56975362904">+56 9 7536 2904</a></p>
             </div>
-            <div class="cta">
-              <a href="https://wa.me/56975362904?text=Hola%2C%20acabo%20de%20enviar%20un%20formulario%20desde%20itsdev.cl">💬 Escribir por WhatsApp</a>
-            </div>
-          </div>
-          <div class="footer">
-            <p><strong>ItsDev</strong> - Soluciones Tecnológicas que Funcionan</p>
-            <p>📧 <a href="mailto:contacto@itsdev.cl">contacto@itsdev.cl</a> | 📱 +56 9 7536 2904</p>
-            <p><a href="https://itsdev.cl">www.itsdev.cl</a></p>
           </div>
         </div>
       </body>
