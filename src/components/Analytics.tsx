@@ -2,41 +2,49 @@
 
 import Script from 'next/script';
 
-const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+const GTM_ID = 'GTM-5CLF8TL5';
 
 export default function Analytics() {
-  if (!GA_MEASUREMENT_ID) {
-    return null;
-  }
-
   return (
     <>
+      {/* Google Tag Manager */}
       <Script
-        src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+        id="gtm-script"
         strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+            'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+            })(window,document,'script','dataLayer','${GTM_ID}');
+          `,
+        }}
       />
-      <Script id="google-analytics" strategy="afterInteractive">
-        {`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', '${GA_MEASUREMENT_ID}', {
-            page_title: document.title,
-            page_location: window.location.href,
-          });
-        `}
-      </Script>
     </>
   );
 }
 
-// Helper para trackear eventos personalizados
-export function trackEvent(action: string, category: string, label?: string, value?: number) {
-  if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('event', action, {
-      event_category: category,
-      event_label: label,
-      value: value,
+// Componente para el noscript (va en el body)
+export function GTMNoScript() {
+  return (
+    <noscript>
+      <iframe
+        src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
+        height="0"
+        width="0"
+        style={{ display: 'none', visibility: 'hidden' }}
+      />
+    </noscript>
+  );
+}
+
+// Helper para enviar eventos al dataLayer
+export function trackEvent(eventName: string, eventParams?: Record<string, unknown>) {
+  if (typeof window !== 'undefined' && window.dataLayer) {
+    window.dataLayer.push({
+      event: eventName,
+      ...eventParams,
     });
   }
 }
@@ -44,23 +52,42 @@ export function trackEvent(action: string, category: string, label?: string, val
 // Eventos predefinidos para ItsDev
 export const AnalyticsEvents = {
   // Contacto
-  formSubmit: () => trackEvent('form_submit', 'contact', 'contact_form'),
-  whatsappClick: () => trackEvent('click', 'contact', 'whatsapp_button'),
-  emailClick: () => trackEvent('click', 'contact', 'email_link'),
-  phoneClick: () => trackEvent('click', 'contact', 'phone_link'),
+  formSubmit: () => trackEvent('form_submit', { 
+    form_name: 'contact_form',
+    form_location: 'contact_section' 
+  }),
+  whatsappClick: () => trackEvent('whatsapp_click', { 
+    click_location: 'floating_button' 
+  }),
+  emailClick: () => trackEvent('email_click', { 
+    click_location: 'contact_section' 
+  }),
+  phoneClick: () => trackEvent('phone_click', { 
+    click_location: 'contact_section' 
+  }),
   
   // Navegación
-  navClick: (section: string) => trackEvent('click', 'navigation', section),
-  ctaClick: (button: string) => trackEvent('click', 'cta', button),
+  navClick: (section: string) => trackEvent('navigation_click', { 
+    section_name: section 
+  }),
+  ctaClick: (button: string) => trackEvent('cta_click', { 
+    button_name: button 
+  }),
   
   // Servicios
-  serviceView: (service: string) => trackEvent('view', 'services', service),
+  serviceView: (service: string) => trackEvent('service_view', { 
+    service_name: service 
+  }),
+
+  // Scroll
+  scrollToSection: (section: string) => trackEvent('scroll_to_section', {
+    section_name: section
+  }),
 };
 
-// Declarar gtag en window
+// Declarar dataLayer en window
 declare global {
   interface Window {
-    gtag: (command: string, ...args: unknown[]) => void;
-    dataLayer: unknown[];
+    dataLayer: Record<string, unknown>[];
   }
 }
