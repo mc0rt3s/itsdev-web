@@ -1,15 +1,22 @@
 'use client';
 
+import { AnalyticsEvents } from './Analytics';
+
 export default function WhatsAppButton() {
   const phoneNumber = '56975362904';
   const message = 'Hola, me interesa conocer más sobre sus servicios';
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+
+  const handleClick = () => {
+    AnalyticsEvents.whatsappClick();
+  };
 
   return (
     <a
       href={whatsappUrl}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={handleClick}
       className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 bg-[#25D366] hover:bg-[#20BA5C] text-white rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110 group"
       aria-label="Contactar por WhatsApp"
     >
