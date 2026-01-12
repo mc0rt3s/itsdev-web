@@ -16,8 +16,14 @@ function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
-// Inicializar Resend
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Inicialización lazy de Resend (evita error en build time)
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY no configurada');
+  }
+  return new Resend(apiKey);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,22 +51,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar que tenemos la API key de Resend
+    // En desarrollo sin API key, simular éxito
     if (!process.env.RESEND_API_KEY) {
-      console.error('RESEND_API_KEY no configurada');
-      // En desarrollo, simular éxito
       if (process.env.NODE_ENV === 'development') {
-        console.log('📧 Email simulado:', data);
+        console.log('📧 Email simulado (sin API key):', data);
         return NextResponse.json({ 
           success: true, 
           message: 'Mensaje recibido (modo desarrollo)' 
         });
       }
+      console.error('RESEND_API_KEY no configurada');
       return NextResponse.json(
         { error: 'Error de configuración del servidor' },
         { status: 500 }
       );
     }
+
+    // Obtener cliente de Resend
+    const resend = getResendClient();
 
     // Email HTML para el equipo de ItsDev
     const teamEmailHtml = `
