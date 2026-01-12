@@ -195,34 +195,51 @@ export async function POST(request: NextRequest) {
       </html>
     `;
 
-    // Enviar ambos emails usando batch
-    const { data: emailResult, error } = await resend.batch.send([
-      {
-        // Email al equipo de ItsDev
-        from: 'ItsDev Web <noreply@sender.itsdev.cl>',
-        to: ['contacto@itsdev.cl'],
-        replyTo: data.email,
-        subject: `🚀 Nuevo contacto: ${data.nombre}${data.empresa ? ` - ${data.empresa}` : ''}`,
-        html: teamEmailHtml,
-      },
-      {
-        // Email de confirmación al usuario
-        from: 'ItsDev <noreply@sender.itsdev.cl>',
-        to: [data.email],
-        subject: '✅ Recibimos tu mensaje - ItsDev',
-        html: userEmailHtml,
-      },
-    ]);
+    // Email 1: Notificación al equipo de ItsDev
+    console.log('📧 Enviando email al equipo...');
+    const { data: teamEmail, error: teamError } = await resend.emails.send({
+      from: 'ItsDev Web <noreply@sender.itsdev.cl>',
+      to: ['contacto@itsdev.cl'],
+      replyTo: data.email,
+      subject: `🚀 Nuevo contacto: ${data.nombre}${data.empresa ? ` - ${data.empresa}` : ''}`,
+      html: teamEmailHtml,
+    });
 
-    if (error) {
-      console.error('Error de Resend:', error);
+    if (teamError) {
+      console.error('❌ Error enviando email al equipo:', teamError);
+    } else {
+      console.log('✅ Email al equipo enviado:', teamEmail);
+    }
+
+    // Email 2: Confirmación al usuario
+    console.log('📧 Enviando email de confirmación al usuario...');
+    const { data: userEmail, error: userError } = await resend.emails.send({
+      from: 'ItsDev <noreply@sender.itsdev.cl>',
+      to: [data.email],
+      subject: '✅ Recibimos tu mensaje - ItsDev',
+      html: userEmailHtml,
+    });
+
+    if (userError) {
+      console.error('❌ Error enviando email al usuario:', userError);
+    } else {
+      console.log('✅ Email al usuario enviado:', userEmail);
+    }
+
+    // Si ambos fallaron, reportar error
+    if (teamError && userError) {
       return NextResponse.json(
-        { error: 'Error al enviar el mensaje' },
+        { error: 'Error al enviar los mensajes' },
         { status: 500 }
       );
     }
 
-    console.log('📧 Emails enviados:', emailResult);
+    // Log resumen
+    console.log('📧 Resumen de envío:', {
+      equipo: teamError ? 'FALLÓ' : 'OK',
+      usuario: userError ? 'FALLÓ' : 'OK',
+      contacto: data.email,
+    });
 
     return NextResponse.json({ 
       success: true, 
