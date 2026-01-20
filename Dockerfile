@@ -32,8 +32,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copiar Prisma y node_modules necesarios
+# Copiar Prisma, config y node_modules necesarios
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
@@ -48,6 +49,8 @@ EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+# URL por defecto para la base de datos
+ENV DATABASE_URL="file:/app/data/prod.db"
 
-# Script de inicio - usar ruta completa a prisma
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node server.js"]
+# Script de inicio - pasar URL explícitamente a prisma migrate
+CMD ["sh", "-c", "prisma migrate deploy --schema=./prisma/schema.prisma && node server.js"]
