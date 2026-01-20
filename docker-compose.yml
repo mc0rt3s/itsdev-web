@@ -12,8 +12,13 @@ services:
     environment:
       - NODE_ENV=production
       - RESEND_API_KEY=${RESEND_API_KEY}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://itsdev.cl}
+      - DATABASE_URL=file:/app/data/prod.db
     env_file:
       - .env
+    volumes:
+      - itsdev-data:/app/data
     labels:
       - "traefik.enable=true"
       
@@ -55,6 +60,10 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+volumes:
+  itsdev-data:
+    driver: local
 
 networks:
   itsdev-net:
