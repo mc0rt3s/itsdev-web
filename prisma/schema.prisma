@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("user") // admin, user
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Cliente {
+  id          String   @id @default(cuid())
+  rut         String   @unique
+  razonSocial String   // Razón social o nombre de la empresa
+  contacto    String?  // Nombre del contacto principal
+  telefono    String?
+  email       String?
+  notas       String?
+  estado      String   @default("activo") // activo, inactivo, prospecto
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relaciones
+  accesos     Acceso[]
+}
+
+model Acceso {
+  id        String   @id @default(cuid())
+  nombre    String   // Nombre descriptivo (ej: "Correo corporativo", "Servidor web")
+  tipo      String   // hosting, cpanel, email, ftp, ssh, db, vpn, cloud, otro
+  url       String?  // URL o IP de acceso
+  puerto    String?  // Puerto (ej: 22, 3306, 21)
+  usuario   String?  // Usuario o login
+  password  String?  // Contraseña
+  notas     String?  // Notas adicionales
+  clienteId String?
+  cliente   Cliente? @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Nota {
+  id        String   @id @default(cuid())
+  titulo    String
+  contenido String
+  favorita  Boolean  @default(false) // Notas importantes para mostrar en dashboard
+  color     String   @default("slate") // slate, cyan, violet, emerald, amber, rose
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
