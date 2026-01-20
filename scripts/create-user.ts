@@ -14,9 +14,10 @@ import bcrypt from 'bcryptjs';
 import path from 'path';
 import * as readline from 'readline';
 
-// Configurar Prisma
-const dbPath = path.join(process.cwd(), 'prisma', 'dev.db');
-const adapter = new PrismaBetterSqlite3({ url: dbPath });
+// Configurar Prisma - usar DATABASE_URL del entorno o default local
+const dbUrl = process.env.DATABASE_URL || `file:${path.join(process.cwd(), 'prisma', 'dev.db')}`;
+console.log('Conectando a:', dbUrl);
+const adapter = new PrismaBetterSqlite3({ url: dbUrl });
 const prisma = new PrismaClient({ adapter });
 
 // Colores para la consola
