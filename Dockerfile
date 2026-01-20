@@ -49,8 +49,7 @@ EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-# URL por defecto para la base de datos
 ENV DATABASE_URL="file:/app/data/prod.db"
 
-# Script de inicio - pasar URL explícitamente a prisma migrate
-CMD ["sh", "-c", "prisma migrate deploy --schema=./prisma/schema.prisma && node server.js"]
+# Script de inicio - pasar URL explícitamente con --url flag
+CMD ["sh", "-c", "prisma migrate deploy --url \"$DATABASE_URL\" && node server.js"]
