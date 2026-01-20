@@ -51,5 +51,5 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV DATABASE_URL="file:/app/data/prod.db"
 
-# Script de inicio - pasar URL explícitamente con --url flag
-CMD ["sh", "-c", "prisma migrate deploy --url \"$DATABASE_URL\" && node server.js"]
+# Script de inicio - prisma lee DATABASE_URL desde prisma.config.ts
+CMD ["sh", "-c", "echo 'DATABASE_URL='$DATABASE_URL && prisma migrate deploy && node server.js"]

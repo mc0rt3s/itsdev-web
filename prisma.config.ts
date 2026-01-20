@@ -1,8 +1,9 @@
-import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
-// En producción usa DATABASE_URL, en desarrollo usa el archivo local
+// Lee DATABASE_URL directamente del entorno (sin dotenv en producción)
 const databaseUrl = process.env.DATABASE_URL || "file:./prisma/dev.db";
+
+console.log("Prisma config - DATABASE_URL:", databaseUrl);
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
