@@ -41,10 +41,13 @@ COPY --from=builder /app/package.json ./package.json
 RUN mkdir -p /app/data && chmod 777 /app/data
 RUN chmod -R 777 /app/prisma
 
+# Agregar node_modules/.bin al PATH
+ENV PATH="/app/node_modules/.bin:$PATH"
+
 EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Script de inicio
-CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
+# Script de inicio - usar ruta completa a prisma
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node server.js"]
