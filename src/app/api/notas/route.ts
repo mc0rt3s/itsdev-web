@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { notaSchema } from '@/lib/schemas';
 
 // GET - Listar todas las notas
 export async function GET() {
   const session = await auth();
-  
+
   if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
@@ -17,7 +18,7 @@ export async function GET() {
         { updatedAt: 'desc' }
       ],
     });
-    
+
     return NextResponse.json(notas);
   } catch (error) {
     console.error('Error al obtener notas:', error);
@@ -28,30 +29,34 @@ export async function GET() {
 // POST - Crear nueva nota
 export async function POST(request: NextRequest) {
   const session = await auth();
-  
+
   if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
   try {
     const data = await request.json();
-    
-    if (!data.titulo || !data.contenido) {
+
+    const validationResult = notaSchema.safeParse(data);
+
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Título y contenido son requeridos' },
+        { error: validationResult.error.issues[0].message },
         { status: 400 }
       );
     }
 
+    const { titulo, contenido, favorita, color } = validationResult.data;
+
     const nota = await prisma.nota.create({
       data: {
-        titulo: data.titulo,
-        contenido: data.contenido,
-        favorita: data.favorita || false,
-        color: data.color || 'slate',
+        titulo,
+        contenido,
+        favorita,
+        color,
       },
     });
-    
+
     return NextResponse.json(nota, { status: 201 });
   } catch (error) {
     console.error('Error al crear nota:', error);

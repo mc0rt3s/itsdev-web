@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { contactSchema } from '@/lib/schemas';
 
 // Interfaz para los datos del formulario
 interface ContactFormData {
@@ -27,37 +28,25 @@ function getResendClient() {
 
 export async function POST(request: NextRequest) {
   try {
-    const data: ContactFormData = await request.json();
 
-    // Validaciones
-    if (!data.nombre || data.nombre.trim().length < 2) {
+    const validationResult = contactSchema.safeParse(await request.json());
+
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'El nombre es requerido (mínimo 2 caracteres)' },
+        { error: validationResult.error.issues[0].message },
         { status: 400 }
       );
     }
 
-    if (!data.email || !isValidEmail(data.email)) {
-      return NextResponse.json(
-        { error: 'Email inválido' },
-        { status: 400 }
-      );
-    }
-
-    if (!data.mensaje || data.mensaje.trim().length < 10) {
-      return NextResponse.json(
-        { error: 'El mensaje es requerido (mínimo 10 caracteres)' },
-        { status: 400 }
-      );
-    }
+    const data = validationResult.data;
 
     // En desarrollo sin API key, simular éxito
     if (!process.env.RESEND_API_KEY) {
       if (process.env.NODE_ENV === 'development') {
         console.log('📧 Email simulado (sin API key):', data);
-        return NextResponse.json({ 
-          success: true, 
-          message: 'Mensaje recibido (modo desarrollo)' 
+        return NextResponse.json({
+          success: true,
+          message: 'Mensaje recibido (modo desarrollo)'
         });
       }
       console.error('RESEND_API_KEY no configurada');
@@ -247,9 +236,9 @@ export async function POST(request: NextRequest) {
       contacto: data.email,
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Mensaje enviado correctamente' 
+    return NextResponse.json({
+      success: true,
+      message: 'Mensaje enviado correctamente'
     });
 
   } catch (error) {

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { userSchema } from '@/lib/schemas';
 import bcrypt from 'bcryptjs';
 
 // GET - Listar todos los usuarios
 export async function GET() {
   const session = await auth();
-  
+
   if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
@@ -29,7 +30,7 @@ export async function GET() {
         // No incluir password
       },
     });
-    
+
     return NextResponse.json(usuarios);
   } catch (error) {
     console.error('Error al obtener usuarios:', error);
@@ -40,7 +41,7 @@ export async function GET() {
 // POST - Crear nuevo usuario
 export async function POST(request: NextRequest) {
   const session = await auth();
-  
+
   if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
@@ -52,35 +53,21 @@ export async function POST(request: NextRequest) {
 
   try {
     const data = await request.json();
-    
-    // Validar campos requeridos
-    if (!data.email || !data.name || !data.password) {
+
+    const validationResult = userSchema.safeParse(data);
+
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Email, nombre y contraseña son requeridos' },
+        { error: validationResult.error.issues[0].message },
         { status: 400 }
       );
     }
 
-    // Validar email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(data.email)) {
-      return NextResponse.json(
-        { error: 'Email inválido' },
-        { status: 400 }
-      );
-    }
-
-    // Validar contraseña
-    if (data.password.length < 6) {
-      return NextResponse.json(
-        { error: 'La contraseña debe tener al menos 6 caracteres' },
-        { status: 400 }
-      );
-    }
+    const { email, name, password, role } = validationResult.data;
 
     // Verificar si el email ya existe
     const existingUser = await prisma.user.findUnique({
-      where: { email: data.email }
+      where: { email }
     });
 
     if (existingUser) {
@@ -91,14 +78,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash de la contraseña
-    const hashedPassword = await bcrypt.hash(data.password, 12);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     const usuario = await prisma.user.create({
       data: {
-        email: data.email,
-        name: data.name,
+        email,
+        name,
         password: hashedPassword,
-        role: data.role || 'user',
+        role: role || 'user',
       },
       select: {
         id: true,
@@ -108,7 +95,7 @@ export async function POST(request: NextRequest) {
         createdAt: true,
       },
     });
-    
+
     return NextResponse.json(usuario, { status: 201 });
   } catch (error) {
     console.error('Error al crear usuario:', error);
