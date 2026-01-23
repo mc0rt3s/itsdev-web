@@ -159,11 +159,11 @@ export default function Contacto() {
                 <div>
                   <div className="font-semibold text-slate-900 dark:text-white">Teléfono</div>
                   <a 
-                    href="tel:+56975362904" 
+                    href="tel:+56990958220" 
                     onClick={handlePhoneClick}
                     className="text-slate-600 dark:text-slate-400 hover:text-[#7AA228] transition-colors"
                   >
-                    +56 9 7536 2904
+                    +56 9 9095 8220
                   </a>
                 </div>
               </div>
@@ -177,7 +177,7 @@ export default function Contacto() {
                 <div>
                   <div className="font-semibold text-slate-900 dark:text-white">WhatsApp</div>
                   <a 
-                    href="https://wa.me/56975362904?text=Hola%2C%20me%20interesa%20conocer%20más%20sobre%20sus%20servicios"
+                    href="https://wa.me/56990958220?text=Hola%2C%20me%20interesa%20conocer%20más%20sobre%20sus%20servicios"
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={handleWhatsAppClick}
@@ -321,7 +321,7 @@ export default function Contacto() {
                       value={formData.telefono}
                       onChange={handleChange}
                       className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7AA228] focus:border-transparent transition-all"
-                      placeholder="+56 9 7536 2904"
+                      placeholder="+56 9 9095 8220"
                     />
                   </div>
                 </div>

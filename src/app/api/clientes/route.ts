@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { clienteSchema } from '@/lib/schemas';
 
 // GET - Listar todos los clientes
 export async function GET() {
   const session = await auth();
-  
+
   if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
@@ -19,7 +20,7 @@ export async function GET() {
         }
       }
     });
-    
+
     return NextResponse.json(clientes);
   } catch (error) {
     console.error('Error al obtener clientes:', error);
@@ -30,25 +31,28 @@ export async function GET() {
 // POST - Crear nuevo cliente
 export async function POST(request: NextRequest) {
   const session = await auth();
-  
+
   if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
   try {
     const data = await request.json();
-    
-    // Validar campos requeridos
-    if (!data.rut || !data.razonSocial) {
+
+    const validationResult = clienteSchema.safeParse(data);
+
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'RUT y Razón Social son requeridos' },
+        { error: validationResult.error.errors[0].message },
         { status: 400 }
       );
     }
 
+    const { rut, razonSocial, contacto, telefono, email, notas, estado } = validationResult.data;
+
     // Verificar si el RUT ya existe
     const existingCliente = await prisma.cliente.findUnique({
-      where: { rut: data.rut }
+      where: { rut }
     });
 
     if (existingCliente) {
@@ -60,16 +64,16 @@ export async function POST(request: NextRequest) {
 
     const cliente = await prisma.cliente.create({
       data: {
-        rut: data.rut,
-        razonSocial: data.razonSocial,
-        contacto: data.contacto || null,
-        telefono: data.telefono || null,
-        email: data.email || null,
-        notas: data.notas || null,
-        estado: data.estado || 'activo',
+        rut,
+        razonSocial,
+        contacto,
+        telefono,
+        email,
+        notas,
+        estado,
       },
     });
-    
+
     return NextResponse.json(cliente, { status: 201 });
   } catch (error) {
     console.error('Error al crear cliente:', error);

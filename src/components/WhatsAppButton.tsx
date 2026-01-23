@@ -3,7 +3,7 @@
 import { AnalyticsEvents } from './Analytics';
 
 export default function WhatsAppButton() {
-  const phoneNumber = '56975362904';
+  const phoneNumber = '56990958220';
   const message = 'Hola, me interesa conocer más sobre sus servicios';
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
 
