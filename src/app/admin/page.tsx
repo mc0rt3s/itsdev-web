@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
+import FlujoCajaCharts from '@/components/admin/FlujoCajaCharts';
 
 const colorClasses: Record<string, { bg: string; border: string; text: string; icon: string }> = {
   slate: { bg: 'bg-slate-500/10', border: 'border-slate-500/30', text: 'text-slate-300', icon: 'text-slate-400' },
@@ -14,8 +15,12 @@ const colorClasses: Record<string, { bg: string; border: string; text: string; i
 export default async function AdminDashboard() {
   const session = await auth();
   
+  // Calcular fechas para el mes actual
+  const ahora = new Date();
+  const fechaInicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+
   // Obtener estadísticas y notas favoritas
-  const [clientesCount, accesosCount, notasCount, usuariosCount, notasFavoritas] = await Promise.all([
+  const [clientesCount, accesosCount, notasCount, usuariosCount, notasFavoritas, flujoCaja, datosMensuales, gastosPorCategoria] = await Promise.all([
     prisma.cliente.count(),
     prisma.acceso.count(),
     prisma.nota.count(),
@@ -25,6 +30,106 @@ export default async function AdminDashboard() {
       orderBy: { updatedAt: 'desc' },
       take: 6,
     }),
+    // Calcular flujo de caja del mes actual
+    (async () => {
+      // Ingresos (facturas pagadas)
+      const facturasPagadas = await prisma.factura.findMany({
+        where: {
+          estado: 'pagada',
+          fechaEmision: { gte: fechaInicioMes },
+        },
+        select: { total: true },
+      });
+      const ingresos = facturasPagadas.reduce((sum, f) => sum + f.total, 0);
+
+      // Gastos
+      const gastos = await prisma.gasto.findMany({
+        where: {
+          fecha: { gte: fechaInicioMes },
+        },
+        select: { monto: true },
+      });
+      const totalGastos = gastos.reduce((sum, g) => sum + g.monto, 0);
+
+      // Pendiente por cobrar
+      const facturasPendientes = await prisma.factura.findMany({
+        where: {
+          estado: { in: ['emitida', 'enviada', 'pendiente'] },
+          fechaEmision: { gte: fechaInicioMes },
+        },
+        select: { total: true },
+      });
+      const pendiente = facturasPendientes.reduce((sum, f) => sum + f.total, 0);
+
+      return {
+        ingresos,
+        gastos: totalGastos,
+        balance: ingresos - totalGastos,
+        pendiente,
+      };
+    })(),
+    // Obtener datos para gráficos (últimos 6 meses)
+    (async () => {
+      const meses: Array<{ mes: string; ingresos: number; gastos: number; balance: number }> = [];
+      const nombresMeses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      
+      for (let i = 5; i >= 0; i--) {
+        const fecha = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
+        const fechaFin = new Date(ahora.getFullYear(), ahora.getMonth() - i + 1, 0);
+        
+        const facturasMes = await prisma.factura.findMany({
+          where: {
+            estado: 'pagada',
+            fechaEmision: {
+              gte: fecha,
+              lte: fechaFin,
+            },
+          },
+          select: { total: true },
+        });
+        const ingresosMes = facturasMes.reduce((sum, f) => sum + f.total, 0);
+
+        const gastosMes = await prisma.gasto.findMany({
+          where: {
+            fecha: {
+              gte: fecha,
+              lte: fechaFin,
+            },
+          },
+          select: { monto: true },
+        });
+        const totalGastosMes = gastosMes.reduce((sum, g) => sum + g.monto, 0);
+
+        meses.push({
+          mes: nombresMeses[fecha.getMonth()],
+          ingresos: ingresosMes,
+          gastos: totalGastosMes,
+          balance: ingresosMes - totalGastosMes,
+        });
+      }
+
+      return meses;
+    })(),
+    // Obtener gastos por categoría
+    (async () => {
+      const gastos = await prisma.gasto.findMany({
+        where: {
+          fecha: { gte: fechaInicioMes },
+        },
+        select: {
+          categoria: true,
+          monto: true,
+        },
+      });
+
+      const categoriasMap: Record<string, number> = {};
+      gastos.forEach((g) => {
+        const categoria = g.categoria.charAt(0).toUpperCase() + g.categoria.slice(1);
+        categoriasMap[categoria] = (categoriasMap[categoria] || 0) + g.monto;
+      });
+
+      return Object.entries(categoriasMap).map(([name, value]) => ({ name, value }));
+    })(),
   ]);
 
   const stats = [
@@ -85,6 +190,64 @@ export default async function AdminDashboard() {
           Bienvenido al panel de administración de itsDev
         </p>
       </div>
+
+      {/* Flujo de Caja */}
+      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500/20 to-cyan-500/20">
+              <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Flujo de Caja</h2>
+              <p className="text-sm text-slate-400">Mes actual</p>
+            </div>
+          </div>
+          <Link
+            href="/admin/facturas"
+            className="text-sm text-slate-400 hover:text-cyan-400 transition-colors flex items-center gap-1"
+          >
+            Ver detalles
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/30">
+            <p className="text-slate-400 text-xs font-medium mb-1">Ingresos</p>
+            <p className="text-2xl font-bold text-emerald-400">
+              {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(flujoCaja.ingresos)}
+            </p>
+          </div>
+          <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/30">
+            <p className="text-slate-400 text-xs font-medium mb-1">Gastos</p>
+            <p className="text-2xl font-bold text-red-400">
+              {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(flujoCaja.gastos)}
+            </p>
+          </div>
+          <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/30">
+            <p className="text-slate-400 text-xs font-medium mb-1">Balance</p>
+            <p className={`text-2xl font-bold ${flujoCaja.balance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(flujoCaja.balance)}
+            </p>
+          </div>
+          <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/30">
+            <p className="text-slate-400 text-xs font-medium mb-1">Pendiente</p>
+            <p className="text-2xl font-bold text-amber-400">
+              {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(flujoCaja.pendiente)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Gráficos de Flujo de Caja */}
+      <FlujoCajaCharts 
+        datosMensuales={datosMensuales}
+        gastosPorCategoria={gastosPorCategoria}
+      />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

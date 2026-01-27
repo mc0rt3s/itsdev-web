@@ -17,6 +17,10 @@ model User {
   role      String   @default("user") // admin, user
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  // Relaciones
+  tareasAsignadas          Tarea[]
+  comunicacionesRegistradas Comunicacion[]
 }
 
 model Cliente {
@@ -32,7 +36,12 @@ model Cliente {
   updatedAt   DateTime @updatedAt
   
   // Relaciones
-  accesos     Acceso[]
+  accesos         Acceso[]
+  proyectos       Proyecto[]
+  facturas        Factura[]
+  cotizaciones    Cotizacion[]
+  suscripciones   Suscripcion[]
+  comunicaciones  Comunicacion[]
 }
 
 model Acceso {
@@ -69,6 +78,213 @@ model Enlace {
   icono       String   @default("link") // link, server, shield, cloud, code, database, monitor, folder
   orden       Int      @default(0) // Para ordenar los enlaces
   activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Servicio {
+  id          String   @id @default(cuid())
+  nombre      String
+  descripcion String?
+  precio      Float
+  tipo        String   @default("mensual") // mensual, anual, unico, hora
+  categoria   String   @default("general") // hosting, desarrollo, mantenimiento, consultoria
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relaciones
+  suscripciones Suscripcion[]
+  itemsFactura  ItemFactura[]
+  itemsCotizacion ItemCotizacion[]
+}
+
+model Suscripcion {
+  id          String   @id @default(cuid())
+  clienteId   String
+  cliente     Cliente  @relation(fields: [clienteId], references: [id])
+  servicioId  String
+  servicio    Servicio @relation(fields: [servicioId], references: [id])
+  
+  precio      Float    // Precio acordado (puede diferir del precio de lista del servicio)
+  ciclo       String   @default("mensual") // mensual, anual, trimestral
+  fechaInicio DateTime
+  fechaFin    DateTime?
+  proxCobro   DateTime?
+  estado      String   @default("activa") // activa, pausada, cancelada, pendiente
+  notas       String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Proyecto {
+  id          String   @id @default(cuid())
+  clienteId   String
+  cliente     Cliente  @relation(fields: [clienteId], references: [id])
+  
+  nombre      String
+  descripcion String?
+  estado      String   @default("planificacion") // planificacion, desarrollo, pruebas, completado, pausado, cancelado
+  prioridad   String   @default("media") // baja, media, alta, urgente
+  fechaInicio DateTime?
+  fechaFin    DateTime?
+  presupuesto Float?
+  avance      Int      @default(0) // Porcentaje 0-100
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relaciones
+  tareas      Tarea[]
+  facturas    Factura[] // Proyectos pueden generar facturas
+}
+
+model Tarea {
+  id          String   @id @default(cuid())
+  proyectoId  String
+  proyecto    Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  
+  titulo      String
+  descripcion String?
+  estado      String   @default("pendiente") // pendiente, en_progreso, revision, completada
+  prioridad   String   @default("media") // baja, media, alta
+  fechaVenc   DateTime?
+  
+  asignadoAId String?
+  asignadoA   User?    @relation(fields: [asignadoAId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Factura {
+  id          String   @id @default(cuid())
+  clienteId   String
+  cliente     Cliente  @relation(fields: [clienteId], references: [id])
+  
+  numero      String   @unique // Folio o número interno
+  numeroSII   String?  // Número de factura SII (Servicio de Impuestos Internos)
+  fechaEmision DateTime @default(now())
+  fechaVenc   DateTime
+  estado      String   @default("emitida") // emitida, enviada, pendiente, pagada, cancelada, vencida
+  moneda      String   @default("CLP") // CLP, USD, UF
+  subtotal    Float
+  impuesto    Float    @default(0) // IVA u otros
+  total       Float
+  notas       String?
+  
+  proyectoId  String?
+  proyecto    Proyecto? @relation(fields: [proyectoId], references: [id])
+  
+  cotizacionId String?
+  cotizacion   Cotizacion? @relation(fields: [cotizacionId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relaciones
+  items       ItemFactura[]
+  pagos       Pago[]
+}
+
+model ItemFactura {
+  id          String   @id @default(cuid())
+  facturaId   String
+  factura     Factura  @relation(fields: [facturaId], references: [id], onDelete: Cascade)
+  
+  servicioId  String?
+  servicio    Servicio? @relation(fields: [servicioId], references: [id])
+  
+  descripcion String
+  cantidad    Float    @default(1)
+  precioUnit  Float
+  total       Float
+}
+
+model Pago {
+  id          String   @id @default(cuid())
+  facturaId   String
+  factura     Factura  @relation(fields: [facturaId], references: [id])
+  
+  monto       Float
+  fecha       DateTime @default(now())
+  metodo      String   // transferencia, tarjeta, efectivo, cheque
+  referencia  String?  // Nro de comprobante
+  notas       String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Cotizacion {
+  id          String   @id @default(cuid())
+  clienteId   String?  // Puede ser a un prospecto aún no registrado como cliente, pero lo ideal es registrarlo como prospecto
+  cliente     Cliente? @relation(fields: [clienteId], references: [id])
+  
+  numero      String   @unique
+  fecha       DateTime @default(now())
+  validez     DateTime // Fecha hasta la cual es válida
+  estado      String   @default("borrador") // borrador, enviada, aprobada, rechazada, vencida
+  moneda      String   @default("CLP")
+  subtotal    Float
+  impuesto    Float    @default(0)
+  total       Float
+  notas       String?
+  
+  nombreProspecto String? // Si no hay clienteId
+  emailProspecto  String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relaciones
+  items       ItemCotizacion[]
+  facturas    Factura[] // Facturas generadas desde esta cotización
+}
+
+model ItemCotizacion {
+  id          String     @id @default(cuid())
+  cotizacionId String
+  cotizacion  Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+  
+  servicioId  String?
+  servicio    Servicio?  @relation(fields: [servicioId], references: [id])
+  
+  descripcion String
+  cantidad    Float      @default(1)
+  precioUnit  Float
+  total       Float
+}
+
+model Comunicacion {
+  id          String   @id @default(cuid())
+  clienteId   String
+  cliente     Cliente  @relation(fields: [clienteId], references: [id])
+  
+  tipo        String   // email, telefono, reunion, whatsapp
+  fecha       DateTime @default(now())
+  resumen     String
+  detalle     String?
+  resultado   String?  // Resultado de la interacción
+  
+  usuarioId   String
+  usuario     User     @relation(fields: [usuarioId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Gasto {
+  id          String   @id @default(cuid())
+  monto       Float
+  motivo     String   // Descripción del gasto
+  categoria   String   // servicios, insumos, software, hardware, marketing, otros
+  fecha       DateTime @default(now())
+  proveedor   String?  // Nombre del proveedor
+  comprobante String?  // Ruta del archivo del comprobante
+  notas       String?
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

@@ -40,8 +40,9 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
-# Crear directorio para la base de datos con permisos correctos
+# Crear directorios necesarios con permisos correctos
 RUN mkdir -p /app/data && chmod 777 /app/data
+RUN mkdir -p /app/public/uploads/comprobantes && chmod -R 777 /app/public/uploads
 RUN chmod -R 777 /app/prisma
 
 # Agregar node_modules/.bin al PATH

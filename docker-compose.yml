@@ -19,6 +19,7 @@ services:
       - .env
     volumes:
       - itsdev-data:/app/data
+      - itsdev-uploads:/app/public/uploads
     labels:
       - "traefik.enable=true"
       
@@ -63,6 +64,8 @@ services:
 
 volumes:
   itsdev-data:
+    driver: local
+  itsdev-uploads:
     driver: local
 
 networks:
