@@ -4,7 +4,13 @@ import { auth } from '@/lib/auth';
 import { Resend } from 'resend';
 import { generateCotizacionPDF } from '@/lib/pdf-generator';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResendClient() {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+        throw new Error('RESEND_API_KEY no configurada');
+    }
+    return new Resend(apiKey);
+}
 
 export async function POST(
     request: NextRequest,
@@ -65,6 +71,7 @@ export async function POST(
         });
 
         // Send email
+        const resend = getResendClient();
         const { data, error } = await resend.emails.send({
             from: 'ITSDev <cotizaciones@itsdev.cl>',
             to: [recipientEmail],
