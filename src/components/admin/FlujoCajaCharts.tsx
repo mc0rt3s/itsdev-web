@@ -92,7 +92,7 @@ export default function FlujoCajaCharts({ datosMensuales, gastosPorCategoria }: 
                 ))}
               </Pie>
               <Tooltip 
-                formatter={(value: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(value)}
+                formatter={(value: number | undefined) => value ? new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(value) : ''}
                 contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
               />
             </PieChart>
