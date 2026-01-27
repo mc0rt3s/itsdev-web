@@ -72,7 +72,7 @@ export default function Footer() {
                 </a>
               </li>
               <li className="text-slate-400 text-sm">
-                Santiago, Chile
+                Casablanca, Valparaíso, Chile
               </li>
             </ul>
 

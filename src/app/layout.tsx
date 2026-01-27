@@ -110,7 +110,7 @@ const jsonLd = {
       },
       contactPoint: {
         "@type": "ContactPoint",
-        telephone: "+56-9-7536-2904",
+        telephone: "+56-9-9095-8220",
         contactType: "sales",
         email: "contacto@itsdev.cl",
         availableLanguage: ["Spanish", "English"],
@@ -139,7 +139,7 @@ const jsonLd = {
       name: "ItsDev",
       image: "https://itsdev.cl/logo.svg",
       url: "https://itsdev.cl",
-      telephone: "+56-9-7536-2904",
+      telephone: "+56-9-9095-8220",
       email: "contacto@itsdev.cl",
       address: {
         "@type": "PostalAddress",

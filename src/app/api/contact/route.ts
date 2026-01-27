@@ -177,12 +177,12 @@ export async function POST(request: NextRequest) {
                 <p>Si tu consulta es urgente, puedes contactarnos directamente por WhatsApp:</p>
               </div>
               <div class="cta">
-                <a href="https://wa.me/56975362904?text=Hola%2C%20acabo%20de%20enviar%20un%20formulario%20desde%20itsdev.cl">💬 Escribir por WhatsApp</a>
+                <a href="https://wa.me/56990958220?text=Hola%2C%20acabo%20de%20enviar%20un%20formulario%20desde%20itsdev.cl">💬 Escribir por WhatsApp</a>
               </div>
             </div>
             <div class="footer">
               <p><strong>ItsDev</strong> - Soluciones Tecnológicas que Funcionan</p>
-              <p style="margin-top:6px;">📧 <a href="mailto:contacto@itsdev.cl">contacto@itsdev.cl</a> · 📱 <a href="tel:+56975362904">+56 9 7536 2904</a></p>
+              <p style="margin-top:6px;">📧 <a href="mailto:contacto@itsdev.cl">contacto@itsdev.cl</a> · 📱 <a href="tel:+56990958220">+56 9 9095 8220</a></p>
             </div>
           </div>
         </div>
