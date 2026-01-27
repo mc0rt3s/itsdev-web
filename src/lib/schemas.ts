@@ -50,3 +50,15 @@ export const contactSchema = z.object({
 });
 
 export type ContactInput = z.infer<typeof contactSchema>;
+
+export const enlaceSchema = z.object({
+  nombre: z.string().min(1, 'El nombre es requerido'),
+  url: z.string().url('URL inválida'),
+  categoria: z.enum(['infraestructura', 'monitoreo', 'desarrollo', 'documentacion', 'otros']).default('otros'),
+  descripcion: z.string().optional().nullable(),
+  icono: z.enum(['link', 'server', 'shield', 'cloud', 'code', 'database', 'monitor', 'folder']).default('link'),
+  orden: z.number().int().default(0),
+  activo: z.boolean().default(true),
+});
+
+export type EnlaceInput = z.infer<typeof enlaceSchema>;

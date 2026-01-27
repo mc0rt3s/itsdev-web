@@ -59,3 +59,16 @@ model Nota {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model Enlace {
+  id          String   @id @default(cuid())
+  nombre      String   // Nombre del enlace (ej: "Portainer", "VPN Empresa")
+  url         String   // URL completa
+  categoria   String   @default("otros") // infraestructura, monitoreo, desarrollo, documentacion, otros
+  descripcion String?  // Descripción opcional
+  icono       String   @default("link") // link, server, shield, cloud, code, database, monitor, folder
+  orden       Int      @default(0) // Para ordenar los enlaces
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
