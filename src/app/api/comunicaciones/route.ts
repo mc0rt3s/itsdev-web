@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
         const comunicaciones = await prisma.comunicacion.findMany({
             where,
             include: {
-                cliente: { select: { razonSocial: true } },
+                cliente: { select: { id: true, razonSocial: true } },
                 usuario: { select: { name: true, email: true } }
             },
             orderBy: { fecha: 'desc' }
