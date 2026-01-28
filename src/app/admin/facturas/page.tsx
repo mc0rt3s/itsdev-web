@@ -72,6 +72,7 @@ export default function FacturasPage() {
     const [tempEstado, setTempEstado] = useState<string | null>(null);
     const [tempNumeroSII, setTempNumeroSII] = useState<string | null>(null);
     const [savingNumeroSII, setSavingNumeroSII] = useState(false);
+    const [updatingEstados, setUpdatingEstados] = useState<Record<string, boolean>>({});
     const [saving, setSaving] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState<{
@@ -244,14 +245,55 @@ export default function FacturasPage() {
         });
     };
 
-    const handleUpdateEstado = async (id: string, nuevoEstado: string) => {
-        const estadoActual = viewingFactura?.estado;
+    const handleUpdateEstado = async (id: string, nuevoEstado: string, facturaActual?: Factura) => {
+        const estadoActual = facturaActual?.estado || viewingFactura?.estado;
         if (estadoActual === nuevoEstado) {
+            if (facturaActual) {
+                // Si es desde la tabla, no hay tempEstado
+                return;
+            }
             setTempEstado(null);
             return;
         }
 
-        // Guardar el estado temporal
+        // Si es desde la tabla, usar el estado de la factura directamente
+        if (facturaActual) {
+            setConfirmDialog({
+                isOpen: true,
+                title: 'Cambiar Estado',
+                message: `¿Deseas cambiar el estado de la factura a "${nuevoEstado}"?`,
+                type: nuevoEstado === 'cancelada' ? 'danger' : 'info',
+                onConfirm: async () => {
+                    setConfirmDialog({ ...confirmDialog, isOpen: false });
+                    setUpdatingEstados(prev => ({ ...prev, [id]: true }));
+                    try {
+                        const res = await fetch(`/api/facturas/${id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ estado: nuevoEstado })
+                        });
+                        if (res.ok) {
+                            toast.success(`Estado actualizado a "${nuevoEstado}"`);
+                            fetchData();
+                            if (activeTab === 'dashboard') fetchDashboard();
+                        } else {
+                            const error = await res.json();
+                            toast.error(error.error || 'Error al actualizar estado');
+                        }
+                    } catch (error) {
+                        toast.error('Error al actualizar estado');
+                    } finally {
+                        setUpdatingEstados(prev => ({ ...prev, [id]: false }));
+                    }
+                },
+                onCancel: () => {
+                    setConfirmDialog({ ...confirmDialog, isOpen: false });
+                }
+            });
+            return;
+        }
+
+        // Si es desde el modal
         setTempEstado(nuevoEstado);
 
         setConfirmDialog({
@@ -543,7 +585,7 @@ export default function FacturasPage() {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-slate-700/50 text-left">
-                                    <th className="p-4 text-slate-300">Folio</th>
+                                    <th className="p-4 text-slate-300">Folio / SII</th>
                                     <th className="p-4 text-slate-300">Cliente</th>
                                     <th className="p-4 text-slate-300">Emisión</th>
                                     <th className="p-4 text-slate-300">Vencimiento</th>
@@ -555,15 +597,32 @@ export default function FacturasPage() {
                             <tbody>
                                 {facturas.map(f => (
                                     <tr key={f.id} className="border-b border-slate-700/20 hover:bg-slate-700/20 transition-colors">
-                                        <td className="p-4 font-mono text-cyan-400">{f.numero}</td>
+                                        <td className="p-4">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="font-mono text-cyan-400">{f.numero}</span>
+                                                {f.numeroSII && (
+                                                    <span className="text-xs text-slate-400 font-mono">SII: {f.numeroSII}</span>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td className="p-4 text-white font-medium">{f.cliente.razonSocial}</td>
                                         <td className="p-4 text-slate-400">{new Date(f.fechaEmision).toLocaleDateString('es-CL')}</td>
                                         <td className="p-4 text-slate-400">{new Date(f.fechaVenc).toLocaleDateString('es-CL')}</td>
                                         <td className="p-4 text-white font-bold">{formatPrice(f.total)}</td>
                                         <td className="p-4">
-                                            <span className={`px-2.5 py-1 text-xs font-medium rounded-full border border-dashed capitalize ${getStatusBadge(f.estado)}`}>
-                                                {f.estado}
-                                            </span>
+                                            <select
+                                                value={f.estado}
+                                                onChange={(e) => handleUpdateEstado(f.id, e.target.value, f)}
+                                                disabled={updatingEstados[f.id]}
+                                                className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1 text-xs text-white focus:ring-1 focus:ring-cyan-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
+                                            >
+                                                <option value="emitida">Emitida</option>
+                                                <option value="enviada">Enviada</option>
+                                                <option value="pendiente">Pendiente</option>
+                                                <option value="pagada">Pagada</option>
+                                                <option value="cancelada">Cancelada</option>
+                                                <option value="vencida">Vencida</option>
+                                            </select>
                                         </td>
                                         <td className="p-4 text-right">
                                             <button onClick={() => openDetailModal(f)} className="text-slate-400 hover:text-white transition-colors">
@@ -604,7 +663,7 @@ export default function FacturasPage() {
                                                 value={tempEstado || viewingFactura.estado}
                                                 onChange={(e) => {
                                                     const nuevoEstado = e.target.value;
-                                                    handleUpdateEstado(viewingFactura.id, nuevoEstado);
+                                                    handleUpdateEstado(viewingFactura.id, nuevoEstado, viewingFactura);
                                                 }}
                                                 disabled={updatingEstado}
                                                 className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-sm text-white focus:ring-2 focus:ring-cyan-500 outline-none disabled:opacity-50"

@@ -10,6 +10,12 @@ export const authConfig = {
       const isLoggedIn = !!auth?.user;
       const isOnAdmin = nextUrl.pathname.startsWith('/admin');
       const isOnLogin = nextUrl.pathname === '/login';
+      const isOnApi = nextUrl.pathname.startsWith('/api');
+
+      // Permitir acceso a APIs sin autenticación (se manejan internamente)
+      if (isOnApi) {
+        return true;
+      }
 
       if (isOnAdmin) {
         if (isLoggedIn) return true;
