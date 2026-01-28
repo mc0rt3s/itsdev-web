@@ -13,19 +13,18 @@ export default function CalendlyWidget({ url, height = '700px', className = '' }
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // Esperar a que el script de Calendly esté cargado
     const checkCalendly = () => {
-      if (window.Calendly) {
+      const cal = typeof window !== 'undefined' ? (window as unknown as { Calendly?: { initInlineWidget: (opts: { url: string; parentElement: HTMLElement | null }) => void } }).Calendly : undefined;
+      if (cal) {
         const widgetElement = document.getElementById('calendly-widget');
         if (widgetElement && !isLoaded) {
-          window.Calendly.initInlineWidget({
+          cal.initInlineWidget({
             url: url,
             parentElement: widgetElement,
           });
           setIsLoaded(true);
         }
       } else {
-        // Reintentar después de un breve delay
         setTimeout(checkCalendly, 100);
       }
     };
@@ -39,12 +38,14 @@ export default function CalendlyWidget({ url, height = '700px', className = '' }
         src="https://assets.calendly.com/assets/external/widget.js"
         strategy="lazyOnload"
         onLoad={() => {
-          // Forzar reinicialización cuando el script se carga
           setTimeout(() => {
-            if (window.Calendly) {
+            const cal = window.Calendly as undefined | {
+              initInlineWidget: (opts: { url: string; parentElement: HTMLElement | null }) => void;
+            };
+            if (cal) {
               const widgetElement = document.getElementById('calendly-widget');
               if (widgetElement) {
-                window.Calendly.initInlineWidget({
+                cal.initInlineWidget({
                   url: url,
                   parentElement: widgetElement,
                 });
@@ -84,14 +85,4 @@ export default function CalendlyWidget({ url, height = '700px', className = '' }
       `}</style>
     </>
   );
-}
-
-// Extender Window interface para TypeScript
-declare global {
-  interface Window {
-    Calendly?: {
-      initInlineWidget: (options: { url: string; parentElement: HTMLElement | null }) => void;
-      initPopupWidget: (options: { url: string }) => void;
-    };
-  }
 }

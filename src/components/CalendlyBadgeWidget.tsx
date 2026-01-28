@@ -32,7 +32,17 @@ export default function CalendlyBadgeWidget({
 
   const initBadge = () => {
     if (typeof window !== 'undefined' && window.Calendly) {
-      window.Calendly.initBadgeWidget({
+      const cal = window.Calendly as {
+        initPopupWidget: (opts: { url: string }) => void;
+        initBadgeWidget: (opts: {
+          url: string;
+          text?: string;
+          color?: string;
+          textColor?: string;
+          branding?: boolean;
+        }) => void;
+      };
+      cal.initBadgeWidget({
         url,
         text,
         color,
@@ -58,19 +68,4 @@ export default function CalendlyBadgeWidget({
       />
     </>
   );
-}
-
-declare global {
-  interface Window {
-    Calendly?: {
-      initPopupWidget: (options: { url: string }) => void;
-      initBadgeWidget: (options: {
-        url: string;
-        text?: string;
-        color?: string;
-        textColor?: string;
-        branding?: boolean;
-      }) => void;
-    };
-  }
 }
