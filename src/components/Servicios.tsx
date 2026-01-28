@@ -6,7 +6,7 @@ const servicios = [
       </svg>
     ),
     title: 'Desarrollo de Software a Medida',
-    description: 'Creamos aplicaciones personalizadas que se adaptan exactamente a tus procesos de negocio, no al revés.',
+    description: 'Aplicaciones empresariales diseñadas desde cero para tu realidad operativa. Código limpio, arquitectura sólida y documentación completa que facilita el mantenimiento futuro.',
   },
   {
     icon: (
@@ -15,7 +15,7 @@ const servicios = [
       </svg>
     ),
     title: 'Desarrollo Web',
-    description: 'Sitios web corporativos, portales y aplicaciones web modernas, rápidas y optimizadas para tu negocio.',
+    description: 'Plataformas web de alto rendimiento que convierten visitantes en clientes. Diseño responsivo, SEO optimizado y arquitectura preparada para escalar según tu crecimiento.',
   },
   {
     icon: (
@@ -24,7 +24,7 @@ const servicios = [
       </svg>
     ),
     title: 'Administración de Servidores',
-    description: 'Gestión, monitoreo y optimización de tu infraestructura. Servidores que funcionan 24/7 sin dolores de cabeza.',
+    description: 'Infraestructura cloud y on-premise gestionada con rigor profesional. Monitoreo proactivo, backups automatizados y respuestas inmediatas ante cualquier incidencia.',
   },
   {
     icon: (
@@ -33,7 +33,7 @@ const servicios = [
       </svg>
     ),
     title: 'Soporte TI y Mantenimiento',
-    description: 'Soporte técnico proactivo y reactivo. Resolvemos problemas antes de que impacten tu operación.',
+    description: 'Equipo técnico disponible cuando lo necesitas. Resolución de incidencias, actualizaciones preventivas y optimización continua para mantener tus sistemas al máximo rendimiento.',
   },
   {
     icon: (
@@ -42,7 +42,7 @@ const servicios = [
       </svg>
     ),
     title: 'Integraciones y Automatización',
-    description: 'Conectamos tus sistemas y automatizamos procesos repetitivos para que tu equipo se enfoque en lo importante.',
+    description: 'Conectamos ecosistemas tecnológicos heterogéneos y eliminamos tareas manuales repetitivas. Tu equipo recupera tiempo para actividades de mayor valor estratégico.',
   },
   {
     icon: (
@@ -51,7 +51,7 @@ const servicios = [
       </svg>
     ),
     title: 'Consultoría Tecnológica',
-    description: 'Te ayudamos a tomar decisiones tecnológicas inteligentes, alineadas con tus objetivos de negocio.',
+    description: 'Análisis estratégico, roadmaps tecnológicos y recomendaciones basadas en experiencia real. Decisiones informadas que alinean tecnología con objetivos de negocio.',
   },
 ];
 
@@ -65,12 +65,12 @@ export default function Servicios() {
             Servicios
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white mb-6">
-            Soluciones completas para tu
-            <span className="text-[#7AA228]"> infraestructura digital</span>
+            Tecnología que potencia tu
+            <span className="text-[#7AA228]"> operación diaria</span>
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400">
-            Desde el desarrollo hasta el soporte continuo, cubrimos todo el ciclo de vida 
-            de tus sistemas tecnológicos.
+            Un ecosistema completo de servicios diseñados para empresas que no pueden permitirse 
+            interrupciones. Desde la concepción hasta la evolución continua.
           </p>
         </div>
 
@@ -97,13 +97,13 @@ export default function Servicios() {
         {/* CTA */}
         <div className="mt-16 text-center">
           <p className="text-slate-600 dark:text-slate-400 mb-4">
-            ¿No encuentras lo que buscas?
+            Cada empresa tiene necesidades únicas. Si tu desafío no está listado aquí, conversemos.
           </p>
           <a
             href="#contacto"
             className="inline-flex items-center gap-2 text-[#7AA228] hover:text-[#558B2F] font-semibold transition-colors"
           >
-            Cuéntanos tu necesidad
+            Hablemos de tu proyecto específico
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { AnalyticsEvents } from './Analytics';
+import CalendlyWidget from './CalendlyWidget';
 
 interface FormData {
   nombre: string;
@@ -30,6 +31,7 @@ export default function Contacto() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showCalendly, setShowCalendly] = useState(false);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -126,8 +128,8 @@ export default function Contacto() {
               <br />tu proyecto
             </h2>
             <p className="text-lg text-slate-600 dark:text-slate-400 mb-10">
-              Cuéntanos qué necesitas. Sin compromiso, sin presión. 
-              Solo una conversación para entender cómo podemos ayudarte.
+              Cada proyecto exitoso comienza con una conversación. Comparte tus desafíos tecnológicos 
+              y trabajemos juntos en diseñar la solución que realmente necesita tu empresa.
             </p>
 
             {/* Contact Info */}
@@ -189,6 +191,25 @@ export default function Contacto() {
               </div>
 
               <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-[#0088cc]/10 rounded-xl flex items-center justify-center text-[#0088cc]">
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.35-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.559z"/>
+                  </svg>
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-900 dark:text-white">Telegram</div>
+                  <a 
+                    href="https://t.me/+56990958220"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-slate-600 dark:text-slate-400 hover:text-[#0088cc] transition-colors"
+                  >
+                    Escríbenos directo
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
                 <div className="flex-shrink-0 w-12 h-12 bg-[#7AA228]/10 rounded-xl flex items-center justify-center text-[#7AA228]">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -216,9 +237,51 @@ export default function Contacto() {
             </div>
           </div>
 
-          {/* Form */}
+          {/* Form / Calendly Toggle */}
           <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 lg:p-10 shadow-xl border border-slate-100 dark:border-slate-700">
-            {isSubmitted ? (
+            {/* Toggle entre Formulario y Calendly */}
+            <div className="flex gap-2 mb-6 p-1 bg-slate-100 dark:bg-slate-700 rounded-lg">
+              <button
+                onClick={() => setShowCalendly(false)}
+                className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  !showCalendly
+                    ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Formulario
+              </button>
+              <button
+                onClick={() => setShowCalendly(true)}
+                className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  showCalendly
+                    ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Agendar Reunión
+              </button>
+            </div>
+
+            {showCalendly ? (
+              <div className="w-full">
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                    Agenda una conversación
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm">
+                    Selecciona un horario que funcione para ti. La reunión será una conversación técnica 
+                    sin compromiso para entender tus necesidades.
+                  </p>
+                </div>
+                <div className="w-full rounded-xl overflow-hidden border border-slate-200 dark:border-slate-600 bg-white">
+                  <CalendlyWidget 
+                    url={process.env.NEXT_PUBLIC_CALENDLY_URL || 'https://calendly.com/tu-usuario/30min'} 
+                    height="700px"
+                  />
+                </div>
+              </div>
+            ) : isSubmitted ? (
               <div className="h-full flex flex-col items-center justify-center text-center py-12">
                 <div className="w-16 h-16 bg-[#7AA228] rounded-full flex items-center justify-center mb-6">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -20,7 +20,7 @@ export default async function AdminDashboard() {
   const fechaInicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
 
   // Obtener estadísticas y notas favoritas
-  const [clientesCount, accesosCount, notasCount, usuariosCount, notasFavoritas, flujoCaja, datosMensuales, gastosPorCategoria] = await Promise.all([
+  const [clientesCount, accesosCount, notasCount, usuariosCount, notasFavoritas, flujoCaja, datosMensuales, gastosPorCategoria, proximaCita] = await Promise.all([
     prisma.cliente.count(),
     prisma.acceso.count(),
     prisma.nota.count(),
@@ -129,6 +129,42 @@ export default async function AdminDashboard() {
       });
 
       return Object.entries(categoriasMap).map(([name, value]) => ({ name, value }));
+    })(),
+    // Obtener próxima cita de Calendly
+    (async () => {
+      try {
+        const token = process.env.CALENDLY_API_TOKEN;
+        if (!token) return null;
+
+        const now = new Date().toISOString();
+        const userRes = await fetch('https://api.calendly.com/users/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!userRes.ok) return null;
+        const userData = await userRes.json();
+        const userUri = userData.resource.uri;
+
+        const eventsRes = await fetch(
+          `https://api.calendly.com/scheduled_events?user=${encodeURIComponent(userUri)}&min_start_time=${now}&count=1&sort=start_time:asc`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (!eventsRes.ok) return null;
+        const eventsData = await eventsRes.json();
+        return eventsData.collection?.[0] || null;
+      } catch (error) {
+        console.error('Error al obtener próxima cita:', error);
+        return null;
+      }
     })(),
   ]);
 
@@ -320,6 +356,41 @@ export default async function AdminDashboard() {
                 </Link>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Próxima Cita */}
+      {proximaCita && (
+        <div className="bg-gradient-to-r from-cyan-500/10 to-violet-500/10 backdrop-blur-sm border border-cyan-500/30 rounded-2xl p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-cyan-500/20">
+                <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white mb-1">Próxima Reunión</h2>
+                <p className="text-cyan-300 font-medium">
+                  {new Date(proximaCita.start_time).toLocaleDateString('es-CL', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </p>
+                <p className="text-slate-300 text-sm mt-1">{proximaCita.name}</p>
+              </div>
+            </div>
+            <Link
+              href="/admin/citas"
+              className="px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded-lg transition-colors text-sm font-medium"
+            >
+              Ver todas
+            </Link>
           </div>
         </div>
       )}

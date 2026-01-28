@@ -2,7 +2,7 @@ const pasos = [
   {
     numero: '01',
     titulo: 'Diagnóstico',
-    descripcion: 'Analizamos tu situación actual, identificamos puntos de dolor y oportunidades de mejora tecnológica.',
+    descripcion: 'Auditoría técnica profunda de tu infraestructura y procesos. Identificamos cuellos de botella, riesgos operativos y oportunidades de optimización con impacto real en tu negocio.',
     icono: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -12,7 +12,7 @@ const pasos = [
   {
     numero: '02',
     titulo: 'Propuesta',
-    descripcion: 'Diseñamos una solución a medida con alcance claro, tiempos definidos y presupuesto transparente.',
+    descripcion: 'Documento técnico detallado con arquitectura propuesta, cronograma realista, hitos de entrega y desglose de inversión. Sin ambigüedades, sin costos ocultos.',
     icono: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -22,7 +22,7 @@ const pasos = [
   {
     numero: '03',
     titulo: 'Implementación',
-    descripcion: 'Ejecutamos el proyecto con metodología ágil, entregas incrementales y comunicación constante.',
+    descripcion: 'Desarrollo iterativo con entregas funcionales cada 2-3 semanas. Revisión continua, ajustes oportunos y transparencia total sobre el avance del proyecto.',
     icono: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -33,7 +33,7 @@ const pasos = [
   {
     numero: '04',
     titulo: 'Soporte y Mejora Continua',
-    descripcion: 'No te dejamos solo. Mantenimiento, optimización y evolución de tu sistema en el tiempo.',
+    descripcion: 'Relación de largo plazo. Monitoreo activo, mejoras incrementales y evolución del sistema según nuevas necesidades. Tu tecnología crece contigo.',
     icono: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -56,8 +56,8 @@ export default function Metodologia() {
               Cómo <span className="text-[#7AA228]">trabajamos</span>
             </h2>
             <p className="text-lg text-slate-600 dark:text-slate-400 mb-8">
-              Un proceso ordenado, transparente y orientado a resultados. 
-              Sin sorpresas, sin letra chica, sin proyectos que nunca terminan.
+              Metodología probada que garantiza entregas a tiempo, dentro del presupuesto y con la calidad esperada. 
+              Comunicación constante, transparencia total y resultados medibles en cada etapa.
             </p>
 
             {/* Process Steps */}

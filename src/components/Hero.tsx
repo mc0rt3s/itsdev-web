@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import CalendlyButton from './CalendlyButton';
 
 export default function Hero() {
   return (
@@ -42,8 +43,8 @@ export default function Hero() {
 
           {/* Subheadline */}
           <p className="text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto mb-10 animate-fade-in-up animation-delay-200">
-            Desarrollo de software, infraestructura TI y automatización para empresas 
-            que buscan estabilidad, continuidad operativa y crecimiento tecnológico.
+            Transformamos desafíos tecnológicos en ventajas competitivas. Soluciones robustas, 
+            escalables y diseñadas para crecer contigo, sin complicaciones ni sorpresas.
           </p>
 
           {/* CTAs */}
@@ -54,6 +55,11 @@ export default function Hero() {
             >
               Conversemos sobre tu proyecto
             </a>
+            <CalendlyButton
+              url={process.env.NEXT_PUBLIC_CALENDLY_URL || 'https://calendly.com/tu-usuario/30min'}
+              text="Agendar reunión"
+              className="w-full sm:w-auto border border-white/30 hover:border-white/50 text-white px-8 py-4 rounded-full text-lg font-medium transition-all hover:bg-white/5"
+            />
             <a
               href="#servicios"
               className="w-full sm:w-auto border border-white/30 hover:border-white/50 text-white px-8 py-4 rounded-full text-lg font-medium transition-all hover:bg-white/5"
@@ -64,19 +70,16 @@ export default function Hero() {
 
           {/* Trust Indicators */}
           <div className="mt-16 pt-16 border-t border-white/10 animate-fade-in-up animation-delay-400">
-            <p className="text-sm text-slate-400 mb-6">Empresas que confían en nosotros</p>
-            <div className="flex flex-wrap items-center justify-center gap-8 lg:gap-12">
-              {/* Logos de clientes */}
-              <div className="px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg border border-white/10">
-                <span className="text-white font-semibold tracking-wide">Arenys Med</span>
-              </div>
-              <div className="px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg border border-white/10">
-                <span className="text-white font-semibold tracking-wide">CyC Isla y Cia</span>
-              </div>
-              <div className="px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg border border-white/10">
-                <span className="text-white font-semibold tracking-wide">VBrand</span>
-              </div>
-            </div>
+            <p className="text-sm text-slate-400 mb-4">Empresas líderes confían en nuestras soluciones</p>
+            <a 
+              href="#clientes" 
+              className="text-white/70 hover:text-white text-sm font-medium transition-colors inline-flex items-center gap-2"
+            >
+              Ver empresas que trabajan con nosotros
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </a>
           </div>
         </div>
       </div>

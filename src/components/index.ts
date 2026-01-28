@@ -5,4 +5,5 @@ export { default as Metodologia } from './Metodologia';
 export { default as Experiencia } from './Experiencia';
 export { default as PorQueItsDev } from './PorQueItsDev';
 export { default as Contacto } from './Contacto';
+export { default as Clientes } from './Clientes';
 export { default as Footer } from './Footer';

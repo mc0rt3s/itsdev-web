@@ -44,8 +44,8 @@ export default function Experiencia() {
             <span className="text-[#7AA228]"> genera confianza</span>
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400">
-            Más de una década resolviendo desafíos tecnológicos para empresas de distintos 
-            tamaños e industrias.
+            Una trayectoria construida con resultados concretos. Cada proyecto suma experiencia, 
+            cada desafío resuelto fortalece nuestra capacidad de entregar soluciones que realmente funcionan.
           </p>
         </div>
 
@@ -77,8 +77,8 @@ export default function Experiencia() {
                 Sectores donde hemos dejado huella
               </h3>
               <p className="text-slate-600 dark:text-slate-400 mb-6">
-                Conocemos las particularidades de cada industria. Eso nos permite 
-                ofrecer soluciones que realmente entienden tu negocio.
+                La experiencia en múltiples sectores nos permite entender el contexto operativo de cada cliente. 
+                No solo implementamos tecnología, diseñamos soluciones que respetan la realidad de tu industria.
               </p>
               <div className="flex flex-wrap gap-3">
                 {sectores.map((sector, index) => (

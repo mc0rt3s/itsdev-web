@@ -6,7 +6,7 @@ const diferenciales = [
       </svg>
     ),
     titulo: 'Cercanía real',
-    descripcion: 'No somos una multinacional donde eres un número. Aquí hablas directo con quienes hacen el trabajo.',
+    descripcion: 'Comunicación directa con el equipo técnico que ejecuta tu proyecto. Sin capas de gestión innecesarias, sin intermediarios. Resoluciones rápidas porque hablas con quien toma las decisiones.',
   },
   {
     icono: (
@@ -15,7 +15,7 @@ const diferenciales = [
       </svg>
     ),
     titulo: 'Responsabilidad',
-    descripcion: 'Si algo falla, lo solucionamos. Sin excusas, sin echar culpas. Nos hacemos cargo.',
+    descripcion: 'Cuando algo no funciona como esperado, actuamos de inmediato. No buscamos culpables, buscamos soluciones. Nuestro compromiso es con tu éxito operativo, no con justificaciones.',
   },
   {
     icono: (
@@ -24,7 +24,7 @@ const diferenciales = [
       </svg>
     ),
     titulo: 'Visión de largo plazo',
-    descripcion: 'No buscamos proyectos puntuales. Queremos crecer contigo y ser tu partner tecnológico por años.',
+    descripcion: 'Construimos relaciones, no transacciones. Entendemos que tu tecnología evoluciona y queremos ser parte de ese crecimiento. Inversión en conocimiento de tu negocio que se traduce en mejores soluciones.',
   },
   {
     icono: (
@@ -33,7 +33,7 @@ const diferenciales = [
       </svg>
     ),
     titulo: 'Respuesta rápida',
-    descripcion: 'Entendemos que tu negocio no puede esperar. Tiempos de respuesta acordes a la urgencia real.',
+    descripcion: 'Priorizamos según impacto real en tu operación. Una caída crítica se atiende en minutos, no en horas. Entendemos que cada minuto de inactividad tiene un costo para tu negocio.',
   },
   {
     icono: (
@@ -51,7 +51,7 @@ const diferenciales = [
       </svg>
     ),
     titulo: 'Conocimiento profundo',
-    descripcion: 'Años de experiencia en múltiples tecnologías. Sabemos qué funciona y qué no.',
+    descripcion: 'Experiencia acumulada en stacks tecnológicos diversos. Conocemos las limitaciones y ventajas de cada herramienta. Recomendaciones basadas en resultados reales, no en modas del mercado.',
   },
 ];
 
@@ -69,8 +69,9 @@ export default function PorQueItsDev() {
             <span className="text-[#7AA228]"> ItsDev</span>?
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-400">
-            No somos la opción más barata, ni la más grande. Somos la opción que 
-            realmente se preocupa de que tu tecnología funcione.
+            Elegir un proveedor tecnológico es una decisión estratégica. No competimos por precio, 
+            competimos por resultados. Cada proyecto es una oportunidad de demostrar que la calidad y el compromiso 
+            real marcan la diferencia.
           </p>
         </div>
 
@@ -101,11 +102,11 @@ export default function PorQueItsDev() {
         {/* CTA Box */}
         <div className="mt-16 bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-700 dark:to-slate-600 rounded-3xl p-8 lg:p-12 text-center">
           <h3 className="text-2xl lg:text-3xl font-bold text-white mb-4">
-            ¿Listo para tener tecnología que simplemente funcione?
+            ¿Listo para transformar tus desafíos tecnológicos en ventajas competitivas?
           </h3>
           <p className="text-slate-300 mb-8 max-w-2xl mx-auto">
-            Conversemos sobre tus desafíos actuales. Sin compromiso, sin presión de venta. 
-            Solo una conversación técnica para entender cómo podemos ayudarte.
+            Una conversación técnica honesta puede cambiar la perspectiva de tu infraestructura. 
+            Sin compromiso, sin presión comercial. Solo análisis profesional y recomendaciones basadas en experiencia real.
           </p>
           <a
             href="#contacto"

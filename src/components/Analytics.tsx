@@ -65,6 +65,9 @@ export const AnalyticsEvents = {
   phoneClick: () => trackEvent('phone_click', { 
     click_location: 'contact_section' 
   }),
+  calendlyClick: () => trackEvent('calendly_click', { 
+    click_location: 'floating_button' 
+  }),
   
   // Navegación
   navClick: (section: string) => trackEvent('navigation_click', { 
