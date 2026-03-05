@@ -44,8 +44,9 @@ export default function GastosCharts({ porCategoria, porProveedor, tendenciaMens
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={({ categoria, percent }) =>
-                `${getCategoriaLabel(categoria)} ${(percent * 100).toFixed(0)}%`
+              nameKey="categoria"
+              label={({ name, percent }) =>
+                `${getCategoriaLabel(String(name ?? 'otros'))} ${((percent ?? 0) * 100).toFixed(0)}%`
               }
               outerRadius={100}
               fill="#8884d8"
