@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import type { Session } from 'next-auth';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 
@@ -7,7 +8,7 @@ interface AuthOptions {
 }
 
 interface AuthSuccess {
-  session: NonNullable<Awaited<ReturnType<typeof auth>>>;
+  session: Session;
 }
 
 interface AuthFailure {
@@ -15,7 +16,7 @@ interface AuthFailure {
 }
 
 export async function requireAuth(options?: AuthOptions): Promise<AuthSuccess | AuthFailure> {
-  const session = await auth();
+  const session = (await auth()) as Session | null;
 
   if (!session) {
     return { response: NextResponse.json({ error: 'No autorizado' }, { status: 401 }) };
