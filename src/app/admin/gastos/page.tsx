@@ -45,6 +45,7 @@ export default function GastosPage() {
     const [loading, setLoading] = useState(true);
     const [loadingMetrics, setLoadingMetrics] = useState(true);
     const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+    const [proveedores, setProveedores] = useState<string[]>([]);
     const [showModal, setShowModal] = useState(false);
     const [viewingGasto, setViewingGasto] = useState<Gasto | null>(null);
     const [saving, setSaving] = useState(false);
@@ -79,7 +80,20 @@ export default function GastosPage() {
     useEffect(() => {
         fetchData();
         fetchMetrics();
+        fetchProveedores();
     }, []);
+
+    const fetchProveedores = async () => {
+        try {
+            const res = await fetch('/api/gastos/proveedores');
+            if (res.ok) {
+                const data = await res.json();
+                setProveedores(Array.isArray(data) ? data : []);
+            }
+        } catch {
+            setProveedores([]);
+        }
+    };
 
     const fetchData = async () => {
         try {
@@ -196,6 +210,7 @@ export default function GastosPage() {
                     closeModal();
                     fetchData();
                     fetchMetrics();
+                    fetchProveedores();
                 } else {
                     const error = await res.json();
                     toast.error(error.error || 'Error al actualizar gasto');
@@ -213,6 +228,7 @@ export default function GastosPage() {
                     closeModal();
                     fetchData();
                     fetchMetrics();
+                    fetchProveedores();
                 } else {
                     const error = await res.json();
                     toast.error(error.error || 'Error al registrar gasto');
@@ -278,6 +294,7 @@ export default function GastosPage() {
                         toast.success('Gasto eliminado');
                         fetchData();
                         fetchMetrics();
+                        fetchProveedores();
                     } else {
                         const error = await res.json();
                         toast.error(error.error || 'Error al eliminar gasto');
@@ -519,11 +536,18 @@ export default function GastosPage() {
                                     <label className="block text-sm font-medium text-slate-300 mb-2">Proveedor</label>
                                     <input
                                         type="text"
+                                        list="proveedores-list"
                                         value={formData.proveedor}
                                         onChange={(e) => setFormData({ ...formData, proveedor: e.target.value })}
                                         className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
-                                        placeholder="Nombre del proveedor"
+                                        placeholder="Nombre del proveedor (o elegir de la lista)"
+                                        autoComplete="off"
                                     />
+                                    <datalist id="proveedores-list">
+                                        {proveedores.map((p) => (
+                                            <option key={p} value={p} />
+                                        ))}
+                                    </datalist>
                                 </div>
                             </div>
 
