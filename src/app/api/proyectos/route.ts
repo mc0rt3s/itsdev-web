@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
         const proyectos = await prisma.proyecto.findMany({
             where,
             include: {
-                cliente: { select: { razonSocial: true } },
+                cliente: { select: { razonSocial: true, clockifyClientId: true } },
                 _count: { select: { tareas: true } }
             },
             orderBy: { updatedAt: 'desc' }

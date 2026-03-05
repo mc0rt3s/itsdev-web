@@ -18,9 +18,10 @@ export default function Footer() {
         <div className="py-16 grid md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <a href="#" className="inline-block mb-6 hover:opacity-90 transition-opacity">
+            <a href="#" className="inline-block mb-2 hover:opacity-90 transition-opacity">
               <Logo variant="full" size="md" />
             </a>
+            <p className="text-xs text-slate-500 mb-6">IT Specialists & Development Solutions</p>
             <p className="text-slate-400 max-w-md mb-6 leading-relaxed">
               Soluciones tecnológicas robustas, seguras y escalables para empresas 
               que necesitan que su infraestructura y software simplemente funcionen.

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const proyecto = await prisma.proyecto.findUnique({
             where: { id },
             include: {
-                cliente: { select: { razonSocial: true } },
+                cliente: { select: { razonSocial: true, clockifyClientId: true } },
                 tareas: {
                     orderBy: { createdAt: 'desc' },
                     select: {
@@ -49,9 +49,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const validation = proyectoSchema.safeParse(data);
         if (!validation.success) return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
 
+        const { clockifyProjectId, ...rest } = validation.data;
         const proyecto = await prisma.proyecto.update({
             where: { id },
-            data: validation.data
+            data: {
+                ...rest,
+                clockifyProjectId: clockifyProjectId ?? undefined,
+            }
         });
         return NextResponse.json(proyecto);
     } catch (error) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 interface Cliente {
   id: string;
@@ -11,6 +12,8 @@ interface Cliente {
   email: string | null;
   notas: string | null;
   estado: string;
+  clockifyClientId: string | null;
+  facturaPorTiempo: boolean;
   createdAt: string;
   _count?: {
     accesos: number;
@@ -31,9 +34,15 @@ export default function ClientesPage() {
     email: '',
     notas: '',
     estado: 'activo',
+    clockifyClientId: '' as string | null,
+    facturaPorTiempo: false,
   });
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [clockifyWorkspaces, setClockifyWorkspaces] = useState<Array<{ id: string; name: string }>>([]);
+  const [clockifyClients, setClockifyClients] = useState<Array<{ id: string; name: string }>>([]);
+  const [clockifyWorkspaceId, setClockifyWorkspaceId] = useState('');
+  const [loadingClockify, setLoadingClockify] = useState(false);
 
   useEffect(() => {
     fetchClientes();
@@ -53,6 +62,44 @@ export default function ClientesPage() {
     }
   };
 
+  const fetchClockifyWorkspaces = async () => {
+    setLoadingClockify(true);
+    try {
+      const res = await fetch('/api/clockify/workspaces');
+      if (res.ok) {
+        const data = await res.json();
+        setClockifyWorkspaces(Array.isArray(data) ? data : []);
+      } else {
+        setClockifyWorkspaces([]);
+      }
+    } catch {
+      setClockifyWorkspaces([]);
+    } finally {
+      setLoadingClockify(false);
+    }
+  };
+
+  const fetchClockifyClients = async (workspaceId: string) => {
+    if (!workspaceId) {
+      setClockifyClients([]);
+      return;
+    }
+    setLoadingClockify(true);
+    try {
+      const res = await fetch(`/api/clockify/workspaces/${workspaceId}/clients`);
+      if (res.ok) {
+        const data = await res.json();
+        setClockifyClients(Array.isArray(data) ? data : []);
+      } else {
+        setClockifyClients([]);
+      }
+    } catch {
+      setClockifyClients([]);
+    } finally {
+      setLoadingClockify(false);
+    }
+  };
+
   const openModal = (cliente?: Cliente) => {
     if (cliente) {
       setEditingCliente(cliente);
@@ -64,7 +111,12 @@ export default function ClientesPage() {
         email: cliente.email || '',
         notas: cliente.notas || '',
         estado: cliente.estado,
+        clockifyClientId: cliente.clockifyClientId || null,
+        facturaPorTiempo: cliente.facturaPorTiempo ?? false,
       });
+      setClockifyWorkspaceId('');
+      setClockifyClients([]);
+      fetchClockifyWorkspaces();
     } else {
       setEditingCliente(null);
       setFormData({
@@ -75,7 +127,12 @@ export default function ClientesPage() {
         email: '',
         notas: '',
         estado: 'activo',
+        clockifyClientId: null,
+        facturaPorTiempo: false,
       });
+      setClockifyWorkspaces([]);
+      setClockifyClients([]);
+      setClockifyWorkspaceId('');
     }
     setFormError('');
     setShowModal(true);
@@ -98,10 +155,14 @@ export default function ClientesPage() {
         : '/api/clientes';
       const method = editingCliente ? 'PUT' : 'POST';
 
+      const payload = {
+        ...formData,
+        clockifyClientId: formData.clockifyClientId || null,
+      };
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -233,7 +294,12 @@ export default function ClientesPage() {
                     </td>
                     <td className="py-4 px-6">
                       <div>
-                        <p className="text-white font-medium">{cliente.razonSocial}</p>
+                        <Link
+                          href={`/admin/clientes/${cliente.id}`}
+                          className="text-white font-medium hover:text-cyan-400 transition-colors"
+                        >
+                          {cliente.razonSocial}
+                        </Link>
                         {cliente._count && cliente._count.accesos > 0 && (
                           <p className="text-xs text-slate-500 mt-0.5">
                             {cliente._count.accesos} acceso{cliente._count.accesos !== 1 ? 's' : ''}
@@ -248,12 +314,36 @@ export default function ClientesPage() {
                       <span className="text-slate-300">{cliente.telefono || '-'}</span>
                     </td>
                     <td className="py-4 px-6">
-                      <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${getEstadoBadge(cliente.estado)}`}>
-                        {cliente.estado.charAt(0).toUpperCase() + cliente.estado.slice(1)}
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${getEstadoBadge(cliente.estado)}`}>
+                          {cliente.estado.charAt(0).toUpperCase() + cliente.estado.slice(1)}
+                        </span>
+                        {cliente.clockifyClientId && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border bg-amber-500/10 text-amber-400 border-amber-500/30" title="Vinculado con Clockify">
+                            Clockify
+                          </span>
+                        )}
+                        {cliente.facturaPorTiempo && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border bg-cyan-500/10 text-cyan-400 border-cyan-500/30" title="Facturación por tiempo">
+                            Por tiempo
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex items-center justify-end gap-2">
+                        {cliente.clockifyClientId && (
+                          <Link
+                            href={`/admin/clientes/${cliente.id}`}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-lg transition-all"
+                            title="Ver detalle y reporte de horas"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Ver reporte
+                          </Link>
+                        )}
                         <button
                           onClick={() => openModal(cliente)}
                           className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-700/50 rounded-lg transition-all"
@@ -424,6 +514,79 @@ export default function ClientesPage() {
                   className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all resize-none"
                 />
               </div>
+
+              {editingCliente && (
+                <div className="border-t border-slate-700/50 pt-5 space-y-4">
+                  <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Integración Clockify
+                  </h3>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.facturaPorTiempo}
+                      onChange={(e) => setFormData({ ...formData, facturaPorTiempo: e.target.checked })}
+                      className="rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/50"
+                    />
+                    <span className="text-sm text-slate-300">Facturación por tiempo</span>
+                  </label>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Vincular con cliente de Clockify</label>
+                    <div className="space-y-2">
+                      <select
+                        value={clockifyWorkspaceId}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          setClockifyWorkspaceId(id);
+                          fetchClockifyClients(id);
+                          setFormData((f) => ({ ...f, clockifyClientId: null }));
+                        }}
+                        className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                      >
+                        <option value="">Seleccionar workspace</option>
+                        {clockifyWorkspaces.map((w) => (
+                          <option key={w.id} value={w.id}>{w.name}</option>
+                        ))}
+                      </select>
+                      {loadingClockify && (
+                        <p className="text-xs text-slate-500">Cargando...</p>
+                      )}
+                      <select
+                        value={formData.clockifyClientId || ''}
+                        onChange={(e) => setFormData({ ...formData, clockifyClientId: e.target.value || null })}
+                        disabled={!clockifyWorkspaceId || loadingClockify}
+                        className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 disabled:opacity-50"
+                      >
+                        <option value="">Sin vincular</option>
+                        {clockifyClients.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                      {formData.clockifyClientId && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, clockifyClientId: null })}
+                          className="text-xs text-red-400 hover:text-red-300"
+                        >
+                          Desvincular
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {formData.clockifyClientId && (
+                    <div className="rounded-xl bg-cyan-500/10 border border-cyan-500/30 p-4 space-y-2">
+                      <p className="text-sm font-medium text-cyan-300">Próximos pasos</p>
+                      <ul className="text-xs text-slate-400 space-y-1 list-disc list-inside">
+                        <li><strong className="text-slate-300">Proyectos:</strong> en Proyectos, edita cada proyecto y vincula su proyecto de Clockify.</li>
+                        <li><strong className="text-slate-300">Tipos de hora:</strong> en el menú Clockify → Tipos de hora, asocia cada tarea de Clockify a hora hábil o inhábil.</li>
+                        <li><strong className="text-slate-300">Reporte:</strong> haz clic en la razón social del cliente o en &quot;Ver reporte&quot; para ver horas y generar el reporte para facturación.</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <button

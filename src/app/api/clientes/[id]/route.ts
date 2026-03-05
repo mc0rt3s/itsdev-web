@@ -19,7 +19,11 @@ export async function GET(
     const cliente = await prisma.cliente.findUnique({
       where: { id },
       include: {
-        accesos: true
+        accesos: true,
+        proyectos: {
+          orderBy: { updatedAt: 'desc' },
+          include: { _count: { select: { tareas: true } } }
+        }
       }
     });
 
@@ -82,6 +86,8 @@ export async function PUT(
         email: data.email || null,
         notas: data.notas || null,
         estado: data.estado,
+        clockifyClientId: data.clockifyClientId ?? undefined,
+        facturaPorTiempo: data.facturaPorTiempo ?? false,
       },
     });
 

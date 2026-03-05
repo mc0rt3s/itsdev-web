@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import GastosCharts from '@/components/admin/GastosCharts';
 
 interface Gasto {
     id: string;
@@ -26,10 +27,24 @@ const categorias = [
     { value: 'otros', label: 'Otros' },
 ];
 
+interface DashboardMetrics {
+    totalMesActual: number;
+    totalMesAnterior: number;
+    variacionPorcentual: number;
+    totalGeneral: number;
+    totalRegistros: number;
+    promedioMensual: number;
+    porCategoria: Array<{ categoria: string; total: number; cantidad: number }>;
+    porProveedor: Array<{ proveedor: string; total: number; cantidad: number }>;
+    tendenciaMensual: Array<{ mes: string; total: number; cantidad: number }>;
+}
+
 export default function GastosPage() {
     const toast = useToast();
     const [gastos, setGastos] = useState<Gasto[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMetrics, setLoadingMetrics] = useState(true);
+    const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
     const [showModal, setShowModal] = useState(false);
     const [viewingGasto, setViewingGasto] = useState<Gasto | null>(null);
     const [saving, setSaving] = useState(false);
@@ -63,6 +78,7 @@ export default function GastosPage() {
 
     useEffect(() => {
         fetchData();
+        fetchMetrics();
     }, []);
 
     const fetchData = async () => {
@@ -76,6 +92,20 @@ export default function GastosPage() {
             console.error('Error:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchMetrics = async () => {
+        try {
+            const res = await fetch('/api/gastos/dashboard');
+            if (res.ok) {
+                const data = await res.json();
+                setMetrics(data);
+            }
+        } catch (error) {
+            console.error('Error al cargar métricas:', error);
+        } finally {
+            setLoadingMetrics(false);
         }
     };
 
@@ -165,6 +195,7 @@ export default function GastosPage() {
                     toast.success('Gasto actualizado');
                     closeModal();
                     fetchData();
+                    fetchMetrics();
                 } else {
                     const error = await res.json();
                     toast.error(error.error || 'Error al actualizar gasto');
@@ -181,6 +212,7 @@ export default function GastosPage() {
                     toast.success('Gasto registrado');
                     closeModal();
                     fetchData();
+                    fetchMetrics();
                 } else {
                     const error = await res.json();
                     toast.error(error.error || 'Error al registrar gasto');
@@ -245,6 +277,7 @@ export default function GastosPage() {
                     if (res.ok) {
                         toast.success('Gasto eliminado');
                         fetchData();
+                        fetchMetrics();
                     } else {
                         const error = await res.json();
                         toast.error(error.error || 'Error al eliminar gasto');
@@ -266,7 +299,7 @@ export default function GastosPage() {
 
     const totalGastos = gastos.reduce((sum, g) => sum + g.monto, 0);
 
-    if (loading) {
+    if (loading || loadingMetrics) {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="text-slate-400">Cargando...</div>
@@ -289,23 +322,45 @@ export default function GastosPage() {
                 </button>
             </div>
 
-            {/* Resumen */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700/50">
-                    <p className="text-slate-400 text-sm">Total Gastos</p>
-                    <p className="text-2xl font-bold text-white mt-2">{formatPrice(totalGastos)}</p>
-                </div>
-                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700/50">
-                    <p className="text-slate-400 text-sm">Total Registros</p>
-                    <p className="text-2xl font-bold text-white mt-2">{gastos.length}</p>
-                </div>
-                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700/50">
-                    <p className="text-slate-400 text-sm">Promedio por Gasto</p>
-                    <p className="text-2xl font-bold text-white mt-2">
-                        {gastos.length > 0 ? formatPrice(totalGastos / gastos.length) : formatPrice(0)}
-                    </p>
-                </div>
-            </div>
+            {/* Dashboard de Métricas */}
+            {metrics && (
+                <>
+                    {/* Tarjetas de Resumen */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 backdrop-blur-sm border border-red-500/30 rounded-xl p-6">
+                            <p className="text-slate-400 text-sm mb-1">Gastos Mes Actual</p>
+                            <p className="text-2xl font-bold text-white mt-2">{formatPrice(metrics.totalMesActual)}</p>
+                            {metrics.variacionPorcentual !== 0 && (
+                                <p className={`text-xs mt-2 ${metrics.variacionPorcentual > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                                    {metrics.variacionPorcentual > 0 ? '↑' : '↓'} {Math.abs(metrics.variacionPorcentual).toFixed(1)}% vs mes anterior
+                                </p>
+                            )}
+                        </div>
+                        <div className="bg-gradient-to-br from-slate-500/10 to-slate-600/10 backdrop-blur-sm border border-slate-500/30 rounded-xl p-6">
+                            <p className="text-slate-400 text-sm mb-1">Total General</p>
+                            <p className="text-2xl font-bold text-white mt-2">{formatPrice(metrics.totalGeneral)}</p>
+                            <p className="text-xs text-slate-400 mt-2">{metrics.totalRegistros} registros</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 backdrop-blur-sm border border-cyan-500/30 rounded-xl p-6">
+                            <p className="text-slate-400 text-sm mb-1">Promedio Mensual</p>
+                            <p className="text-2xl font-bold text-white mt-2">{formatPrice(metrics.promedioMensual)}</p>
+                            <p className="text-xs text-slate-400 mt-2">Últimos 6 meses</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-violet-500/10 to-violet-600/10 backdrop-blur-sm border border-violet-500/30 rounded-xl p-6">
+                            <p className="text-slate-400 text-sm mb-1">Mes Anterior</p>
+                            <p className="text-2xl font-bold text-white mt-2">{formatPrice(metrics.totalMesAnterior)}</p>
+                            <p className="text-xs text-slate-400 mt-2">Comparación</p>
+                        </div>
+                    </div>
+
+                    {/* Gráficos */}
+                    <GastosCharts
+                        porCategoria={metrics.porCategoria}
+                        porProveedor={metrics.porProveedor}
+                        tendenciaMensual={metrics.tendenciaMensual}
+                    />
+                </>
+            )}
 
             {/* Lista de gastos */}
             <div className="bg-slate-800 rounded-xl border border-slate-700/50 overflow-hidden">
@@ -348,7 +403,7 @@ export default function GastosPage() {
                                         <td className="px-6 py-4 text-center">
                                             {gasto.comprobante ? (
                                                 <a
-                                                    href={gasto.comprobante}
+                                                    href={`/api/uploads/comprobantes/${gasto.comprobante.replace('/uploads/comprobantes/', '')}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="text-cyan-400 hover:text-cyan-300"
@@ -482,14 +537,22 @@ export default function GastosPage() {
                                 />
                                 {comprobantePreview && (
                                     <div className="mt-4">
-                                        {comprobantePreview.startsWith('data:') || comprobantePreview.startsWith('/') ? (
-                                            comprobantePreview.startsWith('data:') ? (
-                                                <img src={comprobantePreview} alt="Preview" className="max-w-full h-48 object-contain rounded-lg border border-slate-600" />
-                                            ) : (
-                                                <a href={comprobantePreview} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300">
+                                        {comprobantePreview.startsWith('data:') ? (
+                                            <img src={comprobantePreview} alt="Preview" className="max-w-full h-48 object-contain rounded-lg border border-slate-600" />
+                                        ) : comprobantePreview.startsWith('/uploads/comprobantes/') ? (
+                                            <div>
+                                                <a 
+                                                    href={`/api/uploads/comprobantes/${comprobantePreview.replace('/uploads/comprobantes/', '')}`} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer" 
+                                                    className="text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-2"
+                                                >
                                                     Ver comprobante actual
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                    </svg>
                                                 </a>
-                                            )
+                                            </div>
                                         ) : null}
                                     </div>
                                 )}

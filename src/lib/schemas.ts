@@ -8,6 +8,8 @@ export const clienteSchema = z.object({
   email: z.string().email('Email inválido').optional().nullable(),
   notas: z.string().optional().nullable(),
   estado: z.enum(['activo', 'inactivo', 'prospecto']).default('activo'),
+  clockifyClientId: z.string().optional().nullable(),
+  facturaPorTiempo: z.boolean().default(false),
 });
 
 export type ClienteInput = z.infer<typeof clienteSchema>;
@@ -97,8 +99,17 @@ export const proyectoSchema = z.object({
   fechaFin: z.string().optional().nullable().transform((str) => str ? new Date(str) : null),
   presupuesto: z.number().optional().nullable(),
   avance: z.number().min(0).max(100).default(0),
+  clockifyProjectId: z.string().optional().nullable(),
 });
 export type ProyectoInput = z.infer<typeof proyectoSchema>;
+
+export const clockifyTaskTipoSchema = z.object({
+  clockifyTaskId: z.string().min(1, 'ID de tarea Clockify requerido'),
+  clockifyProjectId: z.string().optional().nullable(),
+  nombre: z.string().min(1, 'Nombre requerido'),
+  tipoHora: z.enum(['habil', 'inhabil']),
+});
+export type ClockifyTaskTipoInput = z.infer<typeof clockifyTaskTipoSchema>;
 
 export const tareaSchema = z.object({
   proyectoId: z.string().min(1, 'El proyecto es requerido'),

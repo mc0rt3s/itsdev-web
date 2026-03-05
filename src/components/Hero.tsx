@@ -24,7 +24,7 @@ export default function Hero() {
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-32">
         <div className="max-w-4xl mx-auto text-center">
           {/* Logo grande - versión para fondo oscuro */}
-          <div className="mb-8 animate-fade-in flex justify-center">
+          <div className="mb-8 animate-fade-in flex flex-col items-center">
             <Image
               src="/logo-dark.svg"
               alt="ItsDev - Soluciones Informáticas"
@@ -33,6 +33,7 @@ export default function Hero() {
               priority
               className="w-auto h-40 sm:h-48 lg:h-56"
             />
+            <p className="mt-1 text-base sm:text-lg text-white/60 tracking-wide">IT Specialists &amp; Development Solutions</p>
           </div>
 
           {/* Headline */}
