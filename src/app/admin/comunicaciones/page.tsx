@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -85,7 +85,7 @@ export default function ComunicacionesPage() {
         return grupos;
     };
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const url = filtroCliente 
                 ? `/api/comunicaciones?clienteId=${filtroCliente}`
@@ -106,11 +106,11 @@ export default function ComunicacionesPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [filtroCliente]);
 
     useEffect(() => {
         fetchData();
-    }, [filtroCliente]);
+    }, [fetchData]);
 
     const openModal = (comunicacion?: Comunicacion) => {
         if (comunicacion) {

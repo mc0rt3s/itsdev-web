@@ -60,10 +60,10 @@ export async function POST(
       success: true,
       event: cancelData.resource,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error al cancelar evento:', error);
     return NextResponse.json(
-      { error: error.message || 'Error al cancelar evento' },
+      { error: error instanceof Error ? error.message : 'Error al cancelar evento' },
       { status: 500 }
     );
   }

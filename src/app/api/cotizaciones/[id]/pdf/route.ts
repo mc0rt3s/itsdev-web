@@ -41,15 +41,21 @@ export async function GET(
             nombreProspecto: cotizacion.nombreProspecto || undefined,
             emailProspecto: cotizacion.emailProspecto || undefined,
             items: cotizacion.items.map(item => ({
+                sku: item.sku || undefined,
                 descripcion: item.descripcion,
                 cantidad: item.cantidad,
                 precioUnit: item.precioUnit,
                 total: item.total
             })),
             subtotal: cotizacion.subtotal,
+            descuento: cotizacion.descuento || undefined,
             impuesto: cotizacion.impuesto,
             total: cotizacion.total,
-            notas: cotizacion.notas || undefined
+            notas: cotizacion.notas || undefined,
+            modoEnvio: cotizacion.modoEnvio || undefined,
+            fechaEntrega: cotizacion.fechaEntrega || undefined,
+            formaPago: cotizacion.formaPago || undefined,
+            duracionValidezDias: cotizacion.duracionValidezDias || undefined
         });
 
         return new NextResponse(new Uint8Array(pdfBuffer), {

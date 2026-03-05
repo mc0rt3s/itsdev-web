@@ -20,7 +20,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         });
         if (!cotizacion) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
         return NextResponse.json(cotizacion);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al obtener cotizacion' }, { status: 500 });
     }
 }
@@ -46,28 +46,52 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             const validation = cotizacionSchema.safeParse(data);
             if (!validation.success) return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
 
-            const { items, ...rest } = validation.data;
+            const {
+                items, aplicarIVA = true, descuento = 0,
+                tipoCambioUSD, modoEnvio, fechaEntrega, formaPago, duracionValidezDias,
+                ...rest
+            } = validation.data;
 
-            // Calculate totals again
             let subtotal = 0;
             const itemsWithTotal = items.map(item => {
                 const t = item.cantidad * item.precioUnit;
                 subtotal += t;
-                return { ...item, total: t };
+                return {
+                    sku: item.sku || null,
+                    descripcion: item.descripcion,
+                    cantidad: item.cantidad,
+                    precioCompraUSD: item.precioCompraUSD ?? null,
+                    precioCompraCLP: item.precioCompraCLP ?? null,
+                    margenPorcentaje: item.margenPorcentaje ?? null,
+                    precioUnit: item.precioUnit,
+                    total: t,
+                    servicioId: item.servicioId || null,
+                };
             });
-            const total = subtotal + 0; // Tax 0
+
+            const subtotalDescontado = Math.max(0, subtotal - descuento);
+            const impuesto = aplicarIVA ? Math.round(subtotalDescontado * 0.19) : 0;
+            const total = subtotalDescontado + impuesto;
 
             const cotizacion = await prisma.cotizacion.update({
                 where: { id },
                 data: {
                     ...rest,
+                    descuento,
+                    tipoCambioUSD: tipoCambioUSD ?? undefined,
+                    modoEnvio: modoEnvio || null,
+                    fechaEntrega: fechaEntrega || null,
+                    formaPago: formaPago || null,
+                    duracionValidezDias: duracionValidezDias || null,
                     subtotal,
+                    impuesto,
                     total,
                     items: {
                         deleteMany: {},
                         create: itemsWithTotal
                     }
-                }
+                },
+                include: { items: true }
             });
             return NextResponse.json(cotizacion);
         } else {
@@ -85,7 +109,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             }
             return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
         }
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al actualizar cotizacion' }, { status: 500 });
     }
 }
@@ -99,7 +123,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         const { id } = await params;
         await prisma.cotizacion.delete({ where: { id } });
         return NextResponse.json({ message: 'Cotizacion eliminada' });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al eliminar cotizacion' }, { status: 500 });
     }
 }

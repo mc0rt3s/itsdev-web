@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -142,7 +143,7 @@ export default function LoginPage() {
 
         {/* Back to home */}
         <div className="text-center mt-6">
-          <a
+          <Link
             href="/"
             className="text-slate-400 hover:text-cyan-400 text-sm transition-colors inline-flex items-center gap-2"
           >
@@ -150,7 +151,7 @@ export default function LoginPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Volver al sitio
-          </a>
+          </Link>
         </div>
       </div>
     </div>

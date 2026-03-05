@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
-import { auth } from '@/lib/auth';
 import { cotizacionSchema } from '@/lib/schemas';
+import { requireAuth, parseJsonBody } from '@/lib/api';
+import {
+    buildCotizacionWhere,
+    calcularTotalesCotizacion,
+    resolveTipoCambioUSD,
+} from '@/lib/cotizaciones-utils';
 
 // GET
 export async function GET(request: NextRequest) {
-    const session = await auth();
-    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    const authResult = await requireAuth();
+    if ('response' in authResult) return authResult.response;
 
     const { searchParams } = new URL(request.url);
     const clienteId = searchParams.get('clienteId');
     const estado = searchParams.get('estado');
 
-    const where: any = {};
-    if (clienteId) where.clienteId = clienteId;
-    if (estado) where.estado = estado;
+    const where: Prisma.CotizacionWhereInput = buildCotizacionWhere(clienteId, estado);
 
     try {
         const cotizaciones = await prisma.cotizacion.findMany({
@@ -26,41 +30,33 @@ export async function GET(request: NextRequest) {
             orderBy: { fecha: 'desc' }
         });
         return NextResponse.json(cotizaciones);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al obtener cotizaciones' }, { status: 500 });
     }
 }
 
 // POST
 export async function POST(request: NextRequest) {
-    const session = await auth();
-    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    const authResult = await requireAuth();
+    if ('response' in authResult) return authResult.response;
 
     try {
-        const data = await request.json();
-        const validation = cotizacionSchema.safeParse(data);
-        if (!validation.success) return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
+        const parsed = await parseJsonBody(request, cotizacionSchema);
+        if ('response' in parsed) return parsed.response;
 
-        const { clienteId, nombreProspecto, emailProspecto, numero, fecha, validez, estado, moneda, notas, items, aplicarIVA } = validation.data;
+        const {
+            clienteId, nombreProspecto, emailProspecto, numero, fecha, validez, estado, moneda,
+            descuento = 0, tipoCambioUSD, modoEnvio, fechaEntrega, formaPago, duracionValidezDias,
+            notas, items, aplicarIVA
+        } = parsed.data;
 
-        // Calcular totales
-        let subtotal = 0;
-        const itemsWithTotal = items.map(item => {
-            const itemTotal = item.cantidad * item.precioUnit;
-            subtotal += itemTotal;
-            return {
-                ...item,
-                total: itemTotal
-            };
-        });
-
-        // Calcular IVA 19% si aplica
-        const impuesto = aplicarIVA ? Math.round(subtotal * 0.19) : 0;
-        const total = subtotal + impuesto;
+        const config = await prisma.configValor.findUnique({ where: { clave: 'tipoCambioUSD' } });
+        const tcUSD = resolveTipoCambioUSD(tipoCambioUSD, config?.valor);
+        const { itemsWithTotal, subtotal, impuesto, total } = calcularTotalesCotizacion(items, descuento, aplicarIVA);
 
         const cotizacion = await prisma.cotizacion.create({
             data: {
-                clienteId,
+                ...(clienteId ? { cliente: { connect: { id: clienteId } } } : {}),
                 nombreProspecto,
                 emailProspecto,
                 numero,
@@ -68,19 +64,24 @@ export async function POST(request: NextRequest) {
                 validez: new Date(validez),
                 estado,
                 moneda,
+                descuento,
+                tipoCambioUSD: tcUSD,
+                modoEnvio: modoEnvio || null,
+                fechaEntrega: fechaEntrega || null,
+                formaPago: formaPago || null,
+                duracionValidezDias: duracionValidezDias || null,
                 notas,
                 subtotal,
                 impuesto,
                 total,
-                items: {
-                    create: itemsWithTotal
-                }
+                items: { create: itemsWithTotal }
             },
             include: { items: true }
         });
         return NextResponse.json(cotizacion, { status: 201 });
     } catch (error) {
-        console.error(error);
-        return NextResponse.json({ error: 'Error al crear cotizacion' }, { status: 500 });
+        console.error('Error al crear cotizacion:', error);
+        const msg = error instanceof Error ? error.message : 'Error al crear cotizacion';
+        return NextResponse.json({ error: msg }, { status: 500 });
     }
 }

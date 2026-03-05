@@ -102,8 +102,8 @@ export default function Experiencia() {
                   </div>
                   <div>
                     <p className="text-slate-700 dark:text-slate-300 italic mb-4">
-                      "Llevamos 5 años trabajando con ItsDev. Son más que un proveedor, 
-                      son parte de nuestro equipo. Siempre responden, siempre cumplen."
+                      &ldquo;Llevamos 5 años trabajando con ItsDev. Son más que un proveedor,
+                      son parte de nuestro equipo. Siempre responden, siempre cumplen.&rdquo;
                     </p>
                     <div>
                       <div className="font-semibold text-slate-900 dark:text-white">

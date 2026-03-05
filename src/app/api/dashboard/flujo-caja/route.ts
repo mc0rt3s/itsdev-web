@@ -154,7 +154,7 @@ export async function GET(request: NextRequest) {
                 gastosRegistrados: totalGastosRegistrados,
             },
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error al obtener flujo de caja:', error);
         return NextResponse.json({ error: 'Error al obtener flujo de caja' }, { status: 500 });
     }

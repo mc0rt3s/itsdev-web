@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
         if (!comunicacion) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
         return NextResponse.json(comunicacion);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al obtener comunicacion' }, { status: 500 });
     }
 }
@@ -66,7 +66,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         });
 
         return NextResponse.json(comunicacion);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error al actualizar comunicacion:', error);
         return NextResponse.json({ error: 'Error al actualizar comunicacion' }, { status: 500 });
     }
@@ -82,7 +82,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     try {
         await prisma.comunicacion.delete({ where: { id } });
         return NextResponse.json({ message: 'Comunicacion eliminada' });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al eliminar comunicacion' }, { status: 500 });
     }
 }

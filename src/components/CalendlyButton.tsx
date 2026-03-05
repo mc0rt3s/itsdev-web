@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import Script from 'next/script';
 
 interface CalendlyButtonProps {
@@ -14,13 +14,11 @@ export default function CalendlyButton({
   text = 'Agendar reunión',
   className = ''
 }: CalendlyButtonProps) {
-  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
-
   useEffect(() => {
     // Verificar si Calendly ya está cargado
     const checkCalendly = () => {
       if (window.Calendly) {
-        setIsScriptLoaded(true);
+        return;
       } else {
         setTimeout(checkCalendly, 100);
       }
@@ -104,7 +102,6 @@ export default function CalendlyButton({
       <Script
         src="https://assets.calendly.com/assets/external/widget.js"
         strategy="lazyOnload"
-        onLoad={() => setIsScriptLoaded(true)}
         onError={() => {
           console.error('Error al cargar el script de Calendly');
         }}

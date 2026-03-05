@@ -2,21 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { contactSchema } from '@/lib/schemas';
 
-// Interfaz para los datos del formulario
-interface ContactFormData {
-  nombre: string;
-  empresa?: string;
-  email: string;
-  telefono?: string;
-  mensaje: string;
-}
-
-// Validación simple de email
-function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}
-
 // Inicialización lazy de Resend (evita error en build time)
 function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY;

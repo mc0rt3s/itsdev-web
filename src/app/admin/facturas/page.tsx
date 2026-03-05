@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -95,12 +95,6 @@ export default function FacturasPage() {
         fetchData();
     }, []);
 
-    useEffect(() => {
-        if (activeTab === 'dashboard') {
-            fetchDashboard();
-        }
-    }, [activeTab, periodo]);
-
     const fetchData = async () => {
         try {
             const [facturasRes, clientesRes] = await Promise.all([
@@ -116,7 +110,7 @@ export default function FacturasPage() {
         }
     };
 
-    const fetchDashboard = async () => {
+    const fetchDashboard = useCallback(async () => {
         setDashboardLoading(true);
         try {
             const res = await fetch(`/api/facturas/dashboard?periodo=${periodo}`);
@@ -129,7 +123,13 @@ export default function FacturasPage() {
         } finally {
             setDashboardLoading(false);
         }
-    };
+    }, [periodo]);
+
+    useEffect(() => {
+        if (activeTab === 'dashboard') {
+            fetchDashboard();
+        }
+    }, [activeTab, fetchDashboard]);
 
     const openNewModal = () => {
         setViewingFactura(null);
@@ -236,7 +236,7 @@ export default function FacturasPage() {
                         const error = await res.json();
                         toast.error(error.error || 'Error al enviar factura');
                     }
-                } catch (error) {
+                } catch {
                     toast.error('Error al enviar factura');
                 } finally {
                     setSendingEmail(false);
@@ -280,7 +280,7 @@ export default function FacturasPage() {
                             const error = await res.json();
                             toast.error(error.error || 'Error al actualizar estado');
                         }
-                    } catch (error) {
+                    } catch {
                         toast.error('Error al actualizar estado');
                     } finally {
                         setUpdatingEstados(prev => ({ ...prev, [id]: false }));
@@ -326,7 +326,7 @@ export default function FacturasPage() {
                         toast.error(error.error || 'Error al actualizar estado');
                         setTempEstado(null);
                     }
-                } catch (error) {
+                } catch {
                     toast.error('Error al actualizar estado');
                     setTempEstado(null);
                 } finally {
@@ -359,9 +359,9 @@ export default function FacturasPage() {
             setTempNumeroSII(null); // Limpiar el estado temporal después de guardar
             toast.success('Número SII actualizado');
             fetchData();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error al actualizar número SII:', error);
-            toast.error(error?.message || 'Error al actualizar número SII');
+            toast.error(error instanceof Error ? error.message : 'Error al actualizar número SII');
         } finally {
             setSavingNumeroSII(false);
         }
@@ -378,18 +378,6 @@ export default function FacturasPage() {
 
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(price);
-    };
-
-    const getStatusBadge = (status: string) => {
-        const styles: Record<string, string> = {
-            emitida: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-            enviada: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-            pendiente: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-            pagada: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-            cancelada: 'bg-red-500/20 text-red-400 border-red-500/30',
-            vencida: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-        };
-        return styles[status] || styles.emitida;
     };
 
     return (

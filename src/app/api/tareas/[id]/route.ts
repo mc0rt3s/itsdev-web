@@ -20,7 +20,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         });
         if (!tarea) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
         return NextResponse.json(tarea);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al obtener tarea' }, { status: 500 });
     }
 }
@@ -43,7 +43,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             data: validation.data
         });
         return NextResponse.json(tarea);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al actualizar tarea' }, { status: 500 });
     }
 }
@@ -58,7 +58,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     try {
         await prisma.tarea.delete({ where: { id } });
         return NextResponse.json({ message: 'Tarea eliminada' });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al eliminar tarea' }, { status: 500 });
     }
 }

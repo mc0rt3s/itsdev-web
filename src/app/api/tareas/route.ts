@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { tareaSchema } from '@/lib/schemas';
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
     const asignadoAId = searchParams.get('asignadoAId');
     const estado = searchParams.get('estado');
 
-    const where: any = {};
+    const where: Prisma.TareaWhereInput = {};
     if (proyectoId) where.proyectoId = proyectoId;
     if (asignadoAId) where.asignadoAId = asignadoAId;
     if (estado) where.estado = estado;
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
             orderBy: { fechaVenc: 'asc' }
         });
         return NextResponse.json(tareas);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al obtener tareas' }, { status: 500 });
     }
 }
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
             data: validation.data
         });
         return NextResponse.json(tarea, { status: 201 });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al crear tarea' }, { status: 500 });
     }
 }

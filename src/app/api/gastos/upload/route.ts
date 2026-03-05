@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
             path: relativePath,
             fileName: fileName
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error al subir archivo:', error);
         return NextResponse.json({ error: 'Error al subir el archivo' }, { status: 500 });
     }

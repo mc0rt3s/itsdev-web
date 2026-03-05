@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
-import { suscripcionSchema } from '@/lib/schemas';
 
 // GET
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -21,7 +20,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
         if (!suscripcion) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
         return NextResponse.json(suscripcion);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al obtener suscripcion' }, { status: 500 });
     }
 }
@@ -41,7 +40,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         // Or hard delete if preferred, but subscription history is valuable
         // For now soft cancel
         return NextResponse.json(deleted);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al cancelar suscripcion' }, { status: 500 });
     }
 }

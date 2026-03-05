@@ -231,6 +231,12 @@ model Pago {
   updatedAt   DateTime @updatedAt
 }
 
+model ConfigValor {
+  id    String @id @default(cuid())
+  clave String @unique // tipoCambioUSD, tipoCambioUF, tipoCambioUTM
+  valor String
+}
+
 model Cotizacion {
   id          String   @id @default(cuid())
   clienteId   String?  // Puede ser a un prospecto aún no registrado como cliente, pero lo ideal es registrarlo como prospecto
@@ -244,7 +250,15 @@ model Cotizacion {
   subtotal    Float
   impuesto    Float    @default(0)
   total       Float
+  descuento   Float    @default(0) // Descuento global
   notas       String?
+  
+  // Términos y condiciones (para PDF)
+  tipoCambioUSD    Float?  // Snapshot del tipo de cambio al crear
+  modoEnvio        String? // "Entrega en oficina de cliente", etc.
+  fechaEntrega     String? // "24 Hrs posteriores confirmado el pago"
+  formaPago        String? // "Transferencia"
+  duracionValidezDias Int? // "2 días"
   
   nombreProspecto String? // Si no hay clienteId
   emailProspecto  String?
@@ -265,10 +279,16 @@ model ItemCotizacion {
   servicioId  String?
   servicio    Servicio?  @relation(fields: [servicioId], references: [id])
   
-  descripcion String
-  cantidad    Float      @default(1)
-  precioUnit  Float
-  total       Float
+  sku             String?  // Código del producto
+  descripcion     String
+  cantidad        Float    @default(1)
+  // Costo (para cálculo de margen - no va al cliente)
+  precioCompraUSD Float?   // Costo en USD
+  precioCompraCLP Float?   // Costo en pesos (o calculado: USD * tipo cambio)
+  margenPorcentaje Float?  // % ganancia (ej: 5)
+  // Venta (va al cliente)
+  precioUnit      Float    // Precio unitario venta (calculado o manual)
+  total           Float
 }
 
 model Comunicacion {
@@ -301,4 +321,18 @@ model Gasto {
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  entity    String
+  entityId  String?
+  actorId   String?
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  @@index([action, createdAt])
+  @@index([entity, entityId])
+  @@index([actorId, createdAt])
 }

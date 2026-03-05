@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { suscripcionSchema } from '@/lib/schemas';
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
     const clienteId = searchParams.get('clienteId');
     const estado = searchParams.get('estado');
 
-    const where: any = {};
+    const where: Prisma.SuscripcionWhereInput = {};
     if (clienteId) where.clienteId = clienteId;
     if (estado) where.estado = estado;
 
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
             orderBy: { fechaInicio: 'desc' }
         });
         return NextResponse.json(suscripciones);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al obtener suscripciones' }, { status: 500 });
     }
 }
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
         const { fechaInicio, ciclo } = validation.data;
 
         // Calcular proxCobro
-        let proxCobro = new Date(fechaInicio);
+        const proxCobro = new Date(fechaInicio);
         if (ciclo === 'mensual') proxCobro.setMonth(proxCobro.getMonth() + 1);
         else if (ciclo === 'anual') proxCobro.setFullYear(proxCobro.getFullYear() + 1);
         else if (ciclo === 'trimestral') proxCobro.setMonth(proxCobro.getMonth() + 3);
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
             }
         });
         return NextResponse.json(suscripcion, { status: 201 });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al crear suscripcion' }, { status: 500 });
     }
 }

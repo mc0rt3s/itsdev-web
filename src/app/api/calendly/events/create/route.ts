@@ -40,11 +40,9 @@ export async function POST(request: NextRequest) {
       throw new Error('Error al obtener tipo de evento');
     }
 
-    const eventTypeData = await eventTypeRes.json();
-    const duration = eventTypeData.resource.duration || 30; // minutos por defecto
+    await eventTypeRes.json();
     
     const startDate = new Date(startTime);
-    const endDate = new Date(startDate.getTime() + duration * 60000);
 
     // Usar el endpoint de Event Invitee para crear el evento programado
     // Este endpoint requiere un plan de pago de Calendly
@@ -101,10 +99,10 @@ export async function POST(request: NextRequest) {
       event: inviteeData.resource,
       message: 'Evento creado exitosamente',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error al crear evento:', error);
     return NextResponse.json(
-      { error: error.message || 'Error al crear evento' },
+      { error: error instanceof Error ? error.message : 'Error al crear evento' },
       { status: 500 }
     );
   }

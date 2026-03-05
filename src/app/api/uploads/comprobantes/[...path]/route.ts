@@ -55,10 +55,11 @@ export async function GET(
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error al servir archivo:', error);
-    
-    if (error.code === 'ENOENT') {
+
+    const nodeError = error as NodeJS.ErrnoException;
+    if (nodeError.code === 'ENOENT') {
       return NextResponse.json({ error: 'Archivo no encontrado' }, { status: 404 });
     }
     

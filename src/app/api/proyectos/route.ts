@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { proyectoSchema } from '@/lib/schemas';
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
     const clienteId = searchParams.get('clienteId');
     const estado = searchParams.get('estado');
 
-    const where: any = {};
+    const where: Prisma.ProyectoWhereInput = {};
     if (clienteId) where.clienteId = clienteId;
     if (estado) where.estado = estado;
 
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
             orderBy: { updatedAt: 'desc' }
         });
         return NextResponse.json(proyectos);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al obtener proyectos' }, { status: 500 });
     }
 }
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
             data: validation.data
         });
         return NextResponse.json(proyecto, { status: 201 });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al crear proyecto' }, { status: 500 });
     }
 }

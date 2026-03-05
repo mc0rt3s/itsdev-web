@@ -58,7 +58,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             }
         });
         return NextResponse.json(proyecto);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al actualizar proyecto' }, { status: 500 });
     }
 }
@@ -73,7 +73,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     try {
         await prisma.proyecto.delete({ where: { id } });
         return NextResponse.json({ message: 'Proyecto eliminado' });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al eliminar proyecto' }, { status: 500 });
     }
 }

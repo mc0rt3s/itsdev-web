@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { gastoSchema } from '@/lib/schemas';
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
         const fechaDesde = searchParams.get('fechaDesde');
         const fechaHasta = searchParams.get('fechaHasta');
 
-        const where: any = {};
+        const where: Prisma.GastoWhereInput = {};
         if (categoria) where.categoria = categoria;
         if (fechaDesde || fechaHasta) {
             where.fecha = {};
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
         });
 
         return NextResponse.json(gasto, { status: 201 });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error al crear gasto:', error);
         return NextResponse.json({ error: 'Error al crear gasto' }, { status: 500 });
     }

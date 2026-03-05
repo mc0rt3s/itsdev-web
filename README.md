@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# itsdev-web
 
-## Getting Started
+Plataforma web de ItsDev construida con Next.js (App Router), Prisma y SQLite.
+Incluye sitio público, panel admin, CRM básico, facturación, cotizaciones, gastos e integraciones (Resend, Calendly, Clockify).
 
-First, run the development server:
+## Stack
+
+- Next.js 16 + React 19 + TypeScript
+- Prisma 7 + SQLite (`better-sqlite3`)
+- NextAuth v5 (credenciales)
+- Tailwind CSS 4
+
+## Módulos principales
+
+- Sitio público (`/`)
+- Panel admin (`/admin`)
+- Clientes, accesos, notas, enlaces, proyectos, tareas
+- Facturas, cotizaciones, suscripciones, comunicaciones
+- Gastos + dashboard de flujo de caja
+- Integraciones:
+  - Resend (emails)
+  - Calendly (eventos)
+  - Clockify (reportes de horas)
+
+## Requisitos
+
+- Node.js 22+
+- npm 10+
+
+## Variables de entorno
+
+Usa `.env.example` como base.
+
+Variables relevantes:
+
+- `DATABASE_URL`
+- `NEXTAUTH_SECRET`
+- `NEXTAUTH_URL`
+- `RESEND_API_KEY`
+- `CALENDLY_API_TOKEN`
+- `CLOCKIFY_API_KEY`
+- `NEXT_PUBLIC_CALENDLY_URL`
+- `NEXT_PUBLIC_GOOGLE_VERIFICATION`
+
+## Desarrollo
 
 ```bash
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Calidad
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run lint
+npm run test
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Base de datos
 
-## Learn More
+```bash
+npm run db:migrate
+npm run db:seed
+npm run db:studio
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Crear usuario inicial
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run user:create
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Seguridad (actual)
 
-## Deploy on Vercel
+- Endpoints admin protegidos por sesión (`auth()`)
+- Endpoint sensible de informe de accesos protegido por:
+  - autenticación
+  - rol `admin`
+  - rate limiting por usuario
+- Validación de payloads con Zod en rutas críticas
+- Headers de seguridad HTTP globales (CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`)
+- Auditoría persistente en BD (`AuditLog`) para acciones sensibles
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Auditoría y migraciones
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Antes de usar auditoría en un entorno existente, aplica migraciones:
+
+```bash
+npm run db:migrate
+```
+
+## Deploy
+
+Ver [`DEPLOY.md`](./DEPLOY.md).

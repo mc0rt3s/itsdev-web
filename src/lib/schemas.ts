@@ -42,6 +42,13 @@ export const accesoSchema = z.object({
   clienteId: z.string().optional().nullable(),
 });
 
+export const accesoInformeSchema = z.object({
+  clienteId: z.string().min(1, 'Cliente requerido'),
+  destinatario: z.string().email('Email destinatario requerido'),
+  asunto: z.string().optional().nullable(),
+  mensaje: z.string().optional().nullable(),
+});
+
 
 export const contactSchema = z.object({
   nombre: z.string().min(2, 'El nombre es requerido (mínimo 2 caracteres)'),
@@ -147,8 +154,12 @@ export type FacturaInput = z.infer<typeof facturaSchema>;
 
 export const itemCotizacionSchema = z.object({
   servicioId: z.string().optional().nullable(),
+  sku: z.string().optional().nullable(),
   descripcion: z.string().min(1, 'La descripción es requerida'),
   cantidad: z.number().min(0.01, 'La cantidad debe ser mayor a 0'),
+  precioCompraUSD: z.number().min(0).optional().nullable(),
+  precioCompraCLP: z.number().min(0).optional().nullable(),
+  margenPorcentaje: z.number().min(0).optional().nullable(),
   precioUnit: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
 });
 
@@ -161,6 +172,12 @@ export const cotizacionSchema = z.object({
   validez: z.string().transform((str) => new Date(str)),
   estado: z.enum(['borrador', 'enviada', 'aprobada', 'rechazada', 'vencida']).default('borrador'),
   moneda: z.enum(['CLP', 'USD', 'UF']).default('CLP'),
+  descuento: z.number().min(0).optional().default(0),
+  tipoCambioUSD: z.number().positive().optional().nullable(),
+  modoEnvio: z.string().optional().nullable(),
+  fechaEntrega: z.string().optional().nullable(),
+  formaPago: z.string().optional().nullable(),
+  duracionValidezDias: z.number().int().min(1).optional().nullable(),
   items: z.array(itemCotizacionSchema).min(1, 'Debe haber al menos un ítem'),
   notas: z.string().optional().nullable(),
   aplicarIVA: z.boolean().optional().default(true),

@@ -58,8 +58,8 @@ export default function Clientes() {
         {/* Trust Message */}
         <div className="mt-16 text-center">
           <p className="text-slate-600 dark:text-slate-400 italic max-w-2xl mx-auto">
-            "La confianza se construye con resultados. Cada proyecto exitoso es un testimonio 
-            de nuestro compromiso con la excelencia técnica y el servicio al cliente."
+            &ldquo;La confianza se construye con resultados. Cada proyecto exitoso es un testimonio
+            de nuestro compromiso con la excelencia técnica y el servicio al cliente.&rdquo;
           </p>
         </div>
       </div>

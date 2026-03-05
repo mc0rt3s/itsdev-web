@@ -399,7 +399,7 @@ export default async function AdminDashboard() {
       <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6">
         <h2 className="text-xl font-bold text-white mb-4">Acciones Rápidas</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <a
+          <Link
             href="/admin/clientes?new=true"
             className="flex items-center gap-3 p-4 bg-slate-700/30 hover:bg-slate-700/50 rounded-xl transition-all duration-200 group"
           >
@@ -409,8 +409,8 @@ export default async function AdminDashboard() {
               </svg>
             </div>
             <span className="text-slate-300 group-hover:text-white font-medium">Nuevo Cliente</span>
-          </a>
-          <a
+          </Link>
+          <Link
             href="/admin/accesos?new=true"
             className="flex items-center gap-3 p-4 bg-slate-700/30 hover:bg-slate-700/50 rounded-xl transition-all duration-200 group"
           >
@@ -420,8 +420,8 @@ export default async function AdminDashboard() {
               </svg>
             </div>
             <span className="text-slate-300 group-hover:text-white font-medium">Nuevo Acceso</span>
-          </a>
-          <a
+          </Link>
+          <Link
             href="/admin/notas?new=true"
             className="flex items-center gap-3 p-4 bg-slate-700/30 hover:bg-slate-700/50 rounded-xl transition-all duration-200 group"
           >
@@ -431,7 +431,7 @@ export default async function AdminDashboard() {
               </svg>
             </div>
             <span className="text-slate-300 group-hover:text-white font-medium">Nueva Nota</span>
-          </a>
+          </Link>
         </div>
       </div>
 

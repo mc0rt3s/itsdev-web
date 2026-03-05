@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { comunicacionSchema } from '@/lib/schemas';
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const clienteId = searchParams.get('clienteId');
 
-    const where: any = {};
+    const where: Prisma.ComunicacionWhereInput = {};
     if (clienteId) where.clienteId = clienteId;
 
     try {
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
             orderBy: { fecha: 'desc' }
         });
         return NextResponse.json(comunicaciones);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Error al obtener comunicaciones' }, { status: 500 });
     }
 }

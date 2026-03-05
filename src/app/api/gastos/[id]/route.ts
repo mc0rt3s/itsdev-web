@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
-import { gastoSchema } from '@/lib/schemas';
 import { unlink } from 'fs/promises';
 import { join } from 'path';
 
@@ -43,7 +43,7 @@ export async function PATCH(
         const data = await request.json();
 
         // Validar si se está actualizando el comprobante
-        const updateData: any = {};
+        const updateData: Prisma.GastoUpdateInput = {};
         if (data.monto !== undefined) updateData.monto = data.monto;
         if (data.motivo !== undefined) updateData.motivo = data.motivo;
         if (data.categoria !== undefined) updateData.categoria = data.categoria;
@@ -69,7 +69,7 @@ export async function PATCH(
         });
 
         return NextResponse.json(gasto);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error al actualizar gasto:', error);
         return NextResponse.json({ error: 'Error al actualizar gasto' }, { status: 500 });
     }

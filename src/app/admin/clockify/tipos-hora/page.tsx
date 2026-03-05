@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -33,12 +33,7 @@ export default function ClockifyTiposHoraPage() {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ isOpen: boolean; id: string; nombre: string }>({ isOpen: false, id: '', nombre: '' });
 
-  useEffect(() => {
-    fetchItems();
-    fetchWorkspaces();
-  }, []);
-
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     try {
       const res = await fetch('/api/clockify/task-tipos');
       if (res.ok) {
@@ -51,7 +46,7 @@ export default function ClockifyTiposHoraPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const fetchWorkspaces = async () => {
     try {
@@ -165,7 +160,7 @@ export default function ClockifyTiposHoraPage() {
         const err = await res.json();
         toast.error(err.error || 'Error al guardar');
       }
-    } catch (error) {
+    } catch {
       toast.error('Error al guardar');
     } finally {
       setSaving(false);
@@ -183,10 +178,15 @@ export default function ClockifyTiposHoraPage() {
       } else {
         toast.error('Error al eliminar');
       }
-    } catch (error) {
+    } catch {
       toast.error('Error al eliminar');
     }
   };
+
+  useEffect(() => {
+    fetchItems();
+    fetchWorkspaces();
+  }, [fetchItems]);
 
   return (
     <div className="space-y-6">

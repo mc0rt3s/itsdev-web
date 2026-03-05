@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
@@ -32,9 +33,9 @@ export async function GET(
         }
 
         return NextResponse.json(factura);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error al obtener factura:', error);
-        const errorMessage = error?.message || 'Error al obtener factura';
+        const errorMessage = error instanceof Error ? error.message : 'Error al obtener factura';
         return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }
@@ -57,7 +58,7 @@ export async function PATCH(
             return NextResponse.json({ error: 'Estado inválido' }, { status: 400 });
         }
 
-        const updateData: any = {};
+        const updateData: Prisma.FacturaUpdateInput = {};
         if (estado !== undefined) updateData.estado = estado;
         if (numeroSII !== undefined) updateData.numeroSII = numeroSII === '' ? null : numeroSII;
         if (notas !== undefined) updateData.notas = notas;
@@ -79,9 +80,9 @@ export async function PATCH(
         });
 
         return NextResponse.json(factura);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error al actualizar factura:', error);
-        const errorMessage = error?.message || 'Error al actualizar factura';
+        const errorMessage = error instanceof Error ? error.message : 'Error al actualizar factura';
         return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

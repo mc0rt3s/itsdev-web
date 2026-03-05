@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     const userUri = userData.resource.uri;
 
     // Construir URL para obtener eventos programados
-    let eventsUrl = `${CALENDLY_API_BASE}/event_types?user=${encodeURIComponent(userUri)}&count=${count}`;
+    const eventsUrl = `${CALENDLY_API_BASE}/event_types?user=${encodeURIComponent(userUri)}&count=${count}`;
     
     // Obtener eventos programados (scheduled events)
     let scheduledEventsUrl = `${CALENDLY_API_BASE}/scheduled_events?user=${encodeURIComponent(userUri)}&count=${count}`;
@@ -78,10 +78,10 @@ export async function GET(request: NextRequest) {
       eventTypes: eventTypesData.collection || [],
       scheduledEvents: scheduledEventsData.collection || [],
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error en API de Calendly:', error);
     return NextResponse.json(
-      { error: error.message || 'Error al obtener eventos de Calendly' },
+      { error: error instanceof Error ? error.message : 'Error al obtener eventos de Calendly' },
       { status: 500 }
     );
   }

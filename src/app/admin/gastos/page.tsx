@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import GastosCharts from '@/components/admin/GastosCharts';
@@ -160,8 +161,8 @@ export default function GastosPage() {
                 const error = await res.json();
                 throw new Error(error.error || 'Error al subir comprobante');
             }
-        } catch (error: any) {
-            toast.error(error.message || 'Error al subir comprobante');
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Error al subir comprobante');
             return null;
         } finally {
             setUploading(false);
@@ -234,7 +235,7 @@ export default function GastosPage() {
                     toast.error(error.error || 'Error al registrar gasto');
                 }
             }
-        } catch (error: any) {
+        } catch {
             toast.error('Error al guardar gasto');
         } finally {
             setSaving(false);
@@ -299,7 +300,7 @@ export default function GastosPage() {
                         const error = await res.json();
                         toast.error(error.error || 'Error al eliminar gasto');
                     }
-                } catch (error) {
+                } catch {
                     toast.error('Error al eliminar gasto');
                 }
             }
@@ -313,8 +314,6 @@ export default function GastosPage() {
     const getCategoriaLabel = (categoria: string) => {
         return categorias.find(c => c.value === categoria)?.label || categoria;
     };
-
-    const totalGastos = gastos.reduce((sum, g) => sum + g.monto, 0);
 
     if (loading || loadingMetrics) {
         return (
@@ -562,7 +561,14 @@ export default function GastosPage() {
                                 {comprobantePreview && (
                                     <div className="mt-4">
                                         {comprobantePreview.startsWith('data:') ? (
-                                            <img src={comprobantePreview} alt="Preview" className="max-w-full h-48 object-contain rounded-lg border border-slate-600" />
+                                            <Image
+                                                src={comprobantePreview}
+                                                alt="Preview"
+                                                width={800}
+                                                height={300}
+                                                unoptimized
+                                                className="max-w-full h-48 w-auto object-contain rounded-lg border border-slate-600"
+                                            />
                                         ) : comprobantePreview.startsWith('/uploads/comprobantes/') ? (
                                             <div>
                                                 <a 

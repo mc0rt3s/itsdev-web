@@ -35,15 +35,21 @@ interface CotizacionData {
     nombreProspecto?: string;
     emailProspecto?: string;
     items: Array<{
+        sku?: string;
         descripcion: string;
         cantidad: number;
         precioUnit: number;
         total: number;
     }>;
     subtotal: number;
+    descuento?: number;
     impuesto: number;
     total: number;
     notas?: string;
+    modoEnvio?: string;
+    fechaEntrega?: string;
+    formaPago?: string;
+    duracionValidezDias?: number;
 }
 
 // Load logo as base64
@@ -52,7 +58,7 @@ try {
     const logoPath = path.join(process.cwd(), 'public', 'logo.png');
     const logoBuffer = fs.readFileSync(logoPath);
     LOGO_BASE64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
-} catch (error) {
+} catch {
     console.warn('Logo not found, will use text fallback');
 }
 
@@ -409,61 +415,77 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     // ============================================
     let yPos = 100;
 
-    // Table header
+    const hasSku = data.items.some((i) => i.sku && i.sku.trim() !== '');
+    const colWidths = hasSku
+        ? { cant: 16, sku: 22, desc: 65, precio: 30, total: 32 }
+        : { cant: 16, sku: 0, desc: 87, precio: 30, total: 32 };
+    let colX = 15;
+
+    // Table header: CANTIDAD | SKU | DESCRIPCION | PRECIO | TOTAL
     doc.setFillColor(...green);
-    doc.rect(15, yPos, 18, 10, 'F');
-    
+    doc.rect(colX, yPos, colWidths.cant, 10, 'F');
+    colX += colWidths.cant;
+    if (hasSku) {
+        doc.setFillColor(...darkBlue);
+        doc.rect(colX, yPos, colWidths.sku, 10, 'F');
+        colX += colWidths.sku;
+    }
     doc.setFillColor(...darkBlue);
-    doc.rect(33, yPos, 87, 10, 'F');
-    doc.rect(120, yPos, 28, 10, 'F');
-    doc.rect(148, yPos, 22, 10, 'F');
-    doc.rect(170, yPos, 25, 10, 'F');
+    doc.rect(colX, yPos, colWidths.desc, 10, 'F');
+    colX += colWidths.desc;
+    doc.rect(colX, yPos, colWidths.precio, 10, 'F');
+    colX += colWidths.precio;
+    doc.rect(colX, yPos, colWidths.total, 10, 'F');
 
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text('N°', 24, yPos + 7, { align: 'center' });
-    doc.text('DESCRIPCIÓN', 76.5, yPos + 7, { align: 'center' });
-    doc.text('PRECIO', 134, yPos + 7, { align: 'center' });
-    doc.text('CANT.', 159, yPos + 7, { align: 'center' });
-    doc.text('TOTAL', 182.5, yPos + 7, { align: 'center' });
+    colX = 15;
+    doc.text('CANT.', colX + colWidths.cant / 2, yPos + 7, { align: 'center' });
+    colX += colWidths.cant;
+    if (hasSku) {
+        doc.text('SKU', colX + colWidths.sku / 2, yPos + 7, { align: 'center' });
+        colX += colWidths.sku;
+    }
+    doc.text('DESCRIPCIÓN', colX + colWidths.desc / 2, yPos + 7, { align: 'center' });
+    colX += colWidths.desc;
+    doc.text('PRECIO', colX + colWidths.precio / 2, yPos + 7, { align: 'center' });
+    colX += colWidths.precio;
+    doc.text('TOTAL', colX + colWidths.total / 2, yPos + 7, { align: 'center' });
 
-    // Table rows
+    const totalColW = colWidths.cant + (hasSku ? colWidths.sku : 0) + colWidths.desc + colWidths.precio + colWidths.total;
+
     yPos += 10;
-    
+
     data.items.forEach((item, index) => {
-        // Check for page break
         if (yPos > 220) {
             doc.addPage();
             yPos = 20;
         }
 
-        // Alternating row background
         if (index % 2 === 0) {
             doc.setFillColor(...lightGray);
-            doc.rect(15, yPos, 180, 12, 'F');
+            doc.rect(15, yPos, totalColW, 12, 'F');
         }
 
         doc.setTextColor(60, 60, 60);
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
-        
-        // Row number
-        doc.text(String(index + 1).padStart(2, '0'), 24, yPos + 8, { align: 'center' });
-        
-        // Description (with text wrapping)
-        const descLines = doc.splitTextToSize(item.descripcion, 80);
-        doc.text(descLines[0], 35, yPos + 8);
-        
-        // Price
-        doc.text(`$${item.precioUnit.toLocaleString('es-CL')}`, 134, yPos + 8, { align: 'center' });
-        
-        // Quantity
-        doc.text(String(item.cantidad), 159, yPos + 8, { align: 'center' });
-        
-        // Total (bold)
+
+        colX = 15;
+        doc.text(String(item.cantidad), colX + colWidths.cant / 2, yPos + 8, { align: 'center' });
+        colX += colWidths.cant;
+        if (hasSku) {
+            doc.text((item.sku || '-').slice(0, 10), colX + colWidths.sku / 2, yPos + 8, { align: 'center' });
+            colX += colWidths.sku;
+        }
+        const descLines = doc.splitTextToSize(item.descripcion, colWidths.desc - 4);
+        doc.text(descLines[0], colX + 2, yPos + 8);
+        colX += colWidths.desc;
+        doc.text(`$ ${item.precioUnit.toLocaleString('es-CL')}`, colX + colWidths.precio / 2, yPos + 8, { align: 'center' });
+        colX += colWidths.precio;
         doc.setFont('helvetica', 'bold');
-        doc.text(`$${item.total.toLocaleString('es-CL')}`, 182.5, yPos + 8, { align: 'center' });
+        doc.text(`$ ${item.total.toLocaleString('es-CL')}`, colX + colWidths.total / 2, yPos + 8, { align: 'center' });
 
         yPos += 12;
     });
@@ -473,17 +495,23 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     // ============================================
     yPos += 8;
     const totalsX = 145;
-    
+
     doc.setFontSize(10);
     doc.setTextColor(...textGray);
     doc.setFont('helvetica', 'normal');
-    
+
     doc.text('Subtotal:', totalsX, yPos);
-    doc.text(`$${data.subtotal.toLocaleString('es-CL')}`, 192, yPos, { align: 'right' });
+    doc.text(`$ ${data.subtotal.toLocaleString('es-CL')}`, 192, yPos, { align: 'right' });
     yPos += 6;
-    
+
+    if (data.descuento && data.descuento > 0) {
+        doc.text('Descuento:', totalsX, yPos);
+        doc.text(`$ ${data.descuento.toLocaleString('es-CL')}`, 192, yPos, { align: 'right' });
+        yPos += 6;
+    }
+
     doc.text('IVA (19%):', totalsX, yPos);
-    doc.text(`$${data.impuesto.toLocaleString('es-CL')}`, 192, yPos, { align: 'right' });
+    doc.text(`$ ${data.impuesto.toLocaleString('es-CL')}`, 192, yPos, { align: 'right' });
     yPos += 8;
     
     // Total box with green background
@@ -524,11 +552,15 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     
-    // Two columns of terms
-    doc.text('• Validez: 14 días desde emisión', 16, sectionY + 15);
-    doc.text('• Precios incluyen IVA', 16, sectionY + 21);
-    doc.text('• Entrega: 24 hrs post pago', 16, sectionY + 27);
-    doc.text('• Forma de pago: Transferencia', 16, sectionY + 33);
+    // Términos configurables o por defecto
+    const modoEnvio = data.modoEnvio || 'Entrega en oficina de cliente';
+    const fechaEntrega = data.fechaEntrega || '24 Hrs posteriores confirmado el pago';
+    const formaPago = data.formaPago || 'Transferencia';
+    const duracion = data.duracionValidezDias ? `${data.duracionValidezDias} días` : '14 días desde emisión';
+    doc.text(`• Modo de envío: ${modoEnvio}`, 16, sectionY + 12);
+    doc.text(`• Fecha entrega: ${fechaEntrega}`, 16, sectionY + 18);
+    doc.text(`• Forma de pago: ${formaPago}`, 16, sectionY + 24);
+    doc.text(`• Validez: ${duracion}`, 16, sectionY + 30);
     
     // Custom notes if provided
     if (data.notas) {
@@ -536,7 +568,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
         doc.setFont('helvetica', 'italic');
         doc.setTextColor(100, 100, 100);
         const notesLines = doc.splitTextToSize('Nota: ' + data.notas, 85);
-        doc.text(notesLines.slice(0, 1), 16, sectionY + 39);
+        doc.text(notesLines.slice(0, 1), 16, sectionY + 36);
     }
     
     // --- RIGHT: BANK INFO ---

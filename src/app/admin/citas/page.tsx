@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -58,11 +58,7 @@ export default function CitasPage() {
   });
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    fetchEvents();
-  }, []);
-
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
       const now = new Date();
@@ -86,7 +82,11 @@ export default function CitasPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -199,7 +199,6 @@ export default function CitasPage() {
     const year = selectedDate.getFullYear();
     const month = selectedDate.getMonth();
     const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - startDate.getDay()); // Domingo de la semana
 

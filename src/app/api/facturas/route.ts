@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { facturaSchema } from '@/lib/schemas';
+import { buildFacturaWhere, calcularTotalesFactura } from '@/lib/facturas-utils';
 
 // GET - Listar todas las facturas
 export async function GET(request: NextRequest) {
@@ -16,9 +18,7 @@ export async function GET(request: NextRequest) {
         const clienteId = searchParams.get('clienteId');
         const estado = searchParams.get('estado');
 
-        const where: any = {};
-        if (clienteId) where.clienteId = clienteId;
-        if (estado) where.estado = estado;
+        const where: Prisma.FacturaWhereInput = buildFacturaWhere(clienteId, estado);
 
         const facturas = await prisma.factura.findMany({
             where,
@@ -59,20 +59,7 @@ export async function POST(request: NextRequest) {
 
         const { clienteId, numero, numeroSII, fechaEmision, fechaVenc, estado, moneda, notas, proyectoId, items, aplicarIVA } = validationResult.data;
 
-        // Calcular totales
-        let subtotal = 0;
-        const itemsWithTotal = items.map(item => {
-            const itemTotal = item.cantidad * item.precioUnit;
-            subtotal += itemTotal;
-            return {
-                ...item,
-                total: itemTotal
-            };
-        });
-
-        // Calcular IVA 19% si aplica
-        const impuesto = aplicarIVA ? Math.round(subtotal * 0.19) : 0;
-        const total = subtotal + impuesto;
+        const { itemsWithTotal, subtotal, impuesto, total } = calcularTotalesFactura(items, aplicarIVA);
 
         const factura = await prisma.factura.create({
             data: {

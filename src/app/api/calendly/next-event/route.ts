@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 
 const CALENDLY_API_BASE = 'https://api.calendly.com';
@@ -12,7 +12,7 @@ async function getCalendlyClient() {
 }
 
 // GET - Obtener el próximo evento programado
-export async function GET(request: NextRequest) {
+export async function GET() {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
@@ -77,10 +77,10 @@ export async function GET(request: NextRequest) {
         details: eventDetails,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error al obtener próximo evento:', error);
     return NextResponse.json(
-      { error: error.message || 'Error al obtener próximo evento' },
+      { error: error instanceof Error ? error.message : 'Error al obtener próximo evento' },
       { status: 500 }
     );
   }

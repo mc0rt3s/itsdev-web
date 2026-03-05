@@ -131,7 +131,7 @@ export default function ClienteDetallePage({ params }: { params: Promise<{ id: s
       setReportEntries(data.entries ?? []);
       setReportResumen(data.resumen ?? null);
       if (data.message) setReportError(data.message);
-    } catch (e) {
+    } catch {
       setReportError('Error al conectar con el servidor');
     } finally {
       setReportLoading(false);
