@@ -8,32 +8,34 @@ export async function GET(request: NextRequest) {
 
     try {
         const { searchParams } = new URL(request.url);
-        const periodo = searchParams.get('periodo') || 'mes'; // mes, trimestre, año
+        const periodo = searchParams.get('periodo') || 'mes'; // mes, trimestre, año, todos
 
         // Calcular fechas según período
         const ahora = new Date();
-        let fechaInicio: Date;
-        
-        switch (periodo) {
-            case 'mes':
-                fechaInicio = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
-                break;
-            case 'trimestre':
-                const trimestre = Math.floor(ahora.getMonth() / 3);
-                fechaInicio = new Date(ahora.getFullYear(), trimestre * 3, 1);
-                break;
-            case 'año':
-                fechaInicio = new Date(ahora.getFullYear(), 0, 1);
-                break;
-            default:
-                fechaInicio = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+        let whereClause: { fechaEmision?: { gte: Date } } = {};
+
+        if (periodo !== 'todos') {
+            let fechaInicio: Date;
+            switch (periodo) {
+                case 'mes':
+                    fechaInicio = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+                    break;
+                case 'trimestre':
+                    const trimestre = Math.floor(ahora.getMonth() / 3);
+                    fechaInicio = new Date(ahora.getFullYear(), trimestre * 3, 1);
+                    break;
+                case 'año':
+                    fechaInicio = new Date(ahora.getFullYear(), 0, 1);
+                    break;
+                default:
+                    fechaInicio = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+            }
+            whereClause = { fechaEmision: { gte: fechaInicio } };
         }
 
-        // Obtener todas las facturas del período
+        // Obtener todas las facturas del período (o todas si periodo=todos)
         const facturas = await prisma.factura.findMany({
-            where: {
-                fechaEmision: { gte: fechaInicio }
-            },
+            where: whereClause,
             include: {
                 cliente: { select: { razonSocial: true, id: true } },
                 items: {

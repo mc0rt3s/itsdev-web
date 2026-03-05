@@ -54,7 +54,7 @@ export default function FacturasPage() {
     const [loading, setLoading] = useState(true);
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [dashboardLoading, setDashboardLoading] = useState(true);
-    const [periodo, setPeriodo] = useState<'mes' | 'trimestre' | 'año'>('mes');
+    const [periodo, setPeriodo] = useState<'mes' | 'trimestre' | 'año' | 'todos'>('año');
     const [showModal, setShowModal] = useState(false);
     const [viewingFactura, setViewingFactura] = useState<Factura | null>(null);
     const [formData, setFormData] = useState({
@@ -434,7 +434,7 @@ export default function FacturasPage() {
                 <div className="space-y-6">
                     {/* Periodo selector */}
                     <div className="flex justify-end gap-2">
-                        {(['mes', 'trimestre', 'año'] as const).map(p => (
+                        {(['todos', 'mes', 'trimestre', 'año'] as const).map(p => (
                             <button
                                 key={p}
                                 onClick={() => setPeriodo(p)}
@@ -444,7 +444,7 @@ export default function FacturasPage() {
                                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                                 }`}
                             >
-                                {p === 'mes' ? 'Este Mes' : p === 'trimestre' ? 'Este Trimestre' : 'Este Año'}
+                                {p === 'todos' ? 'Todas' : p === 'mes' ? 'Este Mes' : p === 'trimestre' ? 'Este Trimestre' : 'Este Año'}
                             </button>
                         ))}
                     </div>
