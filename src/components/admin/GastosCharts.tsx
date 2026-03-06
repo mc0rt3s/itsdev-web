@@ -32,6 +32,11 @@ export default function GastosCharts({ porCategoria, porProveedor, tendenciaMens
     }).format(value);
   };
 
+  const formatTooltipValue = (value: unknown) => {
+    const parsed = typeof value === 'number' ? value : Number(value ?? 0);
+    return formatPrice(Number.isFinite(parsed) ? parsed : 0);
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Gráfico de Torta - Gastos por Categoría */}
@@ -56,7 +61,7 @@ export default function GastosCharts({ porCategoria, porProveedor, tendenciaMens
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip formatter={(value: number) => formatPrice(value)} />
+            <Tooltip formatter={(value) => formatTooltipValue(value)} />
           </PieChart>
         </ResponsiveContainer>
         <div className="mt-4 space-y-2">
@@ -90,7 +95,7 @@ export default function GastosCharts({ porCategoria, porProveedor, tendenciaMens
               height={80}
             />
             <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(value) => formatPrice(value)} />
-            <Tooltip formatter={(value: number) => formatPrice(value)} />
+            <Tooltip formatter={(value) => formatTooltipValue(value)} />
             <Bar dataKey="total" fill="#06b6d4" radius={[8, 8, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -104,7 +109,7 @@ export default function GastosCharts({ porCategoria, porProveedor, tendenciaMens
             <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
             <XAxis dataKey="mes" stroke="#94a3b8" fontSize={12} />
             <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(value) => formatPrice(value)} />
-            <Tooltip formatter={(value: number) => formatPrice(value)} />
+            <Tooltip formatter={(value) => formatTooltipValue(value)} />
             <Legend />
             <Line
               type="monotone"
