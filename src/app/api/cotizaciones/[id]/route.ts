@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const cotizacion = await prisma.cotizacion.findUnique({
             where: { id },
             include: {
-                cliente: { select: { razonSocial: true } },
+                cliente: { select: { razonSocial: true, email: true } },
                 items: true
             }
         });

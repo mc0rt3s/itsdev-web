@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
         const cotizaciones = await prisma.cotizacion.findMany({
             where,
             include: {
-                cliente: { select: { razonSocial: true } },
+                cliente: { select: { razonSocial: true, email: true } },
                 items: true
             },
             orderBy: { fecha: 'desc' }

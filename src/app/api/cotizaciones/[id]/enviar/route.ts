@@ -24,6 +24,13 @@ export async function POST(
     const { id } = await params;
 
     try {
+        let body: { destinatario?: string } = {};
+        try {
+            body = await request.json();
+        } catch {
+            body = {};
+        }
+
         const cotizacion = await prisma.cotizacion.findUnique({
             where: { id },
             include: {
@@ -38,8 +45,8 @@ export async function POST(
             return NextResponse.json({ error: 'Cotización no encontrada' }, { status: 404 });
         }
 
-        // Determine recipient email
-        const recipientEmail = cotizacion.cliente?.email || cotizacion.emailProspecto;
+        // Determine recipient email (manual override > cliente/prospecto)
+        const recipientEmail = body.destinatario?.trim() || cotizacion.cliente?.email || cotizacion.emailProspecto;
         const recipientName = cotizacion.cliente?.razonSocial || cotizacion.nombreProspecto;
 
         if (!recipientEmail) {
@@ -59,22 +66,29 @@ export async function POST(
             nombreProspecto: cotizacion.nombreProspecto || undefined,
             emailProspecto: cotizacion.emailProspecto || undefined,
             items: cotizacion.items.map(item => ({
+                sku: item.sku || undefined,
                 descripcion: item.descripcion,
                 cantidad: item.cantidad,
                 precioUnit: item.precioUnit,
                 total: item.total
             })),
             subtotal: cotizacion.subtotal,
+            descuento: cotizacion.descuento || undefined,
             impuesto: cotizacion.impuesto,
             total: cotizacion.total,
-            notas: cotizacion.notas || undefined
+            notas: cotizacion.notas || undefined,
+            modoEnvio: cotizacion.modoEnvio || undefined,
+            fechaEntrega: cotizacion.fechaEntrega || undefined,
+            formaPago: cotizacion.formaPago || undefined,
+            duracionValidezDias: cotizacion.duracionValidezDias || undefined
         });
 
         // Send email
         const resend = getResendClient();
         const { data, error } = await resend.emails.send({
-            from: 'ITSDev <cotizaciones@itsdev.cl>',
+            from: 'ITSDev <noreply@sender.itsdev.cl>',
             to: [recipientEmail],
+            replyTo: 'contacto@itsdev.cl',
             subject: `Cotización ${cotizacion.numero} - ITSDev`,
             html: `
         <h2>Estimado/a ${recipientName},</h2>
@@ -95,7 +109,7 @@ export async function POST(
 
         if (error) {
             console.error('Error enviando email:', error);
-            return NextResponse.json({ error: 'Error al enviar email' }, { status: 500 });
+            return NextResponse.json({ error: error.message || 'Error al enviar email' }, { status: 500 });
         }
 
         // Update status to "enviada"
@@ -106,10 +120,14 @@ export async function POST(
 
         return NextResponse.json({
             message: 'Cotización enviada exitosamente',
-            emailId: data?.id
+            emailId: data?.id,
+            destinatario: recipientEmail
         });
     } catch (error) {
         console.error('Error enviando cotización:', error);
-        return NextResponse.json({ error: 'Error al enviar cotización' }, { status: 500 });
+        return NextResponse.json(
+            { error: error instanceof Error ? error.message : 'Error al enviar cotización' },
+            { status: 500 }
+        );
     }
 }

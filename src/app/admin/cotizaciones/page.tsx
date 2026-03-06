@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 interface Cotizacion {
     id: string;
     numero: string;
-    cliente?: { razonSocial: string };
+    cliente?: { razonSocial: string; email?: string | null };
     clienteId?: string;
     nombreProspecto?: string;
     emailProspecto?: string;
@@ -41,6 +41,7 @@ export default function CotizacionesPage() {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [viewingCotizacion, setViewingCotizacion] = useState<Cotizacion | null>(null);
+    const [destinatarioEmail, setDestinatarioEmail] = useState('');
 
     // Use a string 'prospecto' or 'cliente' to toggle form mode
     const [targetType, setTargetType] = useState<'cliente' | 'prospecto'>('cliente');
@@ -125,12 +126,14 @@ export default function CotizacionesPage() {
 
     const openDetailModal = (cot: Cotizacion) => {
         setViewingCotizacion(cot);
+        setDestinatarioEmail(cot.cliente?.email || cot.emailProspecto || '');
         setShowModal(true);
     };
 
     const closeModal = () => {
         setShowModal(false);
         setViewingCotizacion(null);
+        setDestinatarioEmail('');
     };
 
     const addItem = () => {
@@ -256,17 +259,45 @@ export default function CotizacionesPage() {
     };
 
     const handleDownloadPDF = async (id: string) => {
-        window.open(`/api/cotizaciones/${id}/pdf`, '_blank');
+        try {
+            const res = await fetch(`/api/cotizaciones/${id}/pdf`);
+            if (!res.ok) {
+                const payload = await res.json().catch(() => ({ error: 'Error al generar PDF' }));
+                alert(payload.error || 'Error al generar PDF');
+                return;
+            }
+
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        } catch {
+            alert('Error al generar PDF');
+        }
     };
 
     const handleSendEmail = async (id: string) => {
         if (!confirm('¿Enviar cotización por email?')) return;
+        if (!destinatarioEmail.trim()) {
+            alert('Debes indicar un email de destino');
+            return;
+        }
+
         setSendingEmail(true);
         try {
-            const res = await fetch(`/api/cotizaciones/${id}/enviar`, { method: 'POST' });
+            const res = await fetch(`/api/cotizaciones/${id}/enviar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ destinatario: destinatarioEmail.trim() })
+            });
             if (res.ok) {
-                alert('Cotización enviada exitosamente');
+                const payload = await res.json();
+                alert(`Cotización enviada exitosamente a ${payload.destinatario || destinatarioEmail.trim()}`);
                 fetchData();
+                const detailRes = await fetch(`/api/cotizaciones/${id}`);
+                if (detailRes.ok) {
+                    setViewingCotizacion(await detailRes.json());
+                }
             } else {
                 const error = await res.json();
                 alert(error.error || 'Error al enviar');
@@ -275,6 +306,28 @@ export default function CotizacionesPage() {
             alert('Error al enviar cotización');
         } finally {
             setSendingEmail(false);
+        }
+    };
+
+    const handleUpdateEstado = async (id: string, estado: string) => {
+        try {
+            const res = await fetch(`/api/cotizaciones/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado })
+            });
+
+            if (!res.ok) {
+                const payload = await res.json().catch(() => ({ error: 'Error al actualizar estado' }));
+                alert(payload.error || 'Error al actualizar estado');
+                return;
+            }
+
+            const updated = await res.json();
+            setViewingCotizacion((prev) => (prev ? { ...prev, estado: updated.estado } : prev));
+            fetchData();
+        } catch {
+            alert('Error al actualizar estado');
         }
     };
 
@@ -376,13 +429,30 @@ export default function CotizacionesPage() {
                                         <p className="text-white text-xl font-bold">
                                             {viewingCotizacion.cliente ? viewingCotizacion.cliente.razonSocial : viewingCotizacion.nombreProspecto}
                                         </p>
-                                        {viewingCotizacion.emailProspecto && <p className="text-sm text-slate-500">{viewingCotizacion.emailProspecto}</p>}
+                                        {(viewingCotizacion.cliente?.email || viewingCotizacion.emailProspecto) && (
+                                            <p className="text-sm text-slate-500">
+                                                {viewingCotizacion.cliente?.email || viewingCotizacion.emailProspecto}
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="text-right">
                                         <p className="text-slate-400 text-sm">Estado</p>
                                         <span className={`inline-block mt-1 px-3 py-1 text-sm font-medium rounded-full border capitalize ${getStatusBadge(viewingCotizacion.estado)}`}>
                                             {viewingCotizacion.estado}
                                         </span>
+                                        <div className="mt-2 flex items-center gap-2">
+                                            <select
+                                                value={viewingCotizacion.estado}
+                                                onChange={(e) => handleUpdateEstado(viewingCotizacion.id, e.target.value)}
+                                                className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1 text-xs text-white"
+                                            >
+                                                <option value="borrador">Borrador</option>
+                                                <option value="enviada">Enviada</option>
+                                                <option value="aprobada">Aprobada</option>
+                                                <option value="rechazada">Rechazada</option>
+                                                <option value="vencida">Vencida</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -459,6 +529,16 @@ export default function CotizacionesPage() {
                                         </svg>
                                         {sendingEmail ? 'Enviando...' : 'Enviar por Email'}
                                     </button>
+                                </div>
+                                <div className="pt-1">
+                                    <label className="block text-sm text-slate-400 mb-1">Enviar a</label>
+                                    <input
+                                        type="email"
+                                        value={destinatarioEmail}
+                                        onChange={(e) => setDestinatarioEmail(e.target.value)}
+                                        placeholder="correo@cliente.com"
+                                        className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                    />
                                 </div>
                             </div>
                         ) : (

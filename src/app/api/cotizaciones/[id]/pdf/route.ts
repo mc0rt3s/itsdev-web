@@ -66,6 +66,9 @@ export async function GET(
         });
     } catch (error) {
         console.error('Error generando PDF:', error);
-        return NextResponse.json({ error: 'Error al generar PDF' }, { status: 500 });
+        return NextResponse.json(
+            { error: error instanceof Error ? error.message : 'Error al generar PDF' },
+            { status: 500 }
+        );
     }
 }

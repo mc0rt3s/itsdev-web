@@ -337,15 +337,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     // Logo card
     doc.setFillColor(...palette.white);
     doc.roundedRect(14, 8, 56, 24, 3, 3, 'F');
-    if (LOGO_BASE64) {
-        try {
-            doc.addImage(LOGO_BASE64, 'PNG', 18, 12, 48, 16);
-        } catch {
-            drawLogoText(doc);
-        }
-    } else {
-        drawLogoText(doc);
-    }
+    drawLogoWordmarkModern(doc, 18, 16);
 
     // Header right metadata
     doc.setTextColor(...palette.white);
@@ -561,19 +553,16 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     return Buffer.from(doc.output('arraybuffer'));
 }
 
-// Helper function for logo text fallback
-function drawLogoText(doc: jsPDF) {
-    // "its" in gray, "Dev" in green
-    doc.setFontSize(20);
+function drawLogoWordmarkModern(doc: jsPDF, x: number, y: number) {
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(100, 100, 100);
-    doc.text('its', 18, 21);
-    doc.setTextColor(139, 195, 74); // Green
-    doc.text('Dev', 32, 21);
-    
-    // Subtitle
-    doc.setFontSize(7);
+    doc.setFontSize(16);
+    doc.setTextColor(24, 39, 58);
+    doc.text('ITS', x, y);
+    doc.setTextColor(42, 157, 143);
+    doc.text('Dev', x + 14, y);
+
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(120, 120, 120);
-    doc.text('Soluciones Informáticas', 18, 27);
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.text('Soluciones Tecnológicas', x, y + 5);
 }
