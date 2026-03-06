@@ -467,41 +467,48 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
         yPos += rowH;
     });
 
+    yPos += 4;
+    const summaryRows = [
+        { label: 'Subtotal', value: formatMoney(data.subtotal), isTotal: false },
+        ...(data.descuento && data.descuento > 0
+            ? [{ label: 'Descuento', value: `-${formatMoney(data.descuento)}`, isTotal: false }]
+            : []),
+        { label: 'IVA (19%)', value: formatMoney(data.impuesto), isTotal: false },
+        { label: 'TOTAL', value: formatMoney(data.total), isTotal: true }
+    ];
+
+    const summaryLabelX = tableRight - cols.total - 6;
+    summaryRows.forEach((row, index) => {
+        const rowH = row.isTotal ? 9 : 7;
+        if (yPos + rowH > 232) {
+            doc.addPage();
+            yPos = 20;
+        }
+
+        if (row.isTotal) {
+            doc.setFillColor(...palette.green);
+            doc.rect(14, yPos, tableW, rowH, 'F');
+            doc.setTextColor(...palette.white);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.text(row.label, summaryLabelX, yPos + 6, { align: 'right' });
+            doc.text(row.value, tableRight - 2, yPos + 6, { align: 'right' });
+        } else {
+            if (index % 2 === 0) {
+                doc.setFillColor(...palette.soft);
+                doc.rect(14, yPos, tableW, rowH, 'F');
+            }
+            doc.setTextColor(...palette.text);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.text(row.label, summaryLabelX, yPos + 4.8, { align: 'right' });
+            doc.text(row.value, tableRight - 2, yPos + 4.8, { align: 'right' });
+        }
+
+        yPos += rowH;
+    });
+
     yPos += 8;
-    if (yPos > 214) {
-        doc.addPage();
-        yPos = 20;
-    }
-
-    const totalsW = 72;
-    const totalsX = tableRight - totalsW;
-    doc.setDrawColor(...palette.line);
-    doc.roundedRect(totalsX, yPos, totalsW, 30, 1.5, 1.5);
-
-    let ty = yPos + 7;
-    doc.setTextColor(...palette.text);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.text('Subtotal', totalsX + 5, ty);
-    doc.text(formatMoney(data.subtotal), tableRight - 3, ty, { align: 'right' });
-    ty += 6;
-    if (data.descuento && data.descuento > 0) {
-        doc.text('Descuento', totalsX + 5, ty);
-        doc.text(`-${formatMoney(data.descuento)}`, tableRight - 3, ty, { align: 'right' });
-        ty += 6;
-    }
-    doc.text('IVA (19%)', totalsX + 5, ty);
-    doc.text(formatMoney(data.impuesto), tableRight - 3, ty, { align: 'right' });
-    ty += 6;
-
-    doc.setFillColor(...palette.green);
-    doc.roundedRect(totalsX + 2.5, ty - 4.2, totalsW - 5, 9.5, 1, 1, 'F');
-    doc.setTextColor(...palette.white);
-    doc.setFont('helvetica', 'bold');
-    doc.text('TOTAL', totalsX + 6.5, ty + 1.9);
-    doc.text(formatMoney(data.total), tableRight - 5, ty + 1.9, { align: 'right' });
-
-    yPos += 36;
     if (yPos > 220) {
         doc.addPage();
         yPos = 18;
