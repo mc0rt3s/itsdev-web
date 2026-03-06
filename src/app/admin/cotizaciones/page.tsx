@@ -53,14 +53,14 @@ export default function CotizacionesPage() {
         emailProspecto: '',
         numero: '',
         fecha: new Date().toISOString().split('T')[0],
-        validez: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        validez: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split('T')[0],
         estado: 'borrador',
         descuento: 0,
         tipoCambioUSD: 924,
         modoEnvio: 'Entrega en oficina de cliente',
         fechaEntrega: '24 Hrs posteriores confirmado el pago',
         formaPago: 'Transferencia',
-        duracionValidezDias: 14,
+        duracionValidezDias: 2,
         items: [{ descripcion: '', cantidad: 1, precioUnit: 0 }] as ItemCotizacion[],
         notas: '',
         aplicarIVA: true
@@ -109,14 +109,14 @@ export default function CotizacionesPage() {
             emailProspecto: '',
             numero: `COT-${new Date().getFullYear()}-${String(cotizaciones.length + 1).padStart(3, '0')}`,
             fecha: new Date().toISOString().split('T')[0],
-            validez: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            validez: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split('T')[0],
             estado: 'borrador',
             descuento: 0,
             tipoCambioUSD: valores.tipoCambioUSD,
             modoEnvio: 'Entrega en oficina de cliente',
             fechaEntrega: '24 Hrs posteriores confirmado el pago',
             formaPago: 'Transferencia',
-            duracionValidezDias: 14,
+            duracionValidezDias: 2,
             items: [{ descripcion: '', cantidad: 1, precioUnit: 0 }],
             notas: '',
             aplicarIVA: true
@@ -636,7 +636,7 @@ export default function CotizacionesPage() {
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-slate-500 mb-1">Validez (días)</label>
-                                        <input type="number" min="1" value={formData.duracionValidezDias} onChange={e => setFormData({ ...formData, duracionValidezDias: Number(e.target.value) || 14 })} className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white" />
+                                        <input type="number" min="1" value={formData.duracionValidezDias} onChange={e => setFormData({ ...formData, duracionValidezDias: Number(e.target.value) || 2 })} className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white" />
                                     </div>
                                 </div>
 

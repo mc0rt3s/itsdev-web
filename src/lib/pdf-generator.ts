@@ -31,6 +31,7 @@ interface CotizacionData {
         razonSocial: string;
         rut?: string;
         email?: string;
+        contacto?: string;
     };
     nombreProspecto?: string;
     emailProspecto?: string;
@@ -329,6 +330,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     const formatDate = (value: string) => new Date(value).toLocaleDateString('es-CL');
     const clientName = data.cliente?.razonSocial || data.nombreProspecto || 'Prospecto';
     const clientEmail = data.cliente?.email || data.emailProspecto || 'N/A';
+    const clientContacto = data.cliente?.contacto || 'N/A';
 
     doc.setFillColor(...palette.navy);
     doc.rect(0, 0, 210, 34, 'F');
@@ -350,12 +352,10 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     doc.setTextColor(...palette.white);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.text('COTIZACION', 194, 13, { align: 'right' });
+    doc.text('COTIZACION', 194, 16, { align: 'right' });
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
-    doc.text(`Nro: ${data.numero}`, 194, 19, { align: 'right' });
-    doc.text(`Fecha: ${formatDate(data.fecha)}`, 194, 24, { align: 'right' });
-    doc.text(`Validez: ${formatDate(data.validez)}`, 194, 29, { align: 'right' });
+    doc.text('ITSDev - IT Specialists', 194, 23, { align: 'right' });
 
     doc.setTextColor(...palette.text);
     doc.setFont('helvetica', 'bold');
@@ -381,14 +381,15 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     doc.setTextColor(...palette.text);
     doc.setFontSize(10.5);
     doc.text(clientName, 18, cardY + 11.5);
-    doc.text('ITSDev SpA', 112, cardY + 11.5);
+    doc.text(`Cotizacion Nro: ${data.numero}`, 112, cardY + 11.5);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.text(`Email: ${clientEmail}`, 18, cardY + 17);
+    doc.setFontSize(8);
+    doc.text(`Contacto: ${clientContacto}`, 18, cardY + 15);
+    doc.text(`Email: ${clientEmail}`, 18, cardY + 18);
     doc.text(`RUT: ${data.cliente?.rut || '-'}`, 18, cardY + 21);
-    doc.text('RUT: 76.732.709-9', 112, cardY + 17);
-    doc.text('contacto@itsdev.cl', 112, cardY + 21);
+    doc.text(`Fecha: ${formatDate(data.fecha)}`, 112, cardY + 17);
+    doc.text(`Validez: ${formatDate(data.validez)}`, 112, cardY + 21);
 
     let yPos = 90;
     const hasSku = data.items.some((i) => i.sku && i.sku.trim() !== '');
@@ -453,10 +454,10 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
         x += cols.desc;
         doc.text(String(item.cantidad), x + cols.qty / 2, yPos + 6, { align: 'center' });
         x += cols.qty;
-        doc.text(formatMoney(item.precioUnit), x + cols.unit / 2, yPos + 6, { align: 'center' });
+        doc.text(formatMoney(item.precioUnit), x + cols.unit - 2, yPos + 6, { align: 'right' });
         x += cols.unit;
         doc.setFont('helvetica', 'bold');
-        doc.text(formatMoney(item.total), x + cols.total / 2, yPos + 6, { align: 'center' });
+        doc.text(formatMoney(item.total), x + cols.total - 2, yPos + 6, { align: 'right' });
 
         yPos += rowH;
     });
@@ -475,32 +476,33 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     doc.setTextColor(...palette.text);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.text('Subtotal', totalsX + 4, ty);
+    doc.text('Subtotal', totalsX + 5, ty);
     doc.text(formatMoney(data.subtotal), 192, ty, { align: 'right' });
     ty += 6;
     if (data.descuento && data.descuento > 0) {
-        doc.text('Descuento', totalsX + 4, ty);
+        doc.text('Descuento', totalsX + 5, ty);
         doc.text(`-${formatMoney(data.descuento)}`, 192, ty, { align: 'right' });
         ty += 6;
     }
-    doc.text('IVA (19%)', totalsX + 4, ty);
+    doc.text('IVA (19%)', totalsX + 5, ty);
     doc.text(formatMoney(data.impuesto), 192, ty, { align: 'right' });
     ty += 6;
 
     doc.setFillColor(...palette.green);
-    doc.roundedRect(totalsX + 3, ty - 3.5, 63, 8, 1, 1, 'F');
+    doc.roundedRect(totalsX + 2, ty - 4.2, 66, 9.5, 1, 1, 'F');
     doc.setTextColor(...palette.white);
     doc.setFont('helvetica', 'bold');
-    doc.text('TOTAL', totalsX + 7, ty + 1.7);
-    doc.text(formatMoney(data.total), 192, ty + 1.7, { align: 'right' });
+    doc.text('TOTAL', totalsX + 6, ty + 2.1);
+    doc.text(formatMoney(data.total), 191, ty + 2.1, { align: 'right' });
 
     yPos += 36;
-    if (yPos > 226) {
+    if (yPos > 220) {
         doc.addPage();
         yPos = 18;
     }
 
-    const blockH = 40;
+    yPos = Math.max(yPos, 228);
+    const blockH = 38;
     doc.setDrawColor(...palette.line);
     doc.roundedRect(14, yPos, 88, blockH, 1.5, 1.5);
     doc.roundedRect(108, yPos, 88, blockH, 1.5, 1.5);
@@ -518,7 +520,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
         `- Modo de envio: ${data.modoEnvio || 'Entrega en oficina del cliente'}`,
         `- Fecha de entrega: ${data.fechaEntrega || '24 hrs despues del pago'}`,
         `- Forma de pago: ${data.formaPago || 'Transferencia'}`,
-        `- Validez: ${data.duracionValidezDias ? `${data.duracionValidezDias} dias` : '14 dias'}`
+        `- Validez: ${data.duracionValidezDias ? `${data.duracionValidezDias * 24} horas` : '48 horas'}`
     ];
     terms.forEach((line, index) => doc.text(line, 18, yPos + 13 + index * 6));
 
@@ -532,7 +534,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     doc.setTextColor(...palette.text);
     doc.text('Banco Santander', 112, yPos + 13);
     doc.text('Cuenta Corriente: 0-000-8814903-3', 112, yPos + 19);
-    doc.text('Titular: Servicios Informaticos M. Cortes EIRL', 112, yPos + 25);
+    doc.text('Titular: Servicios Informaticos Marcelo Cortes EIRL', 112, yPos + 25);
     doc.text('RUT: 76.732.709-9', 112, yPos + 31);
     doc.text('Email: contacto@itsdev.cl', 112, yPos + 37);
 

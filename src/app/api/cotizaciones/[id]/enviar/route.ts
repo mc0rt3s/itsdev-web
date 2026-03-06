@@ -36,7 +36,7 @@ export async function POST(
             where: { id },
             include: {
                 cliente: {
-                    select: { razonSocial: true, rut: true, email: true }
+                    select: { razonSocial: true, rut: true, email: true, contacto: true }
                 },
                 items: true
             }
@@ -62,7 +62,8 @@ export async function POST(
             cliente: cotizacion.cliente ? {
                 razonSocial: cotizacion.cliente.razonSocial,
                 rut: cotizacion.cliente.rut,
-                email: cotizacion.cliente.email || undefined
+                email: cotizacion.cliente.email || undefined,
+                contacto: cotizacion.cliente.contacto || undefined
             } : undefined,
             nombreProspecto: cotizacion.nombreProspecto || undefined,
             emailProspecto: cotizacion.emailProspecto || undefined,
