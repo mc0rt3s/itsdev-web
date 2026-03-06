@@ -313,34 +313,33 @@ function drawLogoTextFactura(doc: jsPDF) {
 export function generateCotizacionPDF(data: CotizacionData): Buffer {
     const doc = new jsPDF();
 
-    // Colors
-    const darkBlue: [number, number, number] = [44, 62, 80];
-    const green: [number, number, number] = [139, 195, 74];
-    const lightGray: [number, number, number] = [245, 245, 245];
-    const textDark: [number, number, number] = [40, 40, 40];
-    const textGray: [number, number, number] = [100, 100, 100];
+    const palette = {
+        navy: [24, 39, 58] as [number, number, number],
+        emerald: [42, 157, 143] as [number, number, number],
+        slate100: [241, 245, 249] as [number, number, number],
+        slate200: [226, 232, 240] as [number, number, number],
+        slate500: [100, 116, 139] as [number, number, number],
+        slate700: [51, 65, 85] as [number, number, number],
+        text: [30, 41, 59] as [number, number, number],
+        white: [255, 255, 255] as [number, number, number],
+    };
 
-    // ============================================
-    // HEADER - Dark blue background (45mm height)
-    // ============================================
-    doc.setFillColor(...darkBlue);
-    doc.rect(0, 0, 210, 45, 'F');
+    const formatMoney = (value: number) => `$ ${value.toLocaleString('es-CL')}`;
+    const formatDate = (value: string) => new Date(value).toLocaleDateString('es-CL');
+    const pageBottom = 274;
 
-    // Green triangle stripe on the right
-    doc.setFillColor(...green);
-    doc.triangle(150, 0, 210, 0, 210, 45, 'F');
+    // Header band
+    doc.setFillColor(...palette.navy);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setFillColor(...palette.emerald);
+    doc.rect(0, 40, 210, 2.5, 'F');
 
-    // Logo box with white background and shadow effect
-    doc.setFillColor(200, 200, 200);
-    doc.roundedRect(13, 9, 55, 26, 3, 3, 'F'); // Shadow
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(12, 8, 55, 26, 3, 3, 'F');
-
-    // Logo image
+    // Logo card
+    doc.setFillColor(...palette.white);
+    doc.roundedRect(14, 8, 56, 24, 3, 3, 'F');
     if (LOGO_BASE64) {
         try {
-            // Adjusted dimensions to fit nicely in the box
-            doc.addImage(LOGO_BASE64, 'PNG', 16, 12, 47, 18);
+            doc.addImage(LOGO_BASE64, 'PNG', 18, 12, 48, 16);
         } catch {
             drawLogoText(doc);
         }
@@ -348,258 +347,216 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
         drawLogoText(doc);
     }
 
-    // Document info (right side in header)
-    doc.setTextColor(255, 255, 255);
+    // Header right metadata
+    doc.setTextColor(...palette.white);
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
+    doc.text('COTIZACIÓN', 195, 14, { align: 'right' });
     doc.setFont('helvetica', 'normal');
-    doc.text('Cotización N°:', 120, 28);
+    doc.setFontSize(8);
+    doc.text(`N° ${data.numero}`, 195, 20, { align: 'right' });
+    doc.text(`Emitida: ${formatDate(data.fecha)}`, 195, 25, { align: 'right' });
+    doc.text(`Válida hasta: ${formatDate(data.validez)}`, 195, 30, { align: 'right' });
+
+    // Title block
+    doc.setTextColor(...palette.text);
     doc.setFont('helvetica', 'bold');
-    doc.text(data.numero, 195, 28, { align: 'right' });
-    
+    doc.setFontSize(22);
+    doc.text('Propuesta Comercial', 14, 54);
     doc.setFont('helvetica', 'normal');
-    doc.text('Válida hasta:', 120, 35);
-    doc.setFont('helvetica', 'bold');
-    doc.text(new Date(data.validez).toLocaleDateString('es-CL'), 195, 35, { align: 'right' });
-
-    // ============================================
-    // DOCUMENT TITLE - Below header
-    // ============================================
-    doc.setTextColor(...darkBlue);
-    doc.setFontSize(32);
-    doc.setFont('helvetica', 'bold');
-    doc.text('COTIZACIÓN', 195, 58, { align: 'right' });
-
-    // ============================================
-    // INFO SECTION - Para / De
-    // ============================================
-    const infoY = 70;
-    
-    // "Cotización Para:" section
-    doc.setTextColor(...green);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Cotización Para:', 15, infoY);
-    
-    doc.setTextColor(...textDark);
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text(data.cliente?.razonSocial || data.nombreProspecto || 'Prospecto', 15, infoY + 7);
-    
+    doc.setTextColor(...palette.slate500);
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    let clientInfoY = infoY + 13;
-    if (data.cliente?.rut) {
-        doc.text(`RUT: ${data.cliente.rut}`, 15, clientInfoY);
-        clientInfoY += 5;
-    }
-    doc.text(`Email: ${data.cliente?.email || data.emailProspecto || 'N/A'}`, 15, clientInfoY);
+    doc.text('Desarrollo y servicios tecnológicos para tu operación', 14, 60);
 
-    // "Cotización De:" section
-    doc.setTextColor(...green);
-    doc.setFontSize(11);
+    // Client & provider cards
+    const cardY = 66;
+    doc.setFillColor(...palette.slate100);
+    doc.setDrawColor(...palette.slate200);
+    doc.roundedRect(14, cardY, 88, 28, 2, 2, 'FD');
+    doc.roundedRect(108, cardY, 88, 28, 2, 2, 'FD');
+
+    doc.setTextColor(...palette.emerald);
     doc.setFont('helvetica', 'bold');
-    doc.text('Cotización De:', 120, infoY);
-    
-    doc.setTextColor(...textDark);
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ITSDev SpA', 120, infoY + 7);
-    
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('RUT: 76.732.709-9', 120, infoY + 13);
-    doc.text('Email: contacto@itsdev.cl', 120, infoY + 18);
-
-    // ============================================
-    // ITEMS TABLE
-    // ============================================
-    let yPos = 100;
-
-    const hasSku = data.items.some((i) => i.sku && i.sku.trim() !== '');
-    const colWidths = hasSku
-        ? { cant: 16, sku: 22, desc: 65, precio: 30, total: 32 }
-        : { cant: 16, sku: 0, desc: 87, precio: 30, total: 32 };
-    let colX = 15;
-
-    // Table header: CANTIDAD | SKU | DESCRIPCION | PRECIO | TOTAL
-    doc.setFillColor(...green);
-    doc.rect(colX, yPos, colWidths.cant, 10, 'F');
-    colX += colWidths.cant;
-    if (hasSku) {
-        doc.setFillColor(...darkBlue);
-        doc.rect(colX, yPos, colWidths.sku, 10, 'F');
-        colX += colWidths.sku;
-    }
-    doc.setFillColor(...darkBlue);
-    doc.rect(colX, yPos, colWidths.desc, 10, 'F');
-    colX += colWidths.desc;
-    doc.rect(colX, yPos, colWidths.precio, 10, 'F');
-    colX += colWidths.precio;
-    doc.rect(colX, yPos, colWidths.total, 10, 'F');
-
-    doc.setTextColor(255, 255, 255);
     doc.setFontSize(9);
+    doc.text('CLIENTE', 18, cardY + 6);
+    doc.text('PROVEEDOR', 112, cardY + 6);
+
+    doc.setTextColor(...palette.text);
     doc.setFont('helvetica', 'bold');
-    colX = 15;
-    doc.text('CANT.', colX + colWidths.cant / 2, yPos + 7, { align: 'center' });
-    colX += colWidths.cant;
-    if (hasSku) {
-        doc.text('SKU', colX + colWidths.sku / 2, yPos + 7, { align: 'center' });
-        colX += colWidths.sku;
-    }
-    doc.text('DESCRIPCIÓN', colX + colWidths.desc / 2, yPos + 7, { align: 'center' });
-    colX += colWidths.desc;
-    doc.text('PRECIO', colX + colWidths.precio / 2, yPos + 7, { align: 'center' });
-    colX += colWidths.precio;
-    doc.text('TOTAL', colX + colWidths.total / 2, yPos + 7, { align: 'center' });
+    doc.setFontSize(10);
+    const clientName = data.cliente?.razonSocial || data.nombreProspecto || 'Prospecto';
+    doc.text(clientName, 18, cardY + 12);
+    doc.text('ITSDev SpA', 112, cardY + 12);
 
-    const totalColW = colWidths.cant + (hasSku ? colWidths.sku : 0) + colWidths.desc + colWidths.precio + colWidths.total;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.text(`Email: ${data.cliente?.email || data.emailProspecto || 'N/A'}`, 18, cardY + 18);
+    doc.text(`RUT: ${data.cliente?.rut || '-'}`, 18, cardY + 23);
+    doc.text('RUT: 76.732.709-9', 112, cardY + 18);
+    doc.text('contacto@itsdev.cl', 112, cardY + 23);
 
-    yPos += 10;
+    // Items table
+    let yPos = 102;
+    const hasSku = data.items.some((i) => i.sku && i.sku.trim() !== '');
+    const cols = hasSku
+        ? { qty: 18, sku: 22, desc: 74, unit: 32, total: 32 }
+        : { qty: 18, sku: 0, desc: 96, unit: 32, total: 32 };
+    const tableW = cols.qty + cols.sku + cols.desc + cols.unit + cols.total;
+
+    const drawTableHeader = (y: number) => {
+        let x = 14;
+        doc.setFillColor(...palette.navy);
+        doc.rect(x, y, tableW, 9, 'F');
+        doc.setTextColor(...palette.white);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.text('CANT.', x + cols.qty / 2, y + 6, { align: 'center' });
+        x += cols.qty;
+        if (hasSku) {
+            doc.text('SKU', x + cols.sku / 2, y + 6, { align: 'center' });
+            x += cols.sku;
+        }
+        doc.text('DESCRIPCIÓN', x + cols.desc / 2, y + 6, { align: 'center' });
+        x += cols.desc;
+        doc.text('P. UNITARIO', x + cols.unit / 2, y + 6, { align: 'center' });
+        x += cols.unit;
+        doc.text('TOTAL', x + cols.total / 2, y + 6, { align: 'center' });
+    };
+
+    drawTableHeader(yPos);
+    yPos += 9;
 
     data.items.forEach((item, index) => {
-        if (yPos > 220) {
+        const descLines = doc.splitTextToSize(item.descripcion, cols.desc - 5);
+        const rowHeight = Math.max(10, 4 + descLines.length * 4.2);
+
+        if (yPos + rowHeight > 236) {
             doc.addPage();
-            yPos = 20;
+            yPos = 18;
+            drawTableHeader(yPos);
+            yPos += 9;
         }
 
         if (index % 2 === 0) {
-            doc.setFillColor(...lightGray);
-            doc.rect(15, yPos, totalColW, 12, 'F');
+            doc.setFillColor(...palette.slate100);
+            doc.rect(14, yPos, tableW, rowHeight, 'F');
         }
 
-        doc.setTextColor(60, 60, 60);
-        doc.setFontSize(9);
+        let x = 14;
+        doc.setTextColor(...palette.slate700);
         doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.text(String(item.cantidad), x + cols.qty / 2, yPos + 6, { align: 'center' });
+        x += cols.qty;
 
-        colX = 15;
-        doc.text(String(item.cantidad), colX + colWidths.cant / 2, yPos + 8, { align: 'center' });
-        colX += colWidths.cant;
         if (hasSku) {
-            doc.text((item.sku || '-').slice(0, 10), colX + colWidths.sku / 2, yPos + 8, { align: 'center' });
-            colX += colWidths.sku;
+            doc.text((item.sku || '-').slice(0, 12), x + cols.sku / 2, yPos + 6, { align: 'center' });
+            x += cols.sku;
         }
-        const descLines = doc.splitTextToSize(item.descripcion, colWidths.desc - 4);
-        doc.text(descLines[0], colX + 2, yPos + 8);
-        colX += colWidths.desc;
-        doc.text(`$ ${item.precioUnit.toLocaleString('es-CL')}`, colX + colWidths.precio / 2, yPos + 8, { align: 'center' });
-        colX += colWidths.precio;
-        doc.setFont('helvetica', 'bold');
-        doc.text(`$ ${item.total.toLocaleString('es-CL')}`, colX + colWidths.total / 2, yPos + 8, { align: 'center' });
 
-        yPos += 12;
+        doc.text(descLines, x + 2, yPos + 5.8);
+        x += cols.desc;
+
+        doc.text(formatMoney(item.precioUnit), x + cols.unit / 2, yPos + 6, { align: 'center' });
+        x += cols.unit;
+
+        doc.setFont('helvetica', 'bold');
+        doc.text(formatMoney(item.total), x + cols.total / 2, yPos + 6, { align: 'center' });
+        yPos += rowHeight;
     });
 
-    // ============================================
-    // TOTALS SECTION (right aligned)
-    // ============================================
+    // Totals card
     yPos += 8;
-    const totalsX = 145;
+    if (yPos > 214) {
+        doc.addPage();
+        yPos = 18;
+    }
 
-    doc.setFontSize(10);
-    doc.setTextColor(...textGray);
+    const totalsX = 124;
+    doc.setFillColor(...palette.slate100);
+    doc.setDrawColor(...palette.slate200);
+    doc.roundedRect(totalsX, yPos, 72, 30, 2, 2, 'FD');
+
+    let ty = yPos + 7;
+    doc.setTextColor(...palette.slate700);
     doc.setFont('helvetica', 'normal');
-
-    doc.text('Subtotal:', totalsX, yPos);
-    doc.text(`$ ${data.subtotal.toLocaleString('es-CL')}`, 192, yPos, { align: 'right' });
-    yPos += 6;
+    doc.setFontSize(9);
+    doc.text('Subtotal', totalsX + 4, ty);
+    doc.text(formatMoney(data.subtotal), 192, ty, { align: 'right' });
+    ty += 6;
 
     if (data.descuento && data.descuento > 0) {
-        doc.text('Descuento:', totalsX, yPos);
-        doc.text(`$ ${data.descuento.toLocaleString('es-CL')}`, 192, yPos, { align: 'right' });
-        yPos += 6;
+        doc.text('Descuento', totalsX + 4, ty);
+        doc.text(`- ${formatMoney(data.descuento)}`, 192, ty, { align: 'right' });
+        ty += 6;
     }
 
-    doc.text('IVA (19%):', totalsX, yPos);
-    doc.text(`$ ${data.impuesto.toLocaleString('es-CL')}`, 192, yPos, { align: 'right' });
-    yPos += 8;
-    
-    // Total box with green background
-    doc.setFillColor(...green);
-    doc.roundedRect(totalsX - 5, yPos - 4, 55, 12, 1, 1, 'F');
-    doc.setTextColor(255, 255, 255);
+    doc.text('IVA (19%)', totalsX + 4, ty);
+    doc.text(formatMoney(data.impuesto), 192, ty, { align: 'right' });
+    ty += 7;
+
+    doc.setDrawColor(...palette.emerald);
+    doc.line(totalsX + 4, ty - 3, 192, ty - 3);
+    doc.setTextColor(...palette.navy);
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Total:', totalsX, yPos + 4);
-    doc.setFontSize(13);
-    doc.text(`$${data.total.toLocaleString('es-CL')}`, 192, yPos + 4, { align: 'right' });
+    doc.text('TOTAL', totalsX + 4, ty + 1);
+    doc.text(formatMoney(data.total), 192, ty + 1, { align: 'right' });
 
-    // ============================================
-    // COMBINED TERMS & BANK INFO SECTION (full width, near footer)
-    // ============================================
-    const sectionY = 218;
-    
-    // Full width background
-    doc.setFillColor(248, 250, 252);
-    doc.setDrawColor(220, 225, 230);
-    doc.roundedRect(10, sectionY, 190, 42, 2, 2, 'FD');
-    
-    // Vertical divider line
-    doc.setDrawColor(200, 210, 220);
-    doc.line(105, sectionY + 5, 105, sectionY + 37);
-    
-    // Left green accent
-    doc.setFillColor(...green);
-    doc.rect(10, sectionY, 2, 42, 'F');
-    
-    // --- LEFT: TERMS SECTION ---
-    doc.setTextColor(...green);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Términos y Condiciones', 16, sectionY + 7);
-    
-    doc.setTextColor(70, 70, 70);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    
-    // Términos configurables o por defecto
-    const modoEnvio = data.modoEnvio || 'Entrega en oficina de cliente';
-    const fechaEntrega = data.fechaEntrega || '24 Hrs posteriores confirmado el pago';
-    const formaPago = data.formaPago || 'Transferencia';
-    const duracion = data.duracionValidezDias ? `${data.duracionValidezDias} días` : '14 días desde emisión';
-    doc.text(`• Modo de envío: ${modoEnvio}`, 16, sectionY + 12);
-    doc.text(`• Fecha entrega: ${fechaEntrega}`, 16, sectionY + 18);
-    doc.text(`• Forma de pago: ${formaPago}`, 16, sectionY + 24);
-    doc.text(`• Validez: ${duracion}`, 16, sectionY + 30);
-    
-    // Custom notes if provided
-    if (data.notas) {
-        doc.setFontSize(7);
-        doc.setFont('helvetica', 'italic');
-        doc.setTextColor(100, 100, 100);
-        const notesLines = doc.splitTextToSize('Nota: ' + data.notas, 85);
-        doc.text(notesLines.slice(0, 1), 16, sectionY + 36);
+    // Terms + payment blocks
+    yPos += 38;
+    if (yPos > 228) {
+        doc.addPage();
+        yPos = 18;
     }
-    
-    // --- RIGHT: BANK INFO ---
-    doc.setTextColor(...darkBlue);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Datos para Transferencia Bancaria', 110, sectionY + 7);
-    
-    doc.setFontSize(8);
-    doc.setTextColor(...textDark);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Banco Santander', 110, sectionY + 15);
-    
-    doc.setFont('helvetica', 'normal');
-    doc.text('Cuenta Corriente: 0-000-8814903-3', 110, sectionY + 21);
-    doc.text('RUT: 76.732.709-9', 110, sectionY + 27);
-    doc.text('Titular: Servicios Informáticos M. Cortés EIRL', 110, sectionY + 33);
-    doc.text('Email: contacto@itsdev.cl', 110, sectionY + 39);
 
-    // ============================================
-    // FOOTER (at bottom of page)
-    // ============================================
-    doc.setFillColor(...darkBlue);
-    doc.rect(0, 264, 210, 33, 'F');
-    
-    doc.setTextColor(255, 255, 255);
+    const termsH = 42;
+    doc.setFillColor(...palette.slate100);
+    doc.setDrawColor(...palette.slate200);
+    doc.roundedRect(14, yPos, 88, termsH, 2, 2, 'FD');
+    doc.roundedRect(108, yPos, 88, termsH, 2, 2, 'FD');
+
+    doc.setTextColor(...palette.emerald);
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
+    doc.text('Términos', 18, yPos + 7);
+    doc.text('Datos de Pago', 112, yPos + 7);
+
+    doc.setTextColor(...palette.slate700);
     doc.setFont('helvetica', 'normal');
-    doc.text('+56 9 9095 8220', 25, 280);
-    doc.text('contacto@itsdev.cl', 85, 280);
-    doc.text('Santiago, Chile', 155, 280);
+    doc.setFontSize(8);
+    const termsLines = [
+        `• Modo de envío: ${data.modoEnvio || 'Entrega en oficina de cliente'}`,
+        `• Fecha de entrega: ${data.fechaEntrega || '24 hrs tras confirmación de pago'}`,
+        `• Forma de pago: ${data.formaPago || 'Transferencia'}`,
+        `• Validez: ${data.duracionValidezDias ? `${data.duracionValidezDias} días` : '14 días'}`,
+    ];
+    termsLines.forEach((line, idx) => doc.text(line, 18, yPos + 13 + idx * 6));
+
+    if (data.notas) {
+        const note = doc.splitTextToSize(`Nota: ${data.notas}`, 82);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(...palette.slate500);
+        doc.text(note.slice(0, 2), 18, yPos + 37);
+    }
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...palette.slate700);
+    doc.text('Banco Santander', 112, yPos + 13);
+    doc.text('Cuenta Corriente: 0-000-8814903-3', 112, yPos + 19);
+    doc.text('Titular: Servicios Informáticos M. Cortés EIRL', 112, yPos + 25);
+    doc.text('RUT: 76.732.709-9', 112, yPos + 31);
+    doc.text('Email: contacto@itsdev.cl', 112, yPos + 37);
+
+    // Footer
+    doc.setFillColor(...palette.navy);
+    doc.rect(0, pageBottom, 210, 23, 'F');
+    doc.setTextColor(...palette.white);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.text('ITSDev · Soluciones tecnológicas modernas para empresas', 14, pageBottom + 8);
+    doc.text('+56 9 9095 8220 · contacto@itsdev.cl · Santiago, Chile', 14, pageBottom + 14);
+    doc.text(`Documento generado el ${new Date().toLocaleString('es-CL')}`, 196, pageBottom + 14, { align: 'right' });
 
     return Buffer.from(doc.output('arraybuffer'));
 }
