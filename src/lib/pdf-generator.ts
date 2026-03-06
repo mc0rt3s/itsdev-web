@@ -495,11 +495,11 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     ty += 6;
 
     doc.setFillColor(...palette.green);
-    doc.roundedRect(totalsX + 2, ty - 4.2, totalsW - 4, 9.5, 1, 1, 'F');
+    doc.roundedRect(totalsX + 2.5, ty - 4.2, totalsW - 5, 9.5, 1, 1, 'F');
     doc.setTextColor(...palette.white);
     doc.setFont('helvetica', 'bold');
-    doc.text('TOTAL', totalsX + 6, ty + 2.1);
-    doc.text(formatMoney(data.total), tableRight - 3, ty + 2.1, { align: 'right' });
+    doc.text('TOTAL', totalsX + 6.5, ty + 1.9);
+    doc.text(formatMoney(data.total), tableRight - 5, ty + 1.9, { align: 'right' });
 
     yPos += 36;
     if (yPos > 220) {
