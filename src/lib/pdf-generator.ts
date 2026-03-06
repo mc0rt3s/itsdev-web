@@ -52,10 +52,12 @@ interface CotizacionData {
     duracionValidezDias?: number;
 }
 
-// Load logo as base64
+// Load logo as base64 (prefer an optimized file for PDF rendering)
 let LOGO_BASE64 = '';
 try {
-    const logoPath = path.join(process.cwd(), 'public', 'logo.png');
+    const preferredLogoPath = path.join(process.cwd(), 'public', 'logo-pdf.png');
+    const defaultLogoPath = path.join(process.cwd(), 'public', 'logo.png');
+    const logoPath = fs.existsSync(preferredLogoPath) ? preferredLogoPath : defaultLogoPath;
     const logoBuffer = fs.readFileSync(logoPath);
     LOGO_BASE64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
 } catch {
@@ -371,7 +373,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     doc.setFontSize(8.5);
     doc.setTextColor(...palette.green);
     doc.text('COTIZAR A', 18, cardY + 6);
-    doc.text('EMITIDA POR', 112, cardY + 6);
+    doc.text('EMPRESA', 112, cardY + 6);
 
     doc.setTextColor(...palette.text);
     doc.setFontSize(10);
