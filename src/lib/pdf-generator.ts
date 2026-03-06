@@ -372,35 +372,33 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     doc.setFontSize(9);
     doc.text('Detalle de productos y condiciones comerciales', 14, 53);
 
-    const cardY = 58;
-    const cardH = 24;
-    doc.setFillColor(...palette.panel);
-    doc.roundedRect(14, cardY, 88, cardH, 1.5, 1.5, 'F');
-    doc.roundedRect(108, cardY, 88, cardH, 1.5, 1.5, 'F');
+    const cardY = 60;
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(...palette.green);
-    doc.text('CLIENTE', 18, cardY + 5.5);
+    doc.text('CLIENTE', 14, cardY + 2);
 
     doc.setTextColor(...palette.text);
     doc.setFontSize(10.5);
-    doc.text(clientName, 18, cardY + 11.5);
-    doc.text(`Cotizacion Nro: ${data.numero}`, 112, cardY + 11.5);
+    doc.text(clientName, 14, cardY + 8);
+    doc.text(`Cotizacion Nro: ${data.numero}`, 110, cardY + 8);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.text(`Contacto: ${clientContacto}`, 18, cardY + 15);
-    doc.text(`Email: ${clientEmail}`, 18, cardY + 18);
-    doc.text(`RUT: ${data.cliente?.rut || '-'}`, 18, cardY + 21);
-    doc.text(`Fecha: ${formatDate(data.fecha)}`, 112, cardY + 17);
-    doc.text(`Validez: ${formatDate(data.validez)}`, 112, cardY + 21);
+    doc.text(`Contacto: ${clientContacto}`, 14, cardY + 12.5);
+    doc.text(`Email: ${clientEmail}`, 14, cardY + 16.5);
+    doc.text(`RUT: ${data.cliente?.rut || '-'}`, 14, cardY + 20.5);
+    doc.text(`Fecha: ${formatDate(data.fecha)}`, 110, cardY + 12.5);
+    doc.text(`Validez: ${formatDate(data.validez)}`, 110, cardY + 16.5);
+    doc.setDrawColor(...palette.line);
+    doc.line(14, cardY + 24, 196, cardY + 24);
 
-    let yPos = 90;
+    let yPos = 92;
     const hasSku = data.items.some((i) => i.sku && i.sku.trim() !== '');
     const cols = hasSku
-        ? { idx: 12, sku: 19, desc: 83, qty: 18, unit: 30, total: 30 }
-        : { idx: 12, sku: 0, desc: 102, qty: 18, unit: 30, total: 30 };
+        ? { idx: 12, sku: 19, desc: 73, qty: 18, unit: 30, total: 30 }
+        : { idx: 12, sku: 0, desc: 92, qty: 18, unit: 30, total: 30 };
     const tableW = cols.idx + cols.sku + cols.desc + cols.qty + cols.unit + cols.total;
     const tableRight = 14 + tableW;
 
