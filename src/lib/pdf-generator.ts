@@ -52,14 +52,14 @@ interface CotizacionData {
     duracionValidezDias?: number;
 }
 
-// Load logo as base64 (prefer an optimized file for PDF rendering)
+// Load logo as base64 (only optimized file for PDF rendering)
 let LOGO_BASE64 = '';
 try {
     const preferredLogoPath = path.join(process.cwd(), 'public', 'logo-pdf.png');
-    const defaultLogoPath = path.join(process.cwd(), 'public', 'logo.png');
-    const logoPath = fs.existsSync(preferredLogoPath) ? preferredLogoPath : defaultLogoPath;
-    const logoBuffer = fs.readFileSync(logoPath);
-    LOGO_BASE64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+    if (fs.existsSync(preferredLogoPath)) {
+        const logoBuffer = fs.readFileSync(preferredLogoPath);
+        LOGO_BASE64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+    }
 } catch {
     console.warn('Logo not found, will use text fallback');
 }
@@ -316,12 +316,12 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     const doc = new jsPDF();
 
     const palette = {
-        navy: [33, 47, 68] as [number, number, number],
-        green: [127, 179, 53] as [number, number, number],
-        light: [247, 249, 252] as [number, number, number],
-        border: [219, 226, 234] as [number, number, number],
-        text: [30, 41, 59] as [number, number, number],
-        muted: [100, 116, 139] as [number, number, number],
+        navy: [24, 39, 58] as [number, number, number],
+        green: [133, 186, 57] as [number, number, number],
+        line: [225, 232, 240] as [number, number, number],
+        text: [15, 23, 42] as [number, number, number],
+        muted: [71, 85, 105] as [number, number, number],
+        soft: [248, 250, 252] as [number, number, number],
         white: [255, 255, 255] as [number, number, number]
     };
 
@@ -330,77 +330,80 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     const clientName = data.cliente?.razonSocial || data.nombreProspecto || 'Prospecto';
     const clientEmail = data.cliente?.email || data.emailProspecto || 'N/A';
 
-    doc.setFillColor(...palette.green);
-    doc.rect(0, 0, 210, 7, 'F');
     doc.setFillColor(...palette.navy);
-    doc.rect(0, 7, 210, 37, 'F');
+    doc.rect(0, 0, 210, 34, 'F');
+    doc.setFillColor(...palette.green);
+    doc.rect(0, 0, 210, 4, 'F');
+    doc.setFillColor(...palette.green);
+    doc.triangle(162, 34, 210, 34, 210, 22, 'F');
 
-    doc.setFillColor(...palette.white);
-    doc.roundedRect(14, 12, 70, 24, 2, 2, 'F');
     if (LOGO_BASE64) {
         try {
-            doc.addImage(LOGO_BASE64, 'PNG', 18, 15, 62, 17);
+            doc.addImage(LOGO_BASE64, 'PNG', 14, 8, 58, 16);
         } catch {
-            drawLogoTextCotizacion(doc);
+            drawLogoTextCotizacion(doc, 14, 17);
         }
     } else {
-        drawLogoTextCotizacion(doc);
+        drawLogoTextCotizacion(doc, 14, 17);
     }
 
     doc.setTextColor(...palette.white);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.text('COTIZACION', 195, 18, { align: 'right' });
+    doc.setFontSize(14);
+    doc.text('COTIZACION', 194, 13, { align: 'right' });
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(`Numero: ${data.numero}`, 195, 24, { align: 'right' });
-    doc.text(`Fecha emision: ${formatDate(data.fecha)}`, 195, 29, { align: 'right' });
-    doc.text(`Validez: ${formatDate(data.validez)}`, 195, 34, { align: 'right' });
-
-    doc.setTextColor(...palette.text);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(20);
-    doc.text('Cotizacion Comercial', 14, 56);
-
-    const cardY = 62;
-    const cardH = 29;
-    doc.setFillColor(...palette.light);
-    doc.setDrawColor(...palette.border);
-    doc.roundedRect(14, cardY, 88, cardH, 2, 2, 'FD');
-    doc.roundedRect(108, cardY, 88, cardH, 2, 2, 'FD');
-
-    doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
-    doc.setTextColor(...palette.green);
-    doc.text('COTIZAR A', 18, cardY + 6);
-    doc.text('EMPRESA', 112, cardY + 6);
+    doc.text(`Nro: ${data.numero}`, 194, 19, { align: 'right' });
+    doc.text(`Fecha: ${formatDate(data.fecha)}`, 194, 24, { align: 'right' });
+    doc.text(`Validez: ${formatDate(data.validez)}`, 194, 29, { align: 'right' });
 
     doc.setTextColor(...palette.text);
-    doc.setFontSize(10);
-    doc.text(clientName, 18, cardY + 12);
-    doc.text('ITSDev SpA', 112, cardY + 12);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.text('Cotizacion', 14, 48);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...palette.muted);
+    doc.setFontSize(9);
+    doc.text('Detalle de productos y condiciones comerciales', 14, 53);
+
+    const cardY = 58;
+    const cardH = 24;
+    doc.setDrawColor(...palette.line);
+    doc.roundedRect(14, cardY, 88, cardH, 1.5, 1.5);
+    doc.roundedRect(108, cardY, 88, cardH, 1.5, 1.5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...palette.green);
+    doc.text('CLIENTE', 18, cardY + 5.5);
+    doc.text('DATOS COMERCIALES', 112, cardY + 5.5);
+
+    doc.setTextColor(...palette.text);
+    doc.setFontSize(10.5);
+    doc.text(clientName, 18, cardY + 11.5);
+    doc.text('ITSDev SpA', 112, cardY + 11.5);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(`Email: ${clientEmail}`, 18, cardY + 18);
-    doc.text(`RUT: ${data.cliente?.rut || '-'}`, 18, cardY + 23);
-    doc.text('RUT: 76.732.709-9', 112, cardY + 18);
-    doc.text('contacto@itsdev.cl', 112, cardY + 23);
+    doc.setFontSize(8.5);
+    doc.text(`Email: ${clientEmail}`, 18, cardY + 17);
+    doc.text(`RUT: ${data.cliente?.rut || '-'}`, 18, cardY + 21);
+    doc.text('RUT: 76.732.709-9', 112, cardY + 17);
+    doc.text('contacto@itsdev.cl', 112, cardY + 21);
 
-    let yPos = 98;
+    let yPos = 90;
     const hasSku = data.items.some((i) => i.sku && i.sku.trim() !== '');
     const cols = hasSku
-        ? { idx: 12, sku: 20, desc: 82, qty: 18, unit: 30, total: 30 }
+        ? { idx: 12, sku: 19, desc: 83, qty: 18, unit: 30, total: 30 }
         : { idx: 12, sku: 0, desc: 102, qty: 18, unit: 30, total: 30 };
     const tableW = cols.idx + cols.sku + cols.desc + cols.qty + cols.unit + cols.total;
 
     const drawHeader = (y: number) => {
         let x = 14;
-        doc.setFillColor(...palette.green);
+        doc.setFillColor(...palette.navy);
         doc.rect(x, y, tableW, 9, 'F');
         doc.setTextColor(...palette.white);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
+        doc.setFontSize(8.2);
         doc.text('N', x + cols.idx / 2, y + 6, { align: 'center' });
         x += cols.idx;
         if (hasSku) {
@@ -430,7 +433,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
         }
 
         if (index % 2 === 0) {
-            doc.setFillColor(...palette.light);
+            doc.setFillColor(...palette.soft);
             doc.rect(14, yPos, tableW, rowH, 'F');
         }
 
@@ -465,9 +468,8 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     }
 
     const totalsX = 126;
-    doc.setFillColor(...palette.light);
-    doc.setDrawColor(...palette.border);
-    doc.roundedRect(totalsX, yPos, 70, 30, 2, 2, 'FD');
+    doc.setDrawColor(...palette.line);
+    doc.roundedRect(totalsX, yPos, 70, 30, 1.5, 1.5);
 
     let ty = yPos + 7;
     doc.setTextColor(...palette.text);
@@ -499,10 +501,9 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     }
 
     const blockH = 40;
-    doc.setFillColor(...palette.light);
-    doc.setDrawColor(...palette.border);
-    doc.roundedRect(14, yPos, 88, blockH, 2, 2, 'FD');
-    doc.roundedRect(108, yPos, 88, blockH, 2, 2, 'FD');
+    doc.setDrawColor(...palette.line);
+    doc.roundedRect(14, yPos, 88, blockH, 1.5, 1.5);
+    doc.roundedRect(108, yPos, 88, blockH, 1.5, 1.5);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
@@ -546,13 +547,13 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     return Buffer.from(doc.output('arraybuffer'));
 }
 
-function drawLogoTextCotizacion(doc: jsPDF) {
-    doc.setTextColor(33, 47, 68);
-    doc.setFontSize(18);
+function drawLogoTextCotizacion(doc: jsPDF, x: number, y: number) {
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('ITSDev', 22, 24);
-    doc.setFontSize(7);
+    doc.text('ITSDev', x, y);
+    doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text('Soluciones Tecnologicas', 22, 29);
+    doc.setTextColor(203, 213, 225);
+    doc.text('Soluciones tecnologicas', x, y + 4.5);
 }
