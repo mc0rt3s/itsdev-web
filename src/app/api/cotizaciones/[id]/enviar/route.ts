@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { Resend } from 'resend';
 import { generateCotizacionPDF } from '@/lib/pdf-generator';
+import { createCotizacionDecisionToken } from '@/lib/cotizacion-links';
 
 function getResendClient() {
     const apiKey = process.env.RESEND_API_KEY;
@@ -83,6 +84,26 @@ export async function POST(
             duracionValidezDias: cotizacion.duracionValidezDias || undefined
         });
 
+        const baseUrl =
+            process.env.PUBLIC_APP_URL ||
+            process.env.NEXTAUTH_URL ||
+            request.headers.get('origin') ||
+            request.nextUrl.origin;
+
+        const expiresAt = new Date(cotizacion.validez).getTime();
+        const approveToken = createCotizacionDecisionToken({
+            cotizacionId: cotizacion.id,
+            action: 'aprobar',
+            exp: expiresAt
+        });
+        const rejectToken = createCotizacionDecisionToken({
+            cotizacionId: cotizacion.id,
+            action: 'rechazar',
+            exp: expiresAt
+        });
+        const approveUrl = `${baseUrl}/api/cotizaciones/decision?action=aprobar&token=${encodeURIComponent(approveToken)}`;
+        const rejectUrl = `${baseUrl}/api/cotizaciones/decision?action=rechazar&token=${encodeURIComponent(rejectToken)}`;
+
         // Send email
         const resend = getResendClient();
         const { data, error } = await resend.emails.send({
@@ -91,13 +112,20 @@ export async function POST(
             replyTo: 'contacto@itsdev.cl',
             subject: `Cotización ${cotizacion.numero} - ITSDev`,
             html: `
-        <h2>Estimado/a ${recipientName},</h2>
-        <p>Adjuntamos la cotización <strong>${cotizacion.numero}</strong> por un monto total de <strong>$${cotizacion.total.toLocaleString('es-CL')}</strong>.</p>
-        <p><strong>Válida hasta:</strong> ${new Date(cotizacion.validez).toLocaleDateString('es-CL')}</p>
-        <p>Por favor, revise el documento adjunto para más detalles sobre nuestra propuesta.</p>
-        <p>Quedamos atentos a sus comentarios y disponibles para cualquier consulta.</p>
-        <br/>
-        <p>Saludos cordiales,<br/>Equipo ITSDev</p>
+        <div style="font-family: Arial, sans-serif; color: #0f172a; max-width: 680px; margin: 0 auto;">
+          <h2 style="margin: 0 0 14px;">Estimado/a ${recipientName || 'cliente'},</h2>
+          <p style="margin: 0 0 10px;">Adjuntamos la cotización <strong>${cotizacion.numero}</strong> por un monto total de <strong>$${cotizacion.total.toLocaleString('es-CL')}</strong>.</p>
+          <p style="margin: 0 0 18px;"><strong>Válida hasta:</strong> ${new Date(cotizacion.validez).toLocaleDateString('es-CL')}</p>
+
+          <p style="margin: 0 0 8px;">Puedes responder esta cotización directamente desde los siguientes botones:</p>
+          <div style="margin: 16px 0 20px;">
+            <a href="${approveUrl}" style="display: inline-block; background: #16a34a; color: #fff; text-decoration: none; padding: 11px 18px; border-radius: 8px; font-weight: 700; margin-right: 8px;">Aprobar cotización</a>
+            <a href="${rejectUrl}" style="display: inline-block; background: #dc2626; color: #fff; text-decoration: none; padding: 11px 18px; border-radius: 8px; font-weight: 700;">Rechazar cotización</a>
+          </div>
+
+          <p style="margin: 0 0 10px;">Si prefieres, también puedes responder este correo con tus comentarios.</p>
+          <p style="margin: 0;">Saludos cordiales,<br/>Equipo ITSDev</p>
+        </div>
       `,
             attachments: [
                 {
