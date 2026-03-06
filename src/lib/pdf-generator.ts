@@ -328,6 +328,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
         text: [15, 23, 42] as [number, number, number],
         muted: [71, 85, 105] as [number, number, number],
         soft: [248, 250, 252] as [number, number, number],
+        panel: [246, 248, 251] as [number, number, number],
         white: [255, 255, 255] as [number, number, number]
     };
 
@@ -373,9 +374,9 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
 
     const cardY = 58;
     const cardH = 24;
-    doc.setDrawColor(...palette.line);
-    doc.roundedRect(14, cardY, 88, cardH, 1.5, 1.5);
-    doc.roundedRect(108, cardY, 88, cardH, 1.5, 1.5);
+    doc.setFillColor(...palette.panel);
+    doc.roundedRect(14, cardY, 88, cardH, 1.5, 1.5, 'F');
+    doc.roundedRect(108, cardY, 88, cardH, 1.5, 1.5, 'F');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
@@ -438,11 +439,6 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
             yPos += 9;
         }
 
-        if (index % 2 === 0) {
-            doc.setFillColor(...palette.soft);
-            doc.rect(14, yPos, tableW, rowH, 'F');
-        }
-
         let x = 14;
         doc.setTextColor(...palette.text);
         doc.setFont('helvetica', 'normal');
@@ -464,6 +460,8 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
         doc.setFont('helvetica', 'bold');
         doc.text(formatMoney(item.total), x + cols.total - 2, yPos + 6, { align: 'right' });
 
+        doc.setDrawColor(...palette.line);
+        doc.line(14, yPos + rowH, tableRight, yPos + rowH);
         yPos += rowH;
     });
 
@@ -478,7 +476,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     ];
 
     const summaryLabelX = tableRight - cols.total - 6;
-    summaryRows.forEach((row, index) => {
+    summaryRows.forEach((row) => {
         const rowH = row.isTotal ? 9 : 7;
         if (yPos + rowH > 232) {
             doc.addPage();
@@ -494,15 +492,13 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
             doc.text(row.label, summaryLabelX, yPos + 6, { align: 'right' });
             doc.text(row.value, tableRight - 2, yPos + 6, { align: 'right' });
         } else {
-            if (index % 2 === 0) {
-                doc.setFillColor(...palette.soft);
-                doc.rect(14, yPos, tableW, rowH, 'F');
-            }
             doc.setTextColor(...palette.text);
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
             doc.text(row.label, summaryLabelX, yPos + 4.8, { align: 'right' });
             doc.text(row.value, tableRight - 2, yPos + 4.8, { align: 'right' });
+            doc.setDrawColor(...palette.line);
+            doc.line(14, yPos + rowH, tableRight, yPos + rowH);
         }
 
         yPos += rowH;
@@ -514,17 +510,16 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
         yPos = 18;
     }
 
-    yPos = Math.max(yPos, 228);
-    const blockH = 40;
+    yPos = Math.max(yPos, 230);
     doc.setDrawColor(...palette.line);
-    doc.roundedRect(14, yPos, 88, blockH, 1.5, 1.5);
-    doc.roundedRect(108, yPos, 88, blockH, 1.5, 1.5);
+    doc.line(14, yPos, 102, yPos);
+    doc.line(108, yPos, 196, yPos);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
     doc.setTextColor(...palette.green);
-    doc.text('CONDICIONES', 18, yPos + 7);
-    doc.text('DATOS DE PAGO', 112, yPos + 7);
+    doc.text('CONDICIONES', 14, yPos + 6);
+    doc.text('DATOS DE PAGO', 108, yPos + 6);
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...palette.text);
@@ -535,7 +530,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
         `- Forma de pago: ${data.formaPago || 'Transferencia'}`,
         `- Validez: ${data.duracionValidezDias ? `${data.duracionValidezDias * 24} horas` : '48 horas'}`
     ];
-    terms.forEach((line, index) => doc.text(line, 18, yPos + 12.5 + index * 6));
+    terms.forEach((line, index) => doc.text(line, 14, yPos + 11.5 + index * 5.8));
 
     if (data.notas) {
         doc.setTextColor(...palette.muted);
@@ -545,11 +540,11 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...palette.text);
-    doc.text('Banco Santander', 112, yPos + 12.5);
-    doc.text('Cuenta Corriente: 0-000-8814903-3', 112, yPos + 18.5);
-    doc.text('Titular: Servicios Informaticos Marcelo Cortes EIRL', 112, yPos + 24.5);
-    doc.text('RUT: 76.732.709-9', 112, yPos + 30.5);
-    doc.text('Email: contacto@itsdev.cl', 112, yPos + 36.5);
+    doc.text('Banco Santander', 108, yPos + 11.5);
+    doc.text('Cuenta Corriente: 0-000-8814903-3', 108, yPos + 17.3);
+    doc.text('Titular: Servicios Informaticos Marcelo Cortes EIRL', 108, yPos + 23.1);
+    doc.text('RUT: 76.732.709-9', 108, yPos + 28.9);
+    doc.text('Email: contacto@itsdev.cl', 108, yPos + 34.7);
 
     doc.setFillColor(...palette.navy);
     doc.rect(0, 274, 210, 23, 'F');
