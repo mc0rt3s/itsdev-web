@@ -508,7 +508,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     }
 
     yPos = Math.max(yPos, 228);
-    const blockH = 44;
+    const blockH = 40;
     doc.setDrawColor(...palette.line);
     doc.roundedRect(14, yPos, 88, blockH, 1.5, 1.5);
     doc.roundedRect(108, yPos, 88, blockH, 1.5, 1.5);
@@ -528,7 +528,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
         `- Forma de pago: ${data.formaPago || 'Transferencia'}`,
         `- Validez: ${data.duracionValidezDias ? `${data.duracionValidezDias * 24} horas` : '48 horas'}`
     ];
-    terms.forEach((line, index) => doc.text(line, 18, yPos + 13 + index * 7));
+    terms.forEach((line, index) => doc.text(line, 18, yPos + 12.5 + index * 6));
 
     if (data.notas) {
         doc.setTextColor(...palette.muted);
@@ -538,11 +538,11 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...palette.text);
-    doc.text('Banco Santander', 112, yPos + 13);
-    doc.text('Cuenta Corriente: 0-000-8814903-3', 112, yPos + 20);
-    doc.text('Titular: Servicios Informaticos Marcelo Cortes EIRL', 112, yPos + 27);
-    doc.text('RUT: 76.732.709-9', 112, yPos + 34);
-    doc.text('Email: contacto@itsdev.cl', 112, yPos + 41);
+    doc.text('Banco Santander', 112, yPos + 12.5);
+    doc.text('Cuenta Corriente: 0-000-8814903-3', 112, yPos + 18.5);
+    doc.text('Titular: Servicios Informaticos Marcelo Cortes EIRL', 112, yPos + 24.5);
+    doc.text('RUT: 76.732.709-9', 112, yPos + 30.5);
+    doc.text('Email: contacto@itsdev.cl', 112, yPos + 36.5);
 
     doc.setFillColor(...palette.navy);
     doc.rect(0, 274, 210, 23, 'F');
