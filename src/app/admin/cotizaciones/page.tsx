@@ -260,7 +260,9 @@ export default function CotizacionesPage() {
 
     const handleDownloadPDF = async (id: string) => {
         try {
-            const res = await fetch(`/api/cotizaciones/${id}/pdf`);
+            const res = await fetch(`/api/cotizaciones/${id}/pdf?ts=${Date.now()}`, {
+                cache: 'no-store'
+            });
             if (!res.ok) {
                 const payload = await res.json().catch(() => ({ error: 'Error al generar PDF' }));
                 alert(payload.error || 'Error al generar PDF');

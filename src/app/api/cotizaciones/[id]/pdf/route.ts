@@ -3,6 +3,9 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { generateCotizacionPDF } from '@/lib/pdf-generator';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -61,7 +64,11 @@ export async function GET(
         return new NextResponse(new Uint8Array(pdfBuffer), {
             headers: {
                 'Content-Type': 'application/pdf',
-                'Content-Disposition': `attachment; filename="Cotizacion-${cotizacion.numero}.pdf"`
+                'Content-Disposition': `attachment; filename="Cotizacion-${cotizacion.numero}.pdf"`,
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+                Pragma: 'no-cache',
+                Expires: '0',
+                'Surrogate-Control': 'no-store',
             }
         });
     } catch (error) {
