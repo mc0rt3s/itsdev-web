@@ -358,7 +358,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     doc.setTextColor(...palette.white);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.text('COTIZACION', 194, 16, { align: 'right' });
+    doc.text('COTIZACIÓN', 194, 16, { align: 'right' });
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     doc.text('ITSDev (IT Specialists)', 194, 23, { align: 'right' });
@@ -366,7 +366,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     doc.setTextColor(...palette.text);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(22);
-    doc.text('Cotizacion', 14, 48);
+    doc.text('Cotización', 14, 48);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...palette.muted);
     doc.setFontSize(9);
@@ -382,7 +382,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     doc.setTextColor(...palette.text);
     doc.setFontSize(10.5);
     doc.text(clientName, 14, cardY + 8);
-    doc.text(`Cotizacion Nro: ${data.numero}`, 110, cardY + 8);
+    doc.text(`Cotización Nro: ${data.numero}`, 110, cardY + 8);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
@@ -415,7 +415,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
             doc.text('SKU', x + cols.sku / 2, y + 6, { align: 'center' });
             x += cols.sku;
         }
-        doc.text('DESCRIPCION', x + cols.desc / 2, y + 6, { align: 'center' });
+        doc.text('DESCRIPCIÓN', x + cols.desc / 2, y + 6, { align: 'center' });
         x += cols.desc;
         doc.text('CANT.', x + cols.qty / 2, y + 6, { align: 'center' });
         x += cols.qty;
@@ -523,8 +523,8 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     doc.setTextColor(...palette.text);
     doc.setFontSize(8);
     const terms = [
-        `- Modo de envio: ${data.modoEnvio || 'Entrega en oficina del cliente'}`,
-        `- Fecha de entrega: ${data.fechaEntrega || '24 hrs despues del pago'}`,
+        `- Modo de envío: ${data.modoEnvio || 'Entrega en oficina del cliente'}`,
+        `- Fecha de entrega: ${data.fechaEntrega || '24 hrs después del pago'}`,
         `- Forma de pago: ${data.formaPago || 'Transferencia'}`,
         `- Validez: ${data.duracionValidezDias ? `${data.duracionValidezDias * 24} horas` : '48 horas'}`
     ];
@@ -540,7 +540,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     doc.setTextColor(...palette.text);
     doc.text('Banco Santander', 108, yPos + 11.5);
     doc.text('Cuenta Corriente: 0-000-8814903-3', 108, yPos + 17.3);
-    doc.text('Titular: Servicios Informaticos Marcelo Cortes EIRL', 108, yPos + 23.1);
+    doc.text('Titular: Servicios Informáticos Marcelo Cortés EIRL', 108, yPos + 23.1);
     doc.text('RUT: 76.732.709-9', 108, yPos + 28.9);
     doc.text('Email: contacto@itsdev.cl', 108, yPos + 34.7);
 
@@ -563,5 +563,5 @@ function drawLogoTextCotizacion(doc: jsPDF, x: number, y: number) {
     doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(203, 213, 225);
-    doc.text('Soluciones tecnologicas', x, y + 4.5);
+    doc.text('Soluciones tecnológicas', x, y + 4.5);
 }
