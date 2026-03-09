@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { cotizacionSchema } from '@/lib/schemas';
+import { writeAuditLog } from '@/lib/audit';
+import { notifyCotizacionEstadoChange } from '@/lib/cotizacion-notify';
 
 // GET
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -101,10 +103,38 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             // For now, allow direct update of status.
             const { estado } = data;
             if (estado) {
+                const current = await prisma.cotizacion.findUnique({
+                    where: { id },
+                    select: { id: true, numero: true, estado: true }
+                });
+                if (!current) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
+
                 const cotizacion = await prisma.cotizacion.update({
                     where: { id },
                     data: { estado }
                 });
+
+                if (current.estado !== estado) {
+                    await writeAuditLog({
+                        action: 'cotizacion_estado_actualizado',
+                        entity: 'Cotizacion',
+                        entityId: id,
+                        actorId: session.user.id,
+                        metadata: {
+                            estadoAnterior: current.estado,
+                            estadoNuevo: estado,
+                            canal: 'panel_admin'
+                        }
+                    });
+                    await notifyCotizacionEstadoChange({
+                        cotizacionId: id,
+                        numero: current.numero,
+                        estadoAnterior: current.estado,
+                        estadoNuevo: estado,
+                        canal: 'panel_admin',
+                        actor: session.user.email || session.user.name || session.user.id
+                    });
+                }
                 return NextResponse.json(cotizacion);
             }
             return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });

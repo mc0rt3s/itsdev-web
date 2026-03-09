@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyCotizacionDecisionToken } from '@/lib/cotizacion-links';
+import { writeAuditLog } from '@/lib/audit';
+import { notifyCotizacionEstadoChange } from '@/lib/cotizacion-notify';
 
 function responsePage(title: string, message: string, ok: boolean) {
     const badgeColor = ok ? '#65a30d' : '#b91c1c';
@@ -73,6 +75,24 @@ export async function GET(request: NextRequest) {
             where: { id: cotizacion.id },
             data: { estado: 'vencida' }
         });
+        await writeAuditLog({
+            action: 'cotizacion_estado_actualizado',
+            entity: 'Cotizacion',
+            entityId: cotizacion.id,
+            actorId: null,
+            metadata: {
+                estadoAnterior: cotizacion.estado,
+                estadoNuevo: 'vencida',
+                canal: 'cliente_link'
+            }
+        });
+        await notifyCotizacionEstadoChange({
+            cotizacionId: cotizacion.id,
+            numero: cotizacion.numero,
+            estadoAnterior: cotizacion.estado,
+            estadoNuevo: 'vencida',
+            canal: 'cliente_link'
+        });
         return responsePage('Cotizacion vencida', `La cotizacion ${cotizacion.numero} ya no se puede responder porque vencio.`, false);
     }
 
@@ -80,6 +100,24 @@ export async function GET(request: NextRequest) {
     await prisma.cotizacion.update({
         where: { id: cotizacion.id },
         data: { estado: newState }
+    });
+    await writeAuditLog({
+        action: 'cotizacion_estado_actualizado',
+        entity: 'Cotizacion',
+        entityId: cotizacion.id,
+        actorId: null,
+        metadata: {
+            estadoAnterior: cotizacion.estado,
+            estadoNuevo: newState,
+            canal: 'cliente_link'
+        }
+    });
+    await notifyCotizacionEstadoChange({
+        cotizacionId: cotizacion.id,
+        numero: cotizacion.numero,
+        estadoAnterior: cotizacion.estado,
+        estadoNuevo: newState,
+        canal: 'cliente_link'
     });
 
     return responsePage(
