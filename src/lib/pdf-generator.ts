@@ -474,29 +474,26 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     ];
 
     const summaryLabelX = tableRight - cols.total - 6;
+    yPos += 2;
     summaryRows.forEach((row) => {
-        const rowH = row.isTotal ? 9 : 7;
+        const rowH = row.isTotal ? 8 : 7;
         if (yPos + rowH > 232) {
             doc.addPage();
             yPos = 20;
         }
 
         if (row.isTotal) {
-            doc.setFillColor(...palette.green);
-            doc.rect(14, yPos, tableW, rowH, 'F');
-            doc.setTextColor(...palette.white);
+            doc.setTextColor(...palette.green);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(10);
-            doc.text(row.label, summaryLabelX, yPos + 6, { align: 'right' });
-            doc.text(row.value, tableRight - 2, yPos + 6, { align: 'right' });
+            doc.text(row.label, summaryLabelX, yPos + 5.4, { align: 'right' });
+            doc.text(row.value, tableRight - 2, yPos + 5.4, { align: 'right' });
         } else {
             doc.setTextColor(...palette.text);
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
             doc.text(row.label, summaryLabelX, yPos + 4.8, { align: 'right' });
             doc.text(row.value, tableRight - 2, yPos + 4.8, { align: 'right' });
-            doc.setDrawColor(...palette.line);
-            doc.line(14, yPos + rowH, tableRight, yPos + rowH);
         }
 
         yPos += rowH;
