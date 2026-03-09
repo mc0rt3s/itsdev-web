@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
+import { useEffect, useMemo, useState } from 'react';
 
 interface AdminSidebarProps {
   user: {
@@ -11,6 +12,8 @@ interface AdminSidebarProps {
     role?: string;
   };
 }
+
+const READ_KEY = 'cotizaciones_notifications_read_at';
 
 const menuItems = [
   {
@@ -143,6 +146,42 @@ const menuItems = [
 
 export default function AdminSidebar({ user }: AdminSidebarProps) {
   const pathname = usePathname();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await fetch('/api/cotizaciones/notificaciones?limit=100', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      const items = (data.items || []) as Array<{ createdAt: string }>;
+      const readAtRaw = typeof window !== 'undefined' ? window.localStorage.getItem(READ_KEY) : null;
+      if (!readAtRaw) {
+        setUnreadCount(items.length);
+        return;
+      }
+      const readAt = new Date(readAtRaw);
+      setUnreadCount(items.filter((item) => new Date(item.createdAt) > readAt).length);
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    const boot = setTimeout(fetchUnreadCount, 0);
+    const interval = setInterval(fetchUnreadCount, 30_000);
+    const handleRead = () => fetchUnreadCount();
+    const handleStorage = () => fetchUnreadCount();
+    window.addEventListener('cotizaciones-notificaciones-read', handleRead);
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      clearTimeout(boot);
+      clearInterval(interval);
+      window.removeEventListener('cotizaciones-notificaciones-read', handleRead);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
+
+  const unreadLabel = useMemo(() => (unreadCount > 99 ? '99+' : String(unreadCount)), [unreadCount]);
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-slate-800/50 backdrop-blur-xl border-r border-slate-700/50 flex flex-col">
@@ -182,6 +221,11 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
                 {item.icon}
               </span>
               <span className="font-medium">{item.name}</span>
+              {item.href === '/admin/notificaciones' && unreadCount > 0 && (
+                <span className="ml-auto inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-400/40">
+                  {unreadLabel}
+                </span>
+              )}
             </Link>
           );
         })}

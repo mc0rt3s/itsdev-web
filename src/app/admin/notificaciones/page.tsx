@@ -13,6 +13,8 @@ interface NotificacionCotizacion {
     actorId: string | null;
 }
 
+const READ_KEY = 'cotizaciones_notifications_read_at';
+
 const CANAL_LABEL: Record<string, string> = {
     cliente_link: 'Cliente (link)',
     panel_admin: 'Panel admin',
@@ -24,6 +26,7 @@ export default function NotificacionesPage() {
     const [items, setItems] = useState<NotificacionCotizacion[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [readAt, setReadAt] = useState<string | null>(null);
 
     const fetchData = async () => {
         try {
@@ -40,6 +43,11 @@ export default function NotificacionesPage() {
     };
 
     useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const stored = window.localStorage.getItem(READ_KEY);
+            if (stored) setReadAt(stored);
+        }
+
         fetchData();
         const interval = setInterval(fetchData, 30_000);
         return () => clearInterval(interval);
@@ -48,6 +56,20 @@ export default function NotificacionesPage() {
     const total = items.length;
     const aprobadas = useMemo(() => items.filter((item) => item.estadoNuevo === 'aprobada').length, [items]);
     const rechazadas = useMemo(() => items.filter((item) => item.estadoNuevo === 'rechazada').length, [items]);
+    const noLeidas = useMemo(() => {
+        if (!readAt) return items.length;
+        const readDate = new Date(readAt);
+        return items.filter((item) => new Date(item.createdAt) > readDate).length;
+    }, [items, readAt]);
+
+    const markAllAsRead = () => {
+        const now = new Date().toISOString();
+        setReadAt(now);
+        if (typeof window !== 'undefined') {
+            window.localStorage.setItem(READ_KEY, now);
+            window.dispatchEvent(new Event('cotizaciones-notificaciones-read'));
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -77,6 +99,18 @@ export default function NotificacionesPage() {
                     <p className="text-slate-400 text-sm">Rechazadas</p>
                     <p className="text-2xl text-rose-400 font-semibold">{rechazadas}</p>
                 </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-800/30 p-4">
+                <div className="text-sm text-slate-300">
+                    No leídas: <span className="font-semibold text-white">{noLeidas}</span>
+                </div>
+                <button
+                    onClick={markAllAsRead}
+                    className="px-3 py-1.5 text-sm rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-700/40 transition"
+                >
+                    Marcar todo como leído
+                </button>
             </div>
 
             <div className="rounded-xl border border-slate-700 bg-slate-800/30 overflow-hidden">
