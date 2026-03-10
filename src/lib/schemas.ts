@@ -191,9 +191,14 @@ export const comunicacionSchema = z.object({
   clienteId: z.string().min(1, 'El cliente es requerido'),
   tipo: z.string().min(1, 'El tipo es requerido'), // email, telefono, etc
   fecha: z.string().transform((str) => new Date(str)),
+  duracionMin: z.number().int().min(0, 'La duración debe ser mayor o igual a 0').optional().nullable(),
   resumen: z.string().min(1, 'El resumen es requerido'),
   detalle: z.string().optional().nullable(),
   resultado: z.string().optional().nullable(),
+  objetivo: z.string().optional().nullable(),
+  proximoPaso: z.string().optional().nullable(),
+  fechaProximaAccion: z.string().optional().nullable().transform((str) => (str ? new Date(str) : null)),
+  estadoSeguimiento: z.enum(['pendiente', 'en_progreso', 'cerrado', 'bloqueado']).optional().nullable(),
   usuarioId: z.string().min(1, 'El usuario es requerido'),
 });
 export type ComunicacionInput = z.infer<typeof comunicacionSchema>;

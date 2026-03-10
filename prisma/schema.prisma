@@ -298,9 +298,14 @@ model Comunicacion {
   
   tipo        String   // email, telefono, reunion, whatsapp
   fecha       DateTime @default(now())
+  duracionMin Int?     // Duración de la interacción en minutos
   resumen     String
   detalle     String?
   resultado   String?  // Resultado de la interacción
+  objetivo    String?  // Objetivo de la interacción
+  proximoPaso String?  // Siguiente acción acordada
+  fechaProximaAccion DateTime? // Fecha comprometida del próximo paso
+  estadoSeguimiento String? // pendiente, en_progreso, cerrado, bloqueado
   
   usuarioId   String
   usuario     User     @relation(fields: [usuarioId], references: [id])

@@ -47,7 +47,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             );
         }
 
-        const { clienteId, tipo, fecha, resumen, detalle, resultado } = validationResult.data;
+        const {
+            clienteId,
+            tipo,
+            fecha,
+            duracionMin,
+            resumen,
+            detalle,
+            resultado,
+            objetivo,
+            proximoPaso,
+            fechaProximaAccion,
+            estadoSeguimiento
+        } = validationResult.data;
 
         const comunicacion = await prisma.comunicacion.update({
             where: { id },
@@ -55,9 +67,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
                 clienteId,
                 tipo,
                 fecha: new Date(fecha),
+                duracionMin: duracionMin ?? null,
                 resumen,
                 detalle: detalle || null,
                 resultado: resultado || null,
+                objetivo: objetivo || null,
+                proximoPaso: proximoPaso || null,
+                fechaProximaAccion: fechaProximaAccion ?? null,
+                estadoSeguimiento: estadoSeguimiento || null,
             },
             include: {
                 cliente: { select: { razonSocial: true } },

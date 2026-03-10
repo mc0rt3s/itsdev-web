@@ -10,9 +10,14 @@ interface Comunicacion {
     usuario: { name: string; email: string };
     tipo: string;
     fecha: string;
+    duracionMin: number | null;
     resumen: string;
     detalle: string | null;
     resultado: string | null;
+    objetivo: string | null;
+    proximoPaso: string | null;
+    fechaProximaAccion: string | null;
+    estadoSeguimiento: string | null;
 }
 
 interface Cliente {
@@ -30,13 +35,22 @@ export default function ComunicacionesPage() {
     const [filtroCliente, setFiltroCliente] = useState<string>('');
     const [vistaTimeline, setVistaTimeline] = useState<'normal' | 'diaria'>('normal');
     const [fechaFiltro, setFechaFiltro] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [informeClienteId, setInformeClienteId] = useState<string>('');
+    const [informeMes, setInformeMes] = useState<string>(new Date().toISOString().slice(0, 7));
+    const [informeDestinatario, setInformeDestinatario] = useState<string>('');
+    const [sendingInforme, setSendingInforme] = useState(false);
     const [formData, setFormData] = useState({
         clienteId: '',
         tipo: 'email',
         fecha: new Date().toISOString().slice(0, 16), // YYYY-MM-DDTHH:mm
+        duracionMin: 0,
         resumen: '',
         detalle: '',
         resultado: '',
+        objetivo: '',
+        proximoPaso: '',
+        fechaProximaAccion: '',
+        estadoSeguimiento: 'pendiente',
     });
     const [formError, setFormError] = useState('');
     const [saving, setSaving] = useState(false);
@@ -122,6 +136,11 @@ export default function ComunicacionesPage() {
                 resumen: comunicacion.resumen,
                 detalle: comunicacion.detalle || '',
                 resultado: comunicacion.resultado || '',
+                duracionMin: comunicacion.duracionMin || 0,
+                objetivo: comunicacion.objetivo || '',
+                proximoPaso: comunicacion.proximoPaso || '',
+                fechaProximaAccion: comunicacion.fechaProximaAccion ? new Date(comunicacion.fechaProximaAccion).toISOString().slice(0, 16) : '',
+                estadoSeguimiento: comunicacion.estadoSeguimiento || 'pendiente',
             });
         } else {
             setSelectedComunicacion(null);
@@ -129,9 +148,14 @@ export default function ComunicacionesPage() {
                 clienteId: '',
                 tipo: 'email',
                 fecha: new Date().toISOString().slice(0, 16),
+                duracionMin: 0,
                 resumen: '',
                 detalle: '',
                 resultado: '',
+                objetivo: '',
+                proximoPaso: '',
+                fechaProximaAccion: '',
+                estadoSeguimiento: 'pendiente',
             });
         }
         setFormError('');
@@ -204,6 +228,35 @@ export default function ComunicacionesPage() {
         });
     };
 
+    const enviarInformeMensual = async () => {
+        if (!informeClienteId) {
+            toast.error('Selecciona un cliente para enviar el informe');
+            return;
+        }
+        setSendingInforme(true);
+        try {
+            const res = await fetch('/api/comunicaciones/informe-mensual', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    clienteId: informeClienteId,
+                    month: informeMes,
+                    destinatario: informeDestinatario || undefined
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                toast.error(data.error || 'Error al enviar informe');
+                return;
+            }
+            toast.success(`Informe enviado a ${data.destinatario}`);
+        } catch {
+            toast.error('Error al enviar informe mensual');
+        } finally {
+            setSendingInforme(false);
+        }
+    };
+
     const getTypeIcon = (type: string) => {
         switch (type) {
             case 'email':
@@ -249,6 +302,12 @@ export default function ComunicacionesPage() {
         }
     }
 
+    const totalInteracciones = comunicacionesFiltradas.length;
+    const totalMinutos = comunicacionesFiltradas.reduce((sum, com) => sum + (com.duracionMin || 0), 0);
+    const seguimientosPendientes = comunicacionesFiltradas.filter(
+        (com) => com.estadoSeguimiento && com.estadoSeguimiento !== 'cerrado'
+    ).length;
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -265,6 +324,57 @@ export default function ComunicacionesPage() {
                     </svg>
                     Registrar Comunicación
                 </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4">
+                    <p className="text-xs text-slate-400 uppercase tracking-wide">Interacciones</p>
+                    <p className="text-2xl text-white font-bold">{totalInteracciones}</p>
+                </div>
+                <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4">
+                    <p className="text-xs text-slate-400 uppercase tracking-wide">Minutos Registrados</p>
+                    <p className="text-2xl text-cyan-400 font-bold">{totalMinutos}</p>
+                </div>
+                <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4">
+                    <p className="text-xs text-slate-400 uppercase tracking-wide">Pendientes</p>
+                    <p className="text-2xl text-amber-400 font-bold">{seguimientosPendientes}</p>
+                </div>
+            </div>
+
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4">
+                <h2 className="text-lg font-semibold text-white mb-3">Informe Mensual al Cliente</h2>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <select
+                        value={informeClienteId}
+                        onChange={(e) => setInformeClienteId(e.target.value)}
+                        className="px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-sm"
+                    >
+                        <option value="">Selecciona cliente</option>
+                        {clientes.map((cliente) => (
+                            <option key={cliente.id} value={cliente.id}>{cliente.razonSocial}</option>
+                        ))}
+                    </select>
+                    <input
+                        type="month"
+                        value={informeMes}
+                        onChange={(e) => setInformeMes(e.target.value)}
+                        className="px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-sm"
+                    />
+                    <input
+                        type="email"
+                        value={informeDestinatario}
+                        onChange={(e) => setInformeDestinatario(e.target.value)}
+                        placeholder="Email destino (opcional)"
+                        className="px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-sm placeholder:text-slate-500"
+                    />
+                    <button
+                        onClick={enviarInformeMensual}
+                        disabled={sendingInforme}
+                        className="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-violet-500 text-white font-semibold disabled:opacity-60"
+                    >
+                        {sendingInforme ? 'Enviando...' : 'Enviar Informe Mensual'}
+                    </button>
+                </div>
             </div>
 
             {/* Filtros y Vista */}
@@ -424,6 +534,32 @@ export default function ComunicacionesPage() {
                                 </div>
                             </div>
 
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">Duración (min)</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        value={formData.duracionMin}
+                                        onChange={(e) => setFormData({ ...formData, duracionMin: Number(e.target.value) || 0 })}
+                                        className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">Estado Seguimiento</label>
+                                    <select
+                                        value={formData.estadoSeguimiento}
+                                        onChange={(e) => setFormData({ ...formData, estadoSeguimiento: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+                                    >
+                                        <option value="pendiente">Pendiente</option>
+                                        <option value="en_progreso">En Progreso</option>
+                                        <option value="cerrado">Cerrado</option>
+                                        <option value="bloqueado">Bloqueado</option>
+                                    </select>
+                                </div>
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-slate-300 mb-2">Resumen <span className="text-red-400">*</span></label>
                                 <input
@@ -456,6 +592,39 @@ export default function ComunicacionesPage() {
                                     placeholder="Ej: Cliente aprueba presupuesto"
                                     className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
                                 />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Objetivo</label>
+                                <input
+                                    type="text"
+                                    value={formData.objetivo}
+                                    onChange={(e) => setFormData({ ...formData, objetivo: e.target.value })}
+                                    placeholder="Ej: validar avance y definir próximos hitos"
+                                    className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">Próximo Paso</label>
+                                    <input
+                                        type="text"
+                                        value={formData.proximoPaso}
+                                        onChange={(e) => setFormData({ ...formData, proximoPaso: e.target.value })}
+                                        placeholder="Ej: enviar propuesta técnica"
+                                        className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">Fecha Próxima Acción</label>
+                                    <input
+                                        type="datetime-local"
+                                        value={formData.fechaProximaAccion}
+                                        onChange={(e) => setFormData({ ...formData, fechaProximaAccion: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+                                    />
+                                </div>
                             </div>
 
                             <div className="flex gap-3 pt-4">
@@ -515,6 +684,13 @@ export default function ComunicacionesPage() {
                         </div>
                     </div>
                     {com.detalle && <p className="text-slate-300 text-sm mb-3 bg-slate-900/30 p-3 rounded-lg">{com.detalle}</p>}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs mb-3">
+                        <span className="text-slate-400">Duración: <span className="text-slate-200">{com.duracionMin || 0} min</span></span>
+                        <span className="text-slate-400">Seguimiento: <span className="text-slate-200 capitalize">{(com.estadoSeguimiento || 'pendiente').replace('_', ' ')}</span></span>
+                        {com.objetivo && <span className="text-slate-400 md:col-span-2">Objetivo: <span className="text-slate-200">{com.objetivo}</span></span>}
+                        {com.proximoPaso && <span className="text-slate-400 md:col-span-2">Próximo paso: <span className="text-slate-200">{com.proximoPaso}</span></span>}
+                        {com.fechaProximaAccion && <span className="text-slate-400 md:col-span-2">Próxima acción: <span className="text-slate-200">{new Date(com.fechaProximaAccion).toLocaleString('es-CL')}</span></span>}
+                    </div>
                     <div className="flex justify-between items-center text-xs border-t border-slate-700/50 pt-3 mt-3">
                         <span className="text-slate-500">Registrado por <span className="text-slate-400">{com.usuario.name}</span></span>
                         {com.resultado && (
