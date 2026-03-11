@@ -25,6 +25,24 @@ interface Cliente {
     razonSocial: string;
 }
 
+interface InformePreview {
+    cliente: { id: string; razonSocial: string; email?: string | null };
+    monthLabel: string;
+    totalInteracciones: number;
+    totalMinutos: number;
+    pendientes: number;
+    items: Array<{
+        id: string;
+        fecha: string;
+        tipo: string;
+        resumen: string;
+        duracionMin: number | null;
+        estadoSeguimiento: string | null;
+        objetivo?: string | null;
+        proximoPaso?: string | null;
+    }>;
+}
+
 export default function ComunicacionesPage() {
     const toast = useToast();
     const [comunicaciones, setComunicaciones] = useState<Comunicacion[]>([]);
@@ -39,6 +57,9 @@ export default function ComunicacionesPage() {
     const [informeMes, setInformeMes] = useState<string>(new Date().toISOString().slice(0, 7));
     const [informeDestinatario, setInformeDestinatario] = useState<string>('');
     const [sendingInforme, setSendingInforme] = useState(false);
+    const [loadingInforme, setLoadingInforme] = useState(false);
+    const [previewInforme, setPreviewInforme] = useState<InformePreview | null>(null);
+    const [previewTs, setPreviewTs] = useState<number | null>(null);
     const [formData, setFormData] = useState({
         clienteId: '',
         tipo: 'email',
@@ -257,6 +278,34 @@ export default function ComunicacionesPage() {
         }
     };
 
+    const cargarPreviewInforme = async () => {
+        if (!informeClienteId) {
+            toast.error('Selecciona un cliente para ver el informe');
+            return;
+        }
+        setLoadingInforme(true);
+        try {
+            const res = await fetch(`/api/comunicaciones/informe-mensual?clienteId=${informeClienteId}&month=${informeMes}`, {
+                cache: 'no-store'
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                toast.error(data.error || 'Error al cargar vista previa');
+                return;
+            }
+            setPreviewInforme(data);
+            setPreviewTs(Date.now());
+        } catch {
+            toast.error('Error al cargar vista previa');
+        } finally {
+            setLoadingInforme(false);
+        }
+    };
+
+    const previewPdfUrl = informeClienteId && previewTs
+        ? `/api/comunicaciones/informe-mensual?clienteId=${informeClienteId}&month=${informeMes}&format=pdf&ts=${previewTs}`
+        : '';
+
     const getTypeIcon = (type: string) => {
         switch (type) {
             case 'email':
@@ -367,15 +416,77 @@ export default function ComunicacionesPage() {
                         placeholder="Email destino (opcional)"
                         className="px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-sm placeholder:text-slate-500"
                     />
-                    <button
-                        onClick={enviarInformeMensual}
-                        disabled={sendingInforme}
-                        className="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-violet-500 text-white font-semibold disabled:opacity-60"
-                    >
-                        {sendingInforme ? 'Enviando...' : 'Enviar Informe Mensual'}
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={cargarPreviewInforme}
+                            disabled={loadingInforme}
+                            className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-900/50 text-white font-semibold disabled:opacity-60"
+                        >
+                            {loadingInforme ? 'Cargando...' : 'Ver Informe'}
+                        </button>
+                        <button
+                            onClick={enviarInformeMensual}
+                            disabled={sendingInforme}
+                            className="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-violet-500 text-white font-semibold disabled:opacity-60"
+                        >
+                            {sendingInforme ? 'Enviando...' : 'Enviar Informe'}
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            {previewInforme && (
+                <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-4">
+                    <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4 space-y-3">
+                        <div>
+                            <h3 className="text-lg font-semibold text-white">Vista Previa</h3>
+                            <p className="text-sm text-slate-400">{previewInforme.monthLabel}</p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="rounded-lg bg-slate-900/60 p-3">
+                                <p className="text-[11px] uppercase tracking-wide text-slate-500">Interacciones</p>
+                                <p className="text-xl font-bold text-white">{previewInforme.totalInteracciones}</p>
+                            </div>
+                            <div className="rounded-lg bg-slate-900/60 p-3">
+                                <p className="text-[11px] uppercase tracking-wide text-slate-500">Minutos</p>
+                                <p className="text-xl font-bold text-cyan-400">{previewInforme.totalMinutos}</p>
+                            </div>
+                            <div className="rounded-lg bg-slate-900/60 p-3">
+                                <p className="text-[11px] uppercase tracking-wide text-slate-500">Pendientes</p>
+                                <p className="text-xl font-bold text-amber-400">{previewInforme.pendientes}</p>
+                            </div>
+                        </div>
+                        <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-3">
+                            <p className="text-sm text-slate-400">Cliente</p>
+                            <p className="text-white font-semibold">{previewInforme.cliente.razonSocial}</p>
+                            <p className="text-sm text-slate-400">{previewInforme.cliente.email || 'Sin email registrado'}</p>
+                        </div>
+                        <div className="space-y-2 max-h-[420px] overflow-auto pr-1">
+                            {previewInforme.items.map((item) => (
+                                <div key={item.id} className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="text-sm font-medium text-white capitalize">{item.tipo}</span>
+                                        <span className="text-xs text-slate-400">{new Date(item.fecha).toLocaleDateString('es-CL')}</span>
+                                    </div>
+                                    <p className="mt-2 text-sm text-slate-200">{item.resumen}</p>
+                                    <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-400">
+                                        <span>{item.duracionMin || 0} min</span>
+                                        <span className="capitalize">{(item.estadoSeguimiento || 'pendiente').replace('_', ' ')}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl overflow-hidden min-h-[720px]">
+                        <iframe
+                            key={previewPdfUrl}
+                            src={previewPdfUrl}
+                            title="Vista previa informe mensual"
+                            className="w-full h-[720px] bg-white"
+                        />
+                    </div>
+                </div>
+            )}
 
             {/* Filtros y Vista */}
             <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-3">

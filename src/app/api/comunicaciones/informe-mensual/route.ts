@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import jsPDF from 'jspdf';
+import fs from 'fs';
+import path from 'path';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
@@ -9,6 +11,22 @@ function getMonthRange(month: string) {
     const start = new Date(Date.UTC(year, monthNumber - 1, 1, 0, 0, 0));
     const end = new Date(Date.UTC(year, monthNumber, 1, 0, 0, 0));
     return { start, end };
+}
+
+let LOGO_BASE64 = '';
+try {
+    const candidates = [
+        path.join(process.cwd(), 'public', 'logo-transparent.png'),
+        path.join(process.cwd(), 'public', 'logo-dark.png'),
+        path.join(process.cwd(), 'public', 'logo-pdf.png'),
+    ];
+    const selected = candidates.find((candidate) => fs.existsSync(candidate));
+    if (selected) {
+        const logoBuffer = fs.readFileSync(selected);
+        LOGO_BASE64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+    }
+} catch {
+    console.warn('Logo ITSDev no disponible para informe mensual');
 }
 
 function buildMonthlyReportPDF(params: {
@@ -23,54 +41,164 @@ function buildMonthlyReportPDF(params: {
         resumen: string;
         duracionMin: number | null;
         estadoSeguimiento: string | null;
+        objetivo?: string | null;
+        proximoPaso?: string | null;
     }>;
 }) {
     const doc = new jsPDF();
     const fmtDate = (date: Date) => new Date(date).toLocaleDateString('es-CL');
+    const palette = {
+        navy: [24, 39, 58] as [number, number, number],
+        green: [133, 186, 57] as [number, number, number],
+        text: [15, 23, 42] as [number, number, number],
+        muted: [71, 85, 105] as [number, number, number],
+        line: [226, 232, 240] as [number, number, number],
+        panel: [247, 249, 252] as [number, number, number],
+        white: [255, 255, 255] as [number, number, number],
+    };
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.text('Informe Mensual de Comunicaciones', 14, 16);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(`Cliente: ${params.cliente}`, 14, 24);
-    doc.text(`Periodo: ${params.monthLabel}`, 14, 30);
+    const pageWidth = 210;
+    const tableX = 14;
+    const tableW = 182;
+    const colDate = 24;
+    const colType = 22;
+    const colResumen = 88;
+    const colMin = 16;
+    const colEstado = 32;
 
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Interacciones: ${params.totalInteracciones}`, 14, 40);
-    doc.text(`Tiempo registrado: ${params.totalMinutos} min`, 14, 46);
-    doc.text(`Seguimientos pendientes: ${params.pendientes}`, 14, 52);
+    doc.setFillColor(...palette.navy);
+    doc.rect(0, 0, pageWidth, 36, 'F');
+    doc.setFillColor(...palette.green);
+    doc.rect(0, 0, pageWidth, 4, 'F');
 
-    let y = 64;
-    doc.setFontSize(9);
-    doc.setFillColor(30, 41, 59);
-    doc.rect(14, y, 182, 8, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.text('Fecha', 18, y + 5.5);
-    doc.text('Tipo', 42, y + 5.5);
-    doc.text('Resumen', 66, y + 5.5);
-    doc.text('Min', 172, y + 5.5);
-    doc.text('Estado', 183, y + 5.5);
-    y += 10;
-
-    doc.setTextColor(15, 23, 42);
-    doc.setFont('helvetica', 'normal');
-
-    for (const item of params.items) {
-        if (y > 270) {
-            doc.addPage();
-            y = 16;
+    if (LOGO_BASE64) {
+        try {
+            doc.addImage(LOGO_BASE64, 'PNG', 14, 8, 54, 15);
+        } catch {
+            drawReportWordmark(doc, 14, 17, palette);
         }
-        const resumen = doc.splitTextToSize(item.resumen, 95)[0] || '';
-        doc.text(fmtDate(item.fecha), 18, y);
-        doc.text(item.tipo, 42, y);
-        doc.text(resumen, 66, y);
-        doc.text(String(item.duracionMin || 0), 172, y, { align: 'right' });
-        doc.text(item.estadoSeguimiento || '-', 183, y);
-        y += 7;
+    } else {
+        drawReportWordmark(doc, 14, 17, palette);
     }
 
+    doc.setTextColor(...palette.white);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('INFORME MENSUAL', 194, 14, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.text(params.monthLabel, 194, 21, { align: 'right' });
+    doc.text(params.cliente, 194, 27, { align: 'right' });
+
+    doc.setTextColor(...palette.text);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(21);
+    doc.text('Comunicaciones', 14, 50);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...palette.muted);
+    doc.text('Resumen operativo mensual de atenciones y seguimientos', 14, 56);
+
+    const cardsY = 64;
+    const cardW = 56;
+    const gap = 7;
+    const cards = [
+        { label: 'Interacciones', value: String(params.totalInteracciones) },
+        { label: 'Tiempo Registrado', value: `${params.totalMinutos} min` },
+        { label: 'Pendientes', value: String(params.pendientes) },
+    ];
+    cards.forEach((card, index) => {
+        const x = 14 + index * (cardW + gap);
+        doc.setFillColor(...palette.panel);
+        doc.roundedRect(x, cardsY, cardW, 22, 2, 2, 'F');
+        doc.setTextColor(...palette.green);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.text(card.label.toUpperCase(), x + 4, cardsY + 6);
+        doc.setTextColor(...palette.text);
+        doc.setFontSize(14);
+        doc.text(card.value, x + 4, cardsY + 15);
+    });
+
+    let y = 96;
+    const drawTableHeader = (top: number) => {
+        doc.setFillColor(...palette.navy);
+        doc.rect(tableX, top, tableW, 9, 'F');
+        doc.setTextColor(...palette.white);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.2);
+        let x = tableX;
+        doc.text('Fecha', x + 3, top + 6);
+        x += colDate;
+        doc.text('Tipo', x + 3, top + 6);
+        x += colType;
+        doc.text('Resumen / Gestion', x + 3, top + 6);
+        x += colResumen;
+        doc.text('Min', x + colMin - 2, top + 6, { align: 'right' });
+        x += colMin;
+        doc.text('Estado', x + colEstado - 2, top + 6, { align: 'right' });
+    };
+    drawTableHeader(y);
+    y += 11;
+
+    for (const item of params.items) {
+        const resumenParts = [
+            item.resumen,
+            item.objetivo ? `Obj: ${item.objetivo}` : '',
+            item.proximoPaso ? `Sig: ${item.proximoPaso}` : '',
+        ].filter(Boolean).join(' | ');
+        const resumenLines = doc.splitTextToSize(resumenParts, colResumen - 6);
+        const rowHeight = Math.max(8, resumenLines.length * 4.8 + 2);
+
+        if (y + rowHeight > 274) {
+            doc.addPage();
+            y = 18;
+            drawTableHeader(y);
+            y += 11;
+        }
+
+        doc.setTextColor(...palette.text);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        let x = tableX;
+        doc.text(fmtDate(item.fecha), x + 3, y + 5.5);
+        x += colDate;
+        doc.text(item.tipo, x + 3, y + 5.5);
+        x += colType;
+        doc.text(resumenLines, x + 3, y + 4.5);
+        x += colResumen;
+        doc.text(String(item.duracionMin || 0), x + colMin - 2, y + 5.5, { align: 'right' });
+        x += colMin;
+        doc.text(item.estadoSeguimiento || '-', x + colEstado - 2, y + 5.5, { align: 'right' });
+        doc.setDrawColor(...palette.line);
+        doc.line(tableX, y + rowHeight, tableX + tableW, y + rowHeight);
+        y += rowHeight + 2;
+    }
+
+    doc.setFillColor(...palette.navy);
+    doc.rect(0, 285, pageWidth, 12, 'F');
+    doc.setTextColor(...palette.white);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text('ITSDev · Informes de comunicaciones y seguimiento comercial', 14, 292);
+    doc.text(`Generado ${new Date().toLocaleString('es-CL')}`, 196, 292, { align: 'right' });
+
     return Buffer.from(doc.output('arraybuffer'));
+}
+
+function drawReportWordmark(
+    doc: jsPDF,
+    x: number,
+    y: number,
+    palette: { white: [number, number, number] }
+) {
+    doc.setTextColor(...palette.white);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text('ITSDev', x, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.text('IT Specialists', x, y + 4.5);
 }
 
 async function getReportData(clienteId: string, month: string) {
@@ -96,7 +224,9 @@ async function getReportData(clienteId: string, month: string) {
             tipo: true,
             resumen: true,
             duracionMin: true,
-            estadoSeguimiento: true
+            estadoSeguimiento: true,
+            objetivo: true,
+            proximoPaso: true,
         },
         orderBy: { fecha: 'asc' }
     });
@@ -120,6 +250,7 @@ export async function GET(request: NextRequest) {
 
     const clienteId = request.nextUrl.searchParams.get('clienteId');
     const month = request.nextUrl.searchParams.get('month');
+    const format = request.nextUrl.searchParams.get('format');
     if (!clienteId || !month) {
         return NextResponse.json({ error: 'clienteId y month son requeridos' }, { status: 400 });
     }
@@ -129,8 +260,35 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
+    const monthLabel = new Date(`${month}-01T00:00:00Z`).toLocaleDateString('es-CL', {
+        year: 'numeric',
+        month: 'long'
+    });
+
+    if (format === 'pdf') {
+        const pdf = buildMonthlyReportPDF({
+            cliente: report.cliente.razonSocial,
+            monthLabel,
+            totalInteracciones: report.totalInteracciones,
+            totalMinutos: report.totalMinutos,
+            pendientes: report.pendientes,
+            items: report.items
+        });
+
+        return new NextResponse(new Uint8Array(pdf), {
+            headers: {
+                'Content-Type': 'application/pdf',
+                'Content-Disposition': `inline; filename="Informe-Comunicaciones-${report.cliente.razonSocial.replace(/\s+/g, '-')}-${month}.pdf"`,
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+                Pragma: 'no-cache',
+                Expires: '0'
+            }
+        });
+    }
+
     return NextResponse.json({
         cliente: report.cliente,
+        monthLabel,
         totalInteracciones: report.totalInteracciones,
         totalMinutos: report.totalMinutos,
         pendientes: report.pendientes,
