@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         if ('response' in parsed) return parsed.response;
 
         const {
-            clienteId, nombreProspecto, emailProspecto, numero, fecha, validez, estado, moneda,
+            clienteId, nombreProspecto, emailProspecto, numero, oportunidad, etiquetaComercial, fecha, validez, estado, moneda,
             descuento = 0, tipoCambioUSD, modoEnvio, fechaEntrega, formaPago, duracionValidezDias,
             notas, items, aplicarIVA
         } = parsed.data;
@@ -60,6 +60,8 @@ export async function POST(request: NextRequest) {
                 nombreProspecto,
                 emailProspecto,
                 numero,
+                oportunidad: oportunidad || null,
+                etiquetaComercial: etiquetaComercial || null,
                 fecha: new Date(fecha),
                 validez: new Date(validez),
                 estado,

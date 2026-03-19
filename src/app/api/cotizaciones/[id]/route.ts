@@ -79,6 +79,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                 where: { id },
                 data: {
                     ...rest,
+                    oportunidad: rest.oportunidad || null,
+                    etiquetaComercial: rest.etiquetaComercial || null,
                     descuento,
                     tipoCambioUSD: tipoCambioUSD ?? undefined,
                     modoEnvio: modoEnvio || null,

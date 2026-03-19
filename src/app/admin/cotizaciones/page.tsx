@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 interface Cotizacion {
     id: string;
     numero: string;
+    oportunidad?: string | null;
+    etiquetaComercial?: string | null;
     cliente?: { razonSocial: string; email?: string | null };
     clienteId?: string;
     nombreProspecto?: string;
@@ -42,6 +44,8 @@ export default function CotizacionesPage() {
     const [showModal, setShowModal] = useState(false);
     const [viewingCotizacion, setViewingCotizacion] = useState<Cotizacion | null>(null);
     const [destinatarioEmail, setDestinatarioEmail] = useState('');
+    const [emailAsunto, setEmailAsunto] = useState('');
+    const [emailMensaje, setEmailMensaje] = useState('');
 
     // Use a string 'prospecto' or 'cliente' to toggle form mode
     const [targetType, setTargetType] = useState<'cliente' | 'prospecto'>('cliente');
@@ -52,6 +56,8 @@ export default function CotizacionesPage() {
         nombreProspecto: '',
         emailProspecto: '',
         numero: '',
+        oportunidad: '',
+        etiquetaComercial: '',
         fecha: new Date().toISOString().split('T')[0],
         validez: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split('T')[0],
         estado: 'borrador',
@@ -103,11 +109,16 @@ export default function CotizacionesPage() {
     const openNewModal = () => {
         setViewingCotizacion(null);
         setTargetType('cliente');
+        setDestinatarioEmail('');
+        setEmailAsunto('');
+        setEmailMensaje('');
         setFormData({
             clienteId: '',
             nombreProspecto: '',
             emailProspecto: '',
             numero: `COT-${new Date().getFullYear()}-${String(cotizaciones.length + 1).padStart(3, '0')}`,
+            oportunidad: '',
+            etiquetaComercial: '',
             fecha: new Date().toISOString().split('T')[0],
             validez: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split('T')[0],
             estado: 'borrador',
@@ -127,6 +138,8 @@ export default function CotizacionesPage() {
     const openDetailModal = (cot: Cotizacion) => {
         setViewingCotizacion(cot);
         setDestinatarioEmail(cot.cliente?.email || cot.emailProspecto || '');
+        setEmailAsunto(buildSuggestedSubject(cot));
+        setEmailMensaje(buildSuggestedMessage(cot));
         setShowModal(true);
     };
 
@@ -134,6 +147,8 @@ export default function CotizacionesPage() {
         setShowModal(false);
         setViewingCotizacion(null);
         setDestinatarioEmail('');
+        setEmailAsunto('');
+        setEmailMensaje('');
     };
 
     const addItem = () => {
@@ -284,13 +299,25 @@ export default function CotizacionesPage() {
             alert('Debes indicar un email de destino');
             return;
         }
+        if (!emailAsunto.trim()) {
+            alert('Debes indicar un asunto para el correo');
+            return;
+        }
+        if (!emailMensaje.trim()) {
+            alert('Debes indicar un mensaje para el correo');
+            return;
+        }
 
         setSendingEmail(true);
         try {
             const res = await fetch(`/api/cotizaciones/${id}/enviar`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ destinatario: destinatarioEmail.trim() })
+                body: JSON.stringify({
+                    destinatario: destinatarioEmail.trim(),
+                    asunto: emailAsunto.trim(),
+                    mensaje: emailMensaje.trim()
+                })
             });
             if (res.ok) {
                 const payload = await res.json();
@@ -337,6 +364,28 @@ export default function CotizacionesPage() {
         return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(price);
     };
 
+    const buildSuggestedSubject = (cot: Cotizacion) => {
+        const parts = [cot.etiquetaComercial, cot.oportunidad, `Cotización ${cot.numero}`].filter(Boolean);
+        return `${parts.join(' | ')} - ITSDev`;
+    };
+
+    const buildSuggestedMessage = (cot: Cotizacion) => {
+        const destinatario = cot.cliente?.razonSocial || cot.nombreProspecto || 'cliente';
+        const lines = [
+            `Estimado/a ${destinatario},`,
+            '',
+            cot.etiquetaComercial
+                ? `Te comparto la alternativa "${cot.etiquetaComercial}" asociada a la cotización ${cot.numero}.`
+                : `Te comparto la cotización ${cot.numero}.`,
+            cot.oportunidad ? `Esta propuesta forma parte de la oportunidad "${cot.oportunidad}".` : '',
+            'Quedo atento a tus comentarios para revisar esta opción o compararla con otras alternativas.',
+            '',
+            'Saludos cordiales,',
+            'Equipo ITSDev'
+        ].filter(Boolean);
+        return lines.join('\n');
+    };
+
     const getStatusBadge = (status: string) => {
         const styles: Record<string, string> = {
             aprobada: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
@@ -373,6 +422,7 @@ export default function CotizacionesPage() {
                                 <tr className="border-b border-slate-700/50 text-left">
                                     <th className="p-4 text-slate-300">Folio</th>
                                     <th className="p-4 text-slate-300">Cliente / Prospecto</th>
+                                    <th className="p-4 text-slate-300">Oportunidad</th>
                                     <th className="p-4 text-slate-300">Fecha</th>
                                     <th className="p-4 text-slate-300">Validez</th>
                                     <th className="p-4 text-slate-300">Total</th>
@@ -390,6 +440,12 @@ export default function CotizacionesPage() {
                                                     {c.nombreProspecto} <span className="text-xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">Prospecto</span>
                                                 </span>
                                             )}
+                                            {c.etiquetaComercial && (
+                                                <p className="text-xs text-cyan-400 mt-1">{c.etiquetaComercial}</p>
+                                            )}
+                                        </td>
+                                        <td className="p-4 text-slate-400">
+                                            {c.oportunidad || <span className="text-slate-600">Sin oportunidad</span>}
                                         </td>
                                         <td className="p-4 text-slate-400">{new Date(c.fecha).toLocaleDateString('es-CL')}</td>
                                         <td className="p-4 text-slate-400">{new Date(c.validez).toLocaleDateString('es-CL')}</td>
@@ -431,6 +487,9 @@ export default function CotizacionesPage() {
                                         <p className="text-white text-xl font-bold">
                                             {viewingCotizacion.cliente ? viewingCotizacion.cliente.razonSocial : viewingCotizacion.nombreProspecto}
                                         </p>
+                                        {viewingCotizacion.etiquetaComercial && (
+                                            <p className="text-sm text-cyan-400 mt-1">{viewingCotizacion.etiquetaComercial}</p>
+                                        )}
                                         {(viewingCotizacion.cliente?.email || viewingCotizacion.emailProspecto) && (
                                             <p className="text-sm text-slate-500">
                                                 {viewingCotizacion.cliente?.email || viewingCotizacion.emailProspecto}
@@ -458,7 +517,7 @@ export default function CotizacionesPage() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-6 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
                                     <div>
                                         <label className="text-slate-500 text-xs uppercase font-bold">Fecha</label>
                                         <p className="text-slate-300">{new Date(viewingCotizacion.fecha).toLocaleDateString('es-CL')}</p>
@@ -470,6 +529,10 @@ export default function CotizacionesPage() {
                                     <div>
                                         <label className="text-slate-500 text-xs uppercase font-bold">Folio</label>
                                         <p className="text-slate-300">{viewingCotizacion.numero}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-slate-500 text-xs uppercase font-bold">Oportunidad</label>
+                                        <p className="text-slate-300">{viewingCotizacion.oportunidad || 'Sin oportunidad definida'}</p>
                                     </div>
                                 </div>
 
@@ -511,7 +574,56 @@ export default function CotizacionesPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex gap-3 pt-4">
+                                <div className="rounded-xl border border-slate-700/50 bg-slate-900/40 p-4 space-y-4">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <h3 className="text-white font-semibold">Envío comercial</h3>
+                                            <p className="text-sm text-slate-400">Define el contexto del correo para esta oportunidad y alternativa.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setEmailAsunto(buildSuggestedSubject(viewingCotizacion));
+                                                setEmailMensaje(buildSuggestedMessage(viewingCotizacion));
+                                            }}
+                                            className="px-3 py-1.5 text-xs rounded-lg border border-slate-600 text-slate-300 hover:text-white hover:border-slate-500"
+                                        >
+                                            Restaurar sugerencia
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-slate-400 mb-1">Enviar a</label>
+                                        <input
+                                            type="email"
+                                            value={destinatarioEmail}
+                                            onChange={(e) => setDestinatarioEmail(e.target.value)}
+                                            placeholder="correo@cliente.com"
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-slate-400 mb-1">Asunto</label>
+                                        <input
+                                            type="text"
+                                            value={emailAsunto}
+                                            onChange={(e) => setEmailAsunto(e.target.value)}
+                                            placeholder="Ej: Alternativa A - Microsoft Defender"
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-slate-400 mb-1">Mensaje</label>
+                                        <textarea
+                                            value={emailMensaje}
+                                            onChange={(e) => setEmailMensaje(e.target.value)}
+                                            rows={7}
+                                            placeholder="Texto personalizado para contextualizar esta alternativa"
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 pt-1">
                                     <button
                                         onClick={() => handleDownloadPDF(viewingCotizacion.id)}
                                         className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-all"
@@ -531,16 +643,6 @@ export default function CotizacionesPage() {
                                         </svg>
                                         {sendingEmail ? 'Enviando...' : 'Enviar por Email'}
                                     </button>
-                                </div>
-                                <div className="pt-1">
-                                    <label className="block text-sm text-slate-400 mb-1">Enviar a</label>
-                                    <input
-                                        type="email"
-                                        value={destinatarioEmail}
-                                        onChange={(e) => setDestinatarioEmail(e.target.value)}
-                                        placeholder="correo@cliente.com"
-                                        className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
-                                    />
                                 </div>
                             </div>
                         ) : (
@@ -605,6 +707,26 @@ export default function CotizacionesPage() {
                                             required
                                             value={formData.numero}
                                             onChange={e => setFormData({ ...formData, numero: e.target.value })}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">Oportunidad</label>
+                                        <input
+                                            type="text"
+                                            value={formData.oportunidad}
+                                            onChange={e => setFormData({ ...formData, oportunidad: e.target.value })}
+                                            placeholder="Ej: Renovación licencias endpoint 2026"
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">Alternativa / Etiqueta comercial</label>
+                                        <input
+                                            type="text"
+                                            value={formData.etiquetaComercial}
+                                            onChange={e => setFormData({ ...formData, etiquetaComercial: e.target.value })}
+                                            placeholder="Ej: Alternativa A - Microsoft Defender"
                                             className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
                                         />
                                     </div>

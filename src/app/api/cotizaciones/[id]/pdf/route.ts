@@ -34,6 +34,8 @@ export async function GET(
 
         const pdfBuffer = generateCotizacionPDF({
             numero: cotizacion.numero,
+            oportunidad: cotizacion.oportunidad || undefined,
+            etiquetaComercial: cotizacion.etiquetaComercial || undefined,
             fecha: cotizacion.fecha.toISOString(),
             validez: cotizacion.validez.toISOString(),
             cliente: cotizacion.cliente ? {
@@ -65,7 +67,7 @@ export async function GET(
         return new NextResponse(new Uint8Array(pdfBuffer), {
             headers: {
                 'Content-Type': 'application/pdf',
-                'Content-Disposition': `attachment; filename="Cotizacion-${cotizacion.numero}.pdf"`,
+                'Content-Disposition': `attachment; filename="Cotizacion-${cotizacion.numero}${cotizacion.etiquetaComercial ? `-${cotizacion.etiquetaComercial.replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '')}` : ''}.pdf"`,
                 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
                 Pragma: 'no-cache',
                 Expires: '0',

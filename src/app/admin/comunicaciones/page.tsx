@@ -59,7 +59,7 @@ export default function ComunicacionesPage() {
     const [sendingInforme, setSendingInforme] = useState(false);
     const [loadingInforme, setLoadingInforme] = useState(false);
     const [previewInforme, setPreviewInforme] = useState<InformePreview | null>(null);
-    const [previewTs, setPreviewTs] = useState<number | null>(null);
+    const [previewPdfBlobUrl, setPreviewPdfBlobUrl] = useState<string>('');
     const [formData, setFormData] = useState({
         clienteId: '',
         tipo: 'email',
@@ -146,6 +146,14 @@ export default function ComunicacionesPage() {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    useEffect(() => {
+        return () => {
+            if (previewPdfBlobUrl) {
+                URL.revokeObjectURL(previewPdfBlobUrl);
+            }
+        };
+    }, [previewPdfBlobUrl]);
 
     const openModal = (comunicacion?: Comunicacion) => {
         if (comunicacion) {
@@ -285,16 +293,43 @@ export default function ComunicacionesPage() {
         }
         setLoadingInforme(true);
         try {
-            const res = await fetch(`/api/comunicaciones/informe-mensual?clienteId=${informeClienteId}&month=${informeMes}`, {
+            const resumenRes = await fetch(`/api/comunicaciones/informe-mensual?clienteId=${informeClienteId}&month=${informeMes}`, {
                 cache: 'no-store'
             });
-            const data = await res.json();
-            if (!res.ok) {
+            const data = await resumenRes.json();
+            if (!resumenRes.ok) {
                 toast.error(data.error || 'Error al cargar vista previa');
                 return;
             }
+
+            const pdfRes = await fetch(
+                `/api/comunicaciones/informe-mensual?clienteId=${informeClienteId}&month=${informeMes}&format=pdf&ts=${Date.now()}`,
+                { cache: 'no-store' }
+            );
+
+            if (!pdfRes.ok) {
+                let errorMessage = 'Error al cargar PDF del informe';
+                const contentType = pdfRes.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    const errorData = await pdfRes.json();
+                    errorMessage = errorData.error || errorMessage;
+                }
+                toast.error(errorMessage);
+                return;
+            }
+
+            const pdfBlob = await pdfRes.blob();
+            if (pdfBlob.type !== 'application/pdf') {
+                toast.error('La vista previa no devolvió un PDF válido');
+                return;
+            }
+
+            if (previewPdfBlobUrl) {
+                URL.revokeObjectURL(previewPdfBlobUrl);
+            }
+
             setPreviewInforme(data);
-            setPreviewTs(Date.now());
+            setPreviewPdfBlobUrl(URL.createObjectURL(pdfBlob));
         } catch {
             toast.error('Error al cargar vista previa');
         } finally {
@@ -302,9 +337,30 @@ export default function ComunicacionesPage() {
         }
     };
 
-    const previewPdfUrl = informeClienteId && previewTs
-        ? `/api/comunicaciones/informe-mensual?clienteId=${informeClienteId}&month=${informeMes}&format=pdf&ts=${previewTs}`
-        : '';
+    const abrirPdfInforme = () => {
+        if (!previewPdfBlobUrl) {
+            toast.error('Primero genera la vista previa del informe');
+            return;
+        }
+
+        window.open(previewPdfBlobUrl, '_blank', 'noopener,noreferrer');
+    };
+
+    const descargarPdfInforme = () => {
+        if (!previewPdfBlobUrl || !previewInforme) {
+            toast.error('Primero genera la vista previa del informe');
+            return;
+        }
+
+        const link = document.createElement('a');
+        const clienteSlug = previewInforme.cliente.razonSocial.replace(/\s+/g, '-');
+        const monthSlug = informeMes || new Date().toISOString().slice(0, 7);
+        link.href = previewPdfBlobUrl;
+        link.download = `Informe-Comunicaciones-${clienteSlug}-${monthSlug}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     const getTypeIcon = (type: string) => {
         switch (type) {
@@ -477,13 +533,47 @@ export default function ComunicacionesPage() {
                             ))}
                         </div>
                     </div>
-                    <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl overflow-hidden min-h-[720px]">
-                        <iframe
-                            key={previewPdfUrl}
-                            src={previewPdfUrl}
-                            title="Vista previa informe mensual"
-                            className="w-full h-[720px] bg-white"
-                        />
+                    <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 min-h-[420px] flex flex-col justify-between">
+                        <div className="space-y-4">
+                            <div>
+                                <h3 className="text-xl font-semibold text-white">PDF listo para revisión</h3>
+                                <p className="text-sm text-slate-400 mt-1">
+                                    La vista previa embebida se eliminó para evitar bloqueos de seguridad por CSP.
+                                    Revisa el resumen aquí y abre el PDF en una pestaña nueva cuando lo necesites.
+                                </p>
+                            </div>
+                            <div className="rounded-2xl border border-slate-700/60 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-6">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p className="text-xs uppercase tracking-[0.24em] text-cyan-400">ITSDev</p>
+                                        <h4 className="mt-2 text-2xl font-semibold text-white">Informe mensual de comunicaciones</h4>
+                                        <p className="mt-2 text-sm text-slate-400">{previewInforme.cliente.razonSocial}</p>
+                                        <p className="text-sm text-slate-500">{previewInforme.monthLabel}</p>
+                                    </div>
+                                    <div className="rounded-xl border border-slate-700/60 bg-slate-950/50 px-4 py-3 text-right">
+                                        <p className="text-xs uppercase tracking-wide text-slate-500">Estado</p>
+                                        <p className="mt-1 text-sm font-semibold text-emerald-400">Generado</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mt-6 flex flex-wrap gap-3">
+                            <button
+                                onClick={abrirPdfInforme}
+                                className="px-4 py-2 rounded-lg bg-white text-slate-900 font-semibold hover:bg-slate-100 transition-colors"
+                            >
+                                Abrir PDF
+                            </button>
+                            <button
+                                onClick={descargarPdfInforme}
+                                className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-900/50 text-white font-semibold hover:bg-slate-800/70 transition-colors"
+                            >
+                                Descargar PDF
+                            </button>
+                            <p className="self-center text-sm text-slate-500">
+                                El envío por correo adjuntará este mismo archivo.
+                            </p>
+                        </div>
                     </div>
                 </div>
             )}

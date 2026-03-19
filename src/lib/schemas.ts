@@ -168,6 +168,8 @@ export const cotizacionSchema = z.object({
   nombreProspecto: z.string().optional().nullable(),
   emailProspecto: z.string().email().optional().nullable(),
   numero: z.string().min(1, 'El número de cotización es requerido'),
+  oportunidad: z.string().trim().max(160).optional().nullable(),
+  etiquetaComercial: z.string().trim().max(160).optional().nullable(),
   fecha: z.string().transform((str) => new Date(str)),
   validez: z.string().transform((str) => new Date(str)),
   estado: z.enum(['borrador', 'enviada', 'aprobada', 'rechazada', 'vencida']).default('borrador'),

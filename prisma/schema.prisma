@@ -243,6 +243,8 @@ model Cotizacion {
   cliente     Cliente? @relation(fields: [clienteId], references: [id])
   
   numero      String   @unique
+  oportunidad String?
+  etiquetaComercial String?
   fecha       DateTime @default(now())
   validez     DateTime // Fecha hasta la cual es válida
   estado      String   @default("borrador") // borrador, enviada, aprobada, rechazada, vencida

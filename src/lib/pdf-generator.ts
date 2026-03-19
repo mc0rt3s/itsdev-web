@@ -25,6 +25,8 @@ interface FacturaData {
 
 interface CotizacionData {
     numero: string;
+    oportunidad?: string;
+    etiquetaComercial?: string;
     fecha: string;
     validez: string;
     cliente?: {
@@ -371,8 +373,14 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     doc.setTextColor(...palette.muted);
     doc.setFontSize(9);
     doc.text('Detalle de productos y condiciones comerciales', 14, 53);
+    if (data.etiquetaComercial) {
+        doc.setTextColor(...palette.green);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text(data.etiquetaComercial, 14, 58);
+    }
 
-    const cardY = 60;
+    const cardY = data.etiquetaComercial ? 66 : 60;
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
@@ -391,10 +399,13 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     doc.text(`RUT: ${data.cliente?.rut || '-'}`, 14, cardY + 20.5);
     doc.text(`Fecha: ${formatDate(data.fecha)}`, 110, cardY + 12.5);
     doc.text(`Validez: ${formatDate(data.validez)}`, 110, cardY + 16.5);
+    if (data.oportunidad) {
+        doc.text(`Oportunidad: ${data.oportunidad}`, 110, cardY + 20.5);
+    }
     doc.setDrawColor(...palette.line);
     doc.line(14, cardY + 24, 196, cardY + 24);
 
-    let yPos = 92;
+    let yPos = data.etiquetaComercial ? 98 : 92;
     const hasSku = data.items.some((i) => i.sku && i.sku.trim() !== '');
     const cols = hasSku
         ? { idx: 12, sku: 19, desc: 73, qty: 18, unit: 30, total: 30 }
