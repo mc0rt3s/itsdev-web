@@ -4,6 +4,15 @@ import { auth } from '@/lib/auth';
 import { writeAuditLog } from '@/lib/audit';
 import { baseApiEmitFactura, getBaseApiConfig, summarizeBaseApiResponse, truncateItemName } from '@/lib/baseapi';
 
+function formatChileDate(date: Date) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Santiago',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -44,8 +53,8 @@ export async function POST(
     }
 
     const afectaIva = factura.impuesto > 0;
-    const fechaEmision = factura.fechaEmision.toISOString().slice(0, 10);
-    const fechaVenc = factura.fechaVenc.toISOString().slice(0, 10);
+    const fechaEmision = formatChileDate(factura.fechaEmision);
+    const fechaVenc = formatChileDate(factura.fechaVenc);
     const formaPago = factura.total <= 0 ? 'SIN_COSTO' : fechaVenc > fechaEmision ? 'CREDITO' : 'CONTADO';
 
     const payload = {
@@ -62,9 +71,9 @@ export async function POST(
       })),
       forma_pago: formaPago,
       fecha_emision: fechaEmision,
-      pagos: formaPago === 'CREDITO'
-        ? [{ fecha: fechaVenc, monto: Math.round(factura.total), glosa: `Pago factura ${factura.numero}`.slice(0, 40) }]
-        : undefined,
+      // BaseAPI/SII valida agresivamente las cuotas en algunos escenarios; por defecto
+      // dejamos la factura a crédito sin calendario explícito.
+      pagos: undefined,
       descargar_pdf: false,
     } as const;
 
