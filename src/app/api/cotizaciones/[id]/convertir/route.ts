@@ -41,6 +41,19 @@ export async function POST(
             }, { status: 400 });
         }
 
+        const facturaExistente = await prisma.factura.findFirst({
+            where: { cotizacionId: cotizacion.id },
+            select: { id: true, numero: true, numeroSII: true, estado: true }
+        });
+
+        if (facturaExistente) {
+            return NextResponse.json({
+                error: 'Esta cotización ya fue convertida en factura',
+                facturaId: facturaExistente.id,
+                numero: facturaExistente.numero
+            }, { status: 409 });
+        }
+
         // Generate invoice number
         const year = new Date().getFullYear();
         const count = await prisma.factura.count();
@@ -53,12 +66,16 @@ export async function POST(
                 numero,
                 fechaEmision: new Date(),
                 fechaVenc: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // +30 days
-                estado: 'borrador',
+                estado: 'pendiente',
                 moneda: cotizacion.moneda,
                 subtotal: cotizacion.subtotal,
                 impuesto: cotizacion.impuesto,
                 total: cotizacion.total,
-                notas: `Generada desde cotización ${cotizacion.numero}`,
+                notas: [
+                    `Generada desde cotización ${cotizacion.numero}`,
+                    cotizacion.oportunidad ? `Oportunidad: ${cotizacion.oportunidad}` : null,
+                    cotizacion.etiquetaComercial ? `Alternativa: ${cotizacion.etiquetaComercial}` : null,
+                ].filter(Boolean).join('\n'),
                 cotizacionId: cotizacion.id,
                 items: {
                     create: cotizacion.items.map(item => ({

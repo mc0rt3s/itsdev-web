@@ -179,6 +179,13 @@ model Factura {
   
   numero      String   @unique // Folio o número interno
   numeroSII   String?  // Número de factura SII (Servicio de Impuestos Internos)
+  dteProveedor String?
+  dteTipo     Int?
+  dteTrackId  String?
+  dteEstado   String?
+  dteAmbiente String?
+  dteUltimaRespuesta String?
+  dteEmitidaAt DateTime?
   fechaEmision DateTime @default(now())
   fechaVenc   DateTime
   estado      String   @default("emitida") // emitida, enviada, pendiente, pagada, cancelada, vencida

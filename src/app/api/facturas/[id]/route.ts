@@ -52,6 +52,14 @@ export async function PATCH(
         const { id } = await params;
         const data = await request.json();
         const { estado, numeroSII, notas } = data;
+        const actual = await prisma.factura.findUnique({
+            where: { id },
+            select: { estado: true }
+        });
+
+        if (!actual) {
+            return NextResponse.json({ error: 'Factura no encontrada' }, { status: 404 });
+        }
 
         // Validar estado si se proporciona
         if (estado && !['emitida', 'enviada', 'pendiente', 'pagada', 'cancelada', 'vencida'].includes(estado)) {
@@ -60,7 +68,12 @@ export async function PATCH(
 
         const updateData: Prisma.FacturaUpdateInput = {};
         if (estado !== undefined) updateData.estado = estado;
-        if (numeroSII !== undefined) updateData.numeroSII = numeroSII === '' ? null : numeroSII;
+        if (numeroSII !== undefined) {
+            updateData.numeroSII = numeroSII === '' ? null : numeroSII;
+            if (numeroSII && estado === undefined && actual.estado === 'pendiente') {
+                updateData.estado = 'emitida';
+            }
+        }
         if (notas !== undefined) updateData.notas = notas;
 
         const factura = await prisma.factura.update({

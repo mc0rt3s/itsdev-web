@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 interface Cotizacion {
     id: string;
@@ -19,6 +20,12 @@ interface Cotizacion {
     impuesto: number;
     total: number;
     items: ItemCotizacion[];
+    facturas?: Array<{
+        id: string;
+        numero: string;
+        numeroSII?: string | null;
+        estado: string;
+    }>;
 }
 
 interface ItemCotizacion {
@@ -73,6 +80,7 @@ export default function CotizacionesPage() {
     });
     const [saving, setSaving] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
+    const [convertingToFactura, setConvertingToFactura] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -360,6 +368,41 @@ export default function CotizacionesPage() {
         }
     };
 
+    const handleConvertToFactura = async (cotizacion: Cotizacion) => {
+        if (!confirm('¿Convertir esta cotización aprobada en una factura interna?')) return;
+
+        setConvertingToFactura(true);
+        try {
+            const res = await fetch(`/api/cotizaciones/${cotizacion.id}/convertir`, {
+                method: 'POST'
+            });
+            const payload = await res.json().catch(() => ({ error: 'Error al convertir cotización' }));
+
+            if (!res.ok) {
+                if (res.status === 409 && payload.facturaId) {
+                    window.location.href = `/admin/facturas?facturaId=${payload.facturaId}`;
+                    return;
+                }
+                alert(payload.error || 'Error al convertir cotización');
+                return;
+            }
+
+            await fetchData();
+            const detailRes = await fetch(`/api/cotizaciones/${cotizacion.id}`);
+            if (detailRes.ok) {
+                setViewingCotizacion(await detailRes.json());
+            }
+            if (payload.facturaId) {
+                window.location.href = `/admin/facturas?facturaId=${payload.facturaId}`;
+                return;
+            }
+        } catch {
+            alert('Error al convertir cotización');
+        } finally {
+            setConvertingToFactura(false);
+        }
+    };
+
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(price);
     };
@@ -536,6 +579,31 @@ export default function CotizacionesPage() {
                                     </div>
                                 </div>
 
+                                {viewingCotizacion.facturas && viewingCotizacion.facturas.length > 0 && (
+                                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                                        <p className="text-xs uppercase font-bold tracking-wide text-emerald-400">Venta generada</p>
+                                        <div className="mt-2 space-y-2">
+                                            {viewingCotizacion.facturas.map((factura) => (
+                                                <div key={factura.id} className="flex items-center justify-between gap-3 text-sm">
+                                                    <div>
+                                                        <p className="text-white font-medium">{factura.numero}</p>
+                                                        <p className="text-slate-400">
+                                                            Estado: {factura.estado}
+                                                            {factura.numeroSII ? ` · SII: ${factura.numeroSII}` : ' · Sin folio SII'}
+                                                        </p>
+                                                    </div>
+                                                    <Link
+                                                        href={`/admin/facturas?facturaId=${factura.id}`}
+                                                        className="text-cyan-400 hover:text-cyan-300"
+                                                    >
+                                                        Abrir factura
+                                                    </Link>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div>
                                     <h3 className="text-white font-semibold mb-4 border-b border-slate-700/50 pb-2">Ítems</h3>
                                     <div className="space-y-3">
@@ -624,6 +692,18 @@ export default function CotizacionesPage() {
                                 </div>
 
                                 <div className="flex gap-3 pt-1">
+                                    {viewingCotizacion.estado === 'aprobada' && (!viewingCotizacion.facturas || viewingCotizacion.facturas.length === 0) && (
+                                        <button
+                                            onClick={() => handleConvertToFactura(viewingCotizacion)}
+                                            disabled={convertingToFactura}
+                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            {convertingToFactura ? 'Convirtiendo...' : 'Pasar a Factura'}
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => handleDownloadPDF(viewingCotizacion.id)}
                                         className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-all"

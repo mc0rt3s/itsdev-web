@@ -25,7 +25,10 @@ export async function GET(request: NextRequest) {
             where,
             include: {
                 cliente: { select: { razonSocial: true, email: true } },
-                items: true
+                items: true,
+                facturas: {
+                    select: { id: true, numero: true, numeroSII: true, estado: true }
+                }
             },
             orderBy: { fecha: 'desc' }
         });

@@ -17,7 +17,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             where: { id },
             include: {
                 cliente: { select: { razonSocial: true, email: true } },
-                items: true
+                items: true,
+                facturas: {
+                    select: { id: true, numero: true, numeroSII: true, estado: true }
+                }
             }
         });
         if (!cotizacion) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });

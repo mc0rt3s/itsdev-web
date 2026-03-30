@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -8,6 +9,13 @@ interface Factura {
     id: string;
     numero: string;
     numeroSII?: string | null;
+    dteProveedor?: string | null;
+    dteTipo?: number | null;
+    dteTrackId?: string | null;
+    dteEstado?: string | null;
+    dteAmbiente?: string | null;
+    dteUltimaRespuesta?: string | null;
+    dteEmitidaAt?: string | null;
     cliente: { razonSocial: string };
     clienteId: string;
     fechaEmision: string;
@@ -17,6 +25,8 @@ interface Factura {
     impuesto: number;
     total: number;
     items: ItemFactura[];
+    cotizacion?: { numero: string } | null;
+    notas?: string | null;
 }
 
 interface ItemFactura {
@@ -48,6 +58,7 @@ interface DashboardData {
 
 export default function FacturasPage() {
     const toast = useToast();
+    const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState<'dashboard' | 'lista'>('dashboard');
     const [facturas, setFacturas] = useState<Factura[]>([]);
     const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -75,6 +86,8 @@ export default function FacturasPage() {
     const [updatingEstados, setUpdatingEstados] = useState<Record<string, boolean>>({});
     const [saving, setSaving] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
+    const [checkingBaseApi, setCheckingBaseApi] = useState(false);
+    const [emittingBaseApi, setEmittingBaseApi] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState<{
         isOpen: boolean;
         title: string;
@@ -90,10 +103,30 @@ export default function FacturasPage() {
         onCancel: undefined,
         type: 'info'
     });
+    const facturaIdFromQuery = searchParams.get('facturaId');
 
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        const openFacturaFromQuery = async () => {
+            if (!facturaIdFromQuery || facturas.length === 0 || showModal) return;
+
+            const facturaEnLista = facturas.find((factura) => factura.id === facturaIdFromQuery);
+
+            if (facturaEnLista) {
+                const facturaRes = await fetch(`/api/facturas/${facturaIdFromQuery}`);
+                if (facturaRes.ok) {
+                    setViewingFactura(await facturaRes.json());
+                    setActiveTab('lista');
+                    setShowModal(true);
+                }
+            }
+        };
+
+        openFacturaFromQuery();
+    }, [facturaIdFromQuery, facturas, showModal]);
 
     const fetchData = async () => {
         try {
@@ -376,6 +409,66 @@ export default function FacturasPage() {
         }
     };
 
+    const handleCheckBaseApiEmisor = async () => {
+        setCheckingBaseApi(true);
+        try {
+            const res = await fetch('/api/facturas/baseapi/emisor', { method: 'POST' });
+            const payload = await res.json();
+            if (!res.ok) {
+                toast.error(payload.error || 'No se pudo consultar BaseAPI');
+                return;
+            }
+            const emisor = payload?.data || payload;
+            toast.success(`BaseAPI OK${emisor?.razonSocial ? `: ${emisor.razonSocial}` : ''}`);
+        } catch {
+            toast.error('No se pudo consultar BaseAPI');
+        } finally {
+            setCheckingBaseApi(false);
+        }
+    };
+
+    const handleEmitirBaseApi = async (factura: Factura) => {
+        setConfirmDialog({
+            isOpen: true,
+            title: 'Emitir en SII',
+            message: 'Esta acción emite la factura en SII a través de BaseAPI y es irreversible. ¿Deseas continuar?',
+            type: 'warning',
+            onConfirm: async () => {
+                setConfirmDialog({ ...confirmDialog, isOpen: false });
+                setEmittingBaseApi(true);
+                try {
+                    const res = await fetch(`/api/facturas/${factura.id}/baseapi/emitir`, { method: 'POST' });
+                    const payload = await res.json().catch(() => ({ error: 'No se pudo emitir en BaseAPI' }));
+
+                    if (!res.ok) {
+                        toast.error(payload.error || 'No se pudo emitir en BaseAPI');
+                        return;
+                    }
+
+                    const facturaActualizada = payload.factura;
+                    if (facturaActualizada) {
+                        setViewingFactura(facturaActualizada);
+                    } else {
+                        const facturaRes = await fetch(`/api/facturas/${factura.id}`);
+                        if (facturaRes.ok) {
+                            setViewingFactura(await facturaRes.json());
+                        }
+                    }
+                    fetchData();
+                    if (activeTab === 'dashboard') fetchDashboard();
+                    toast.success(`Factura emitida en SII${payload.folio ? ` · Folio ${payload.folio}` : ''}`);
+                } catch {
+                    toast.error('No se pudo emitir en BaseAPI');
+                } finally {
+                    setEmittingBaseApi(false);
+                }
+            },
+            onCancel: () => {
+                setConfirmDialog({ ...confirmDialog, isOpen: false });
+            }
+        });
+    };
+
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(price);
     };
@@ -643,6 +736,9 @@ export default function FacturasPage() {
                                     <div>
                                         <p className="text-slate-400 text-sm">Cliente</p>
                                         <p className="text-white text-xl font-bold">{viewingFactura.cliente.razonSocial}</p>
+                                        {viewingFactura.cotizacion?.numero && (
+                                            <p className="text-sm text-cyan-400 mt-1">Origen: cotización {viewingFactura.cotizacion.numero}</p>
+                                        )}
                                     </div>
                                     <div className="text-right space-y-2">
                                         <div>
@@ -666,6 +762,43 @@ export default function FacturasPage() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {viewingFactura.notas && (
+                                    <div className="rounded-xl border border-slate-700/50 bg-slate-900/40 p-4">
+                                        <p className="text-xs uppercase font-bold tracking-wide text-slate-500">Notas</p>
+                                        <pre className="mt-2 whitespace-pre-wrap text-sm text-slate-300 font-sans">{viewingFactura.notas}</pre>
+                                    </div>
+                                )}
+
+                                {(viewingFactura.dteProveedor || viewingFactura.dteUltimaRespuesta) && (
+                                    <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+                                        <p className="text-xs uppercase font-bold tracking-wide text-cyan-400">Integración DTE</p>
+                                        <div className="mt-2 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                                            <div>
+                                                <p className="text-slate-500">Proveedor</p>
+                                                <p className="text-white">{viewingFactura.dteProveedor || '-'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-500">Ambiente</p>
+                                                <p className="text-white">{viewingFactura.dteAmbiente || '-'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-500">Track</p>
+                                                <p className="text-white font-mono">{viewingFactura.dteTrackId || '-'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-slate-500">Estado DTE</p>
+                                                <p className="text-white">{viewingFactura.dteEstado || '-'}</p>
+                                            </div>
+                                        </div>
+                                        {viewingFactura.dteUltimaRespuesta && (
+                                            <details className="mt-3">
+                                                <summary className="cursor-pointer text-sm text-slate-300">Ver última respuesta</summary>
+                                                <pre className="mt-2 whitespace-pre-wrap text-xs text-slate-400 bg-slate-950/50 rounded-lg p-3 overflow-auto">{viewingFactura.dteUltimaRespuesta}</pre>
+                                            </details>
+                                        )}
+                                    </div>
+                                )}
 
                                 <div className="grid grid-cols-4 gap-6 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
                                     <div>
@@ -749,6 +882,28 @@ export default function FacturasPage() {
                                 </div>
 
                                 <div className="flex gap-3 pt-4">
+                                    <button
+                                        onClick={handleCheckBaseApiEmisor}
+                                        disabled={checkingBaseApi}
+                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-all disabled:opacity-50"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {checkingBaseApi ? 'Probando BaseAPI...' : 'Probar BaseAPI'}
+                                    </button>
+                                    {!viewingFactura.numeroSII && (
+                                        <button
+                                            onClick={() => handleEmitirBaseApi(viewingFactura)}
+                                            disabled={emittingBaseApi}
+                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            {emittingBaseApi ? 'Emitiendo en SII...' : 'Emitir en SII'}
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => handleDownloadPDF(viewingFactura.id)}
                                         className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-all"
