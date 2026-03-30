@@ -13,6 +13,8 @@ function formatChileDate(date: Date) {
   }).format(date);
 }
 
+type FormaPagoDte = 'CONTADO' | 'CREDITO' | 'SIN_COSTO';
+
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -55,7 +57,9 @@ export async function POST(
     const afectaIva = factura.impuesto > 0;
     const fechaEmision = formatChileDate(factura.fechaEmision);
     const fechaVenc = formatChileDate(factura.fechaVenc);
-    const formaPago = factura.formaPago || (factura.total <= 0 ? 'SIN_COSTO' : fechaVenc > fechaEmision ? 'CREDITO' : 'CONTADO');
+    const formaPago: FormaPagoDte = factura.formaPago === 'CONTADO' || factura.formaPago === 'CREDITO' || factura.formaPago === 'SIN_COSTO'
+      ? factura.formaPago
+      : (factura.total <= 0 ? 'SIN_COSTO' : fechaVenc > fechaEmision ? 'CREDITO' : 'CONTADO');
 
     const payload = {
       receptor: {
