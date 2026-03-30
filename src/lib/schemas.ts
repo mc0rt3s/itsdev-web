@@ -144,6 +144,7 @@ export const facturaSchema = z.object({
   fechaEmision: z.string().transform((str) => new Date(str)),
   fechaVenc: z.string().transform((str) => new Date(str)),
   estado: z.enum(['emitida', 'enviada', 'pendiente', 'pagada', 'cancelada', 'vencida']).default('emitida'),
+  formaPago: z.enum(['CONTADO', 'CREDITO', 'SIN_COSTO']).default('CONTADO'),
   moneda: z.enum(['CLP', 'USD', 'UF']).default('CLP'),
   items: z.array(itemFacturaSchema).min(1, 'Debe haber al menos un ítem'),
   notas: z.string().optional().nullable(),

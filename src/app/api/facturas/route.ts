@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { clienteId, numero, numeroSII, fechaEmision, fechaVenc, estado, moneda, notas, proyectoId, items, aplicarIVA } = validationResult.data;
+        const { clienteId, numero, numeroSII, fechaEmision, fechaVenc, estado, formaPago, moneda, notas, proyectoId, items, aplicarIVA } = validationResult.data;
 
         const { itemsWithTotal, subtotal, impuesto, total } = calcularTotalesFactura(items, aplicarIVA);
 
@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
                 fechaEmision: new Date(fechaEmision),
                 fechaVenc: new Date(fechaVenc),
                 estado,
+                formaPago,
                 moneda,
                 notas,
                 proyectoId,

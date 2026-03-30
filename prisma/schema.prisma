@@ -189,6 +189,7 @@ model Factura {
   fechaEmision DateTime @default(now())
   fechaVenc   DateTime
   estado      String   @default("emitida") // emitida, enviada, pendiente, pagada, cancelada, vencida
+  formaPago   String   @default("CONTADO") // CONTADO, CREDITO, SIN_COSTO
   moneda      String   @default("CLP") // CLP, USD, UF
   subtotal    Float
   impuesto    Float    @default(0) // IVA u otros

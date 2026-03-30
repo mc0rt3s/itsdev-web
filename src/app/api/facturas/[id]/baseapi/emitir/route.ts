@@ -55,7 +55,7 @@ export async function POST(
     const afectaIva = factura.impuesto > 0;
     const fechaEmision = formatChileDate(factura.fechaEmision);
     const fechaVenc = formatChileDate(factura.fechaVenc);
-    const formaPago = factura.total <= 0 ? 'SIN_COSTO' : fechaVenc > fechaEmision ? 'CREDITO' : 'CONTADO';
+    const formaPago = factura.formaPago || (factura.total <= 0 ? 'SIN_COSTO' : fechaVenc > fechaEmision ? 'CREDITO' : 'CONTADO');
 
     const payload = {
       receptor: {

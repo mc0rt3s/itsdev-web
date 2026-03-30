@@ -74,6 +74,11 @@ export async function POST(
                 fechaEmision,
                 fechaVenc,
                 estado: 'pendiente',
+                formaPago: cotizacion.formaPago === 'contado'
+                    ? 'CONTADO'
+                    : cotizacion.formaPago === 'sin_costo'
+                        ? 'SIN_COSTO'
+                        : 'CREDITO',
                 moneda: cotizacion.moneda,
                 subtotal: cotizacion.subtotal,
                 impuesto: cotizacion.impuesto,

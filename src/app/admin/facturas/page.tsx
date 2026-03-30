@@ -21,6 +21,7 @@ interface Factura {
     fechaEmision: string;
     fechaVenc: string;
     estado: string;
+    formaPago: 'CONTADO' | 'CREDITO' | 'SIN_COSTO';
     subtotal: number;
     impuesto: number;
     total: number;
@@ -82,8 +83,9 @@ export default function FacturasPage() {
         numero: '',
         numeroSII: '',
         fechaEmision: formatChileDateForInput(new Date()),
-        fechaVenc: '',
+        fechaVenc: formatChileDateForInput(new Date()),
         estado: 'emitida',
+        formaPago: 'CONTADO' as 'CONTADO' | 'CREDITO' | 'SIN_COSTO',
         items: [{ descripcion: '', cantidad: 1, precioUnit: 0 }],
         notas: '',
         aplicarIVA: true
@@ -183,8 +185,9 @@ export default function FacturasPage() {
             numero: `FAC-${new Date().getFullYear()}-${String(facturas.length + 1).padStart(3, '0')}`,
             numeroSII: '',
             fechaEmision: formatChileDateForInput(new Date()),
-            fechaVenc: formatChileDateForInput(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
+            fechaVenc: formatChileDateForInput(new Date()),
             estado: 'emitida',
+            formaPago: 'CONTADO',
             items: [{ descripcion: '', cantidad: 1, precioUnit: 0 }],
             notas: '',
             aplicarIVA: true
@@ -468,6 +471,39 @@ export default function FacturasPage() {
             toast.error('Error al actualizar fechas');
         } finally {
             setSavingFechas(false);
+        }
+    };
+
+    const handleSaveFormaPago = async (formaPago: 'CONTADO' | 'CREDITO' | 'SIN_COSTO') => {
+        if (!viewingFactura || formaPago === viewingFactura.formaPago) return;
+
+        try {
+            const payload: { formaPago: 'CONTADO' | 'CREDITO' | 'SIN_COSTO'; fechaVenc?: string } = { formaPago };
+            if (formaPago !== 'CREDITO') {
+                const fechaEmisionActual = (tempFechaEmision ?? viewingFactura.fechaEmision.slice(0, 10)).trim();
+                payload.fechaVenc = fechaEmisionActual;
+            }
+
+            const res = await fetch(`/api/facturas/${viewingFactura.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const facturaActualizada = await res.json().catch(() => ({ error: 'Error al actualizar forma de pago' }));
+            if (!res.ok) {
+                toast.error(facturaActualizada.error || 'Error al actualizar forma de pago');
+                return;
+            }
+
+            setViewingFactura(facturaActualizada);
+            if (payload.fechaVenc) {
+                setTempFechaVenc(null);
+            }
+            fetchData();
+            toast.success('Forma de pago actualizada');
+        } catch {
+            toast.error('Error al actualizar forma de pago');
         }
     };
 
@@ -862,7 +898,7 @@ export default function FacturasPage() {
                                     </div>
                                 )}
 
-                                <div className="grid grid-cols-4 gap-6 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
+                                <div className="grid grid-cols-5 gap-6 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
                                     <div>
                                         <label className="text-slate-500 text-xs uppercase font-bold">Fecha Emisión</label>
                                         <div className="mt-1 flex gap-1.5 items-center">
@@ -900,6 +936,20 @@ export default function FacturasPage() {
                                                     </svg>
                                                 )}
                                             </button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-slate-500 text-xs uppercase font-bold">Forma de Pago</label>
+                                        <div className="mt-1">
+                                            <select
+                                                value={viewingFactura.formaPago}
+                                                onChange={(e) => handleSaveFormaPago(e.target.value as 'CONTADO' | 'CREDITO' | 'SIN_COSTO')}
+                                                className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:ring-1 focus:ring-cyan-500 outline-none w-full"
+                                            >
+                                                <option value="CONTADO">Contado</option>
+                                                <option value="CREDITO">Crédito</option>
+                                                <option value="SIN_COSTO">Sin costo</option>
+                                            </select>
                                         </div>
                                     </div>
                                     <div>
@@ -1058,14 +1108,18 @@ export default function FacturasPage() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-6">
+                                <div className="grid grid-cols-3 gap-6">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-300 mb-2">Fecha Emisión</label>
                                         <input
                                             type="date"
                                             required
                                             value={formData.fechaEmision}
-                                            onChange={e => setFormData({ ...formData, fechaEmision: e.target.value })}
+                                            onChange={e => setFormData({
+                                                ...formData,
+                                                fechaEmision: e.target.value,
+                                                fechaVenc: formData.formaPago === 'CREDITO' ? formData.fechaVenc : e.target.value
+                                            })}
                                             className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
                                         />
                                     </div>
@@ -1076,8 +1130,30 @@ export default function FacturasPage() {
                                             required
                                             value={formData.fechaVenc}
                                             onChange={e => setFormData({ ...formData, fechaVenc: e.target.value })}
+                                            disabled={formData.formaPago !== 'CREDITO'}
                                             className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
                                         />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">Forma de Pago</label>
+                                        <select
+                                            value={formData.formaPago}
+                                            onChange={e => {
+                                                const formaPago = e.target.value as 'CONTADO' | 'CREDITO' | 'SIN_COSTO';
+                                                setFormData({
+                                                    ...formData,
+                                                    formaPago,
+                                                    fechaVenc: formaPago === 'CREDITO'
+                                                        ? formData.fechaVenc
+                                                        : formData.fechaEmision
+                                                });
+                                            }}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        >
+                                            <option value="CONTADO">Contado</option>
+                                            <option value="CREDITO">Crédito</option>
+                                            <option value="SIN_COSTO">Sin costo</option>
+                                        </select>
                                     </div>
                                 </div>
 

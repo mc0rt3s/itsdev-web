@@ -51,7 +51,7 @@ export async function PATCH(
     try {
         const { id } = await params;
         const data = await request.json();
-        const { estado, numeroSII, notas, fechaEmision, fechaVenc } = data;
+        const { estado, numeroSII, notas, fechaEmision, fechaVenc, formaPago } = data;
         const actual = await prisma.factura.findUnique({
             where: { id },
             select: { estado: true }
@@ -65,11 +65,15 @@ export async function PATCH(
         if (estado && !['emitida', 'enviada', 'pendiente', 'pagada', 'cancelada', 'vencida'].includes(estado)) {
             return NextResponse.json({ error: 'Estado inválido' }, { status: 400 });
         }
+        if (formaPago && !['CONTADO', 'CREDITO', 'SIN_COSTO'].includes(formaPago)) {
+            return NextResponse.json({ error: 'Forma de pago inválida' }, { status: 400 });
+        }
 
         const updateData: Prisma.FacturaUpdateInput = {};
         if (estado !== undefined) updateData.estado = estado;
         if (fechaEmision !== undefined) updateData.fechaEmision = new Date(`${fechaEmision}T12:00:00`);
         if (fechaVenc !== undefined) updateData.fechaVenc = new Date(`${fechaVenc}T12:00:00`);
+        if (formaPago !== undefined) updateData.formaPago = formaPago;
         if (numeroSII !== undefined) {
             updateData.numeroSII = numeroSII === '' ? null : numeroSII;
             if (numeroSII && estado === undefined && actual.estado === 'pendiente') {
