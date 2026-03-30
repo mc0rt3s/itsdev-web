@@ -56,6 +56,15 @@ interface DashboardData {
     periodo: string;
 }
 
+function formatChileDateForInput(date: Date) {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Santiago',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).format(date);
+}
+
 export default function FacturasPage() {
     const toast = useToast();
     const searchParams = useSearchParams();
@@ -72,7 +81,7 @@ export default function FacturasPage() {
         clienteId: '',
         numero: '',
         numeroSII: '',
-        fechaEmision: new Date().toISOString().split('T')[0],
+        fechaEmision: formatChileDateForInput(new Date()),
         fechaVenc: '',
         estado: 'emitida',
         items: [{ descripcion: '', cantidad: 1, precioUnit: 0 }],
@@ -82,7 +91,10 @@ export default function FacturasPage() {
     const [updatingEstado, setUpdatingEstado] = useState(false);
     const [tempEstado, setTempEstado] = useState<string | null>(null);
     const [tempNumeroSII, setTempNumeroSII] = useState<string | null>(null);
+    const [tempFechaEmision, setTempFechaEmision] = useState<string | null>(null);
+    const [tempFechaVenc, setTempFechaVenc] = useState<string | null>(null);
     const [savingNumeroSII, setSavingNumeroSII] = useState(false);
+    const [savingFechas, setSavingFechas] = useState(false);
     const [updatingEstados, setUpdatingEstados] = useState<Record<string, boolean>>({});
     const [saving, setSaving] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
@@ -170,8 +182,8 @@ export default function FacturasPage() {
             clienteId: '',
             numero: `FAC-${new Date().getFullYear()}-${String(facturas.length + 1).padStart(3, '0')}`,
             numeroSII: '',
-            fechaEmision: new Date().toISOString().split('T')[0],
-            fechaVenc: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            fechaEmision: formatChileDateForInput(new Date()),
+            fechaVenc: formatChileDateForInput(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
             estado: 'emitida',
             items: [{ descripcion: '', cantidad: 1, precioUnit: 0 }],
             notas: '',
@@ -184,6 +196,8 @@ export default function FacturasPage() {
         setViewingFactura(factura);
         setTempNumeroSII(null); // Resetear el estado temporal
         setTempEstado(null);
+        setTempFechaEmision(null);
+        setTempFechaVenc(null);
         setShowModal(true);
     };
 
@@ -192,6 +206,8 @@ export default function FacturasPage() {
         setViewingFactura(null);
         setTempEstado(null);
         setTempNumeroSII(null);
+        setTempFechaEmision(null);
+        setTempFechaVenc(null);
     };
 
     const addItem = () => {
@@ -406,6 +422,52 @@ export default function FacturasPage() {
         const valorAnterior = viewingFactura.numeroSII || '';
         if (nuevoValor !== valorAnterior) {
             handleUpdateNumeroSII(viewingFactura.id, nuevoValor);
+        }
+    };
+
+    const handleSaveFechas = async () => {
+        if (!viewingFactura) return;
+
+        const fechaEmisionActual = viewingFactura.fechaEmision.slice(0, 10);
+        const fechaVencActual = viewingFactura.fechaVenc.slice(0, 10);
+        const nuevaFechaEmision = (tempFechaEmision ?? fechaEmisionActual).trim();
+        const nuevaFechaVenc = (tempFechaVenc ?? fechaVencActual).trim();
+
+        if (!nuevaFechaEmision || !nuevaFechaVenc) {
+            toast.error('Debes indicar fecha de emisión y vencimiento');
+            return;
+        }
+
+        if (nuevaFechaEmision === fechaEmisionActual && nuevaFechaVenc === fechaVencActual) {
+            return;
+        }
+
+        setSavingFechas(true);
+        try {
+            const res = await fetch(`/api/facturas/${viewingFactura.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fechaEmision: nuevaFechaEmision,
+                    fechaVenc: nuevaFechaVenc,
+                })
+            });
+
+            const payload = await res.json().catch(() => ({ error: 'Error al actualizar fechas' }));
+            if (!res.ok) {
+                toast.error(payload.error || 'Error al actualizar fechas');
+                return;
+            }
+
+            setViewingFactura(payload);
+            setTempFechaEmision(null);
+            setTempFechaVenc(null);
+            fetchData();
+            toast.success('Fechas actualizadas');
+        } catch {
+            toast.error('Error al actualizar fechas');
+        } finally {
+            setSavingFechas(false);
         }
     };
 
@@ -803,11 +865,42 @@ export default function FacturasPage() {
                                 <div className="grid grid-cols-4 gap-6 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
                                     <div>
                                         <label className="text-slate-500 text-xs uppercase font-bold">Fecha Emisión</label>
-                                        <p className="text-slate-300">{new Date(viewingFactura.fechaEmision).toLocaleDateString('es-CL')}</p>
+                                        <div className="mt-1 flex gap-1.5 items-center">
+                                            <input
+                                                type="date"
+                                                value={tempFechaEmision ?? viewingFactura.fechaEmision.slice(0, 10)}
+                                                onChange={(e) => setTempFechaEmision(e.target.value)}
+                                                className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:ring-1 focus:ring-cyan-500 outline-none"
+                                            />
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="text-slate-500 text-xs uppercase font-bold">Fecha Vencimiento</label>
-                                        <p className="text-slate-300">{new Date(viewingFactura.fechaVenc).toLocaleDateString('es-CL')}</p>
+                                        <div className="mt-1 flex gap-1.5 items-center">
+                                            <input
+                                                type="date"
+                                                value={tempFechaVenc ?? viewingFactura.fechaVenc.slice(0, 10)}
+                                                onChange={(e) => setTempFechaVenc(e.target.value)}
+                                                className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:ring-1 focus:ring-cyan-500 outline-none"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleSaveFechas}
+                                                disabled={savingFechas}
+                                                className="p-1 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 hover:text-white rounded transition-colors"
+                                                title="Guardar fechas"
+                                            >
+                                                {savingFechas ? (
+                                                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="text-slate-500 text-xs uppercase font-bold">Folio Interno</label>

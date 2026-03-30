@@ -51,7 +51,7 @@ export async function PATCH(
     try {
         const { id } = await params;
         const data = await request.json();
-        const { estado, numeroSII, notas } = data;
+        const { estado, numeroSII, notas, fechaEmision, fechaVenc } = data;
         const actual = await prisma.factura.findUnique({
             where: { id },
             select: { estado: true }
@@ -68,6 +68,8 @@ export async function PATCH(
 
         const updateData: Prisma.FacturaUpdateInput = {};
         if (estado !== undefined) updateData.estado = estado;
+        if (fechaEmision !== undefined) updateData.fechaEmision = new Date(`${fechaEmision}T12:00:00`);
+        if (fechaVenc !== undefined) updateData.fechaVenc = new Date(`${fechaVenc}T12:00:00`);
         if (numeroSII !== undefined) {
             updateData.numeroSII = numeroSII === '' ? null : numeroSII;
             if (numeroSII && estado === undefined && actual.estado === 'pendiente') {

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
+function getChileNow() {
+    return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+}
+
 export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -60,12 +64,15 @@ export async function POST(
         const numero = `FAC-${year}-${String(count + 1).padStart(4, '0')}`;
 
         // Create factura from cotizacion
+        const fechaEmision = getChileNow();
+        const fechaVenc = new Date(fechaEmision.getTime() + 30 * 24 * 60 * 60 * 1000);
+
         const factura = await prisma.factura.create({
             data: {
                 clienteId: cotizacion.clienteId,
                 numero,
-                fechaEmision: new Date(),
-                fechaVenc: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // +30 days
+                fechaEmision,
+                fechaVenc,
                 estado: 'pendiente',
                 moneda: cotizacion.moneda,
                 subtotal: cotizacion.subtotal,
