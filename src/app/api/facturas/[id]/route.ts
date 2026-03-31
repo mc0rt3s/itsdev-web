@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { calcularTotalesFactura } from '@/lib/facturas-utils';
 
 // GET - Obtener una factura específica
 export async function GET(
@@ -51,10 +52,10 @@ export async function PATCH(
     try {
         const { id } = await params;
         const data = await request.json();
-        const { estado, numeroSII, notas, fechaEmision, fechaVenc, formaPago } = data;
+        const { estado, numeroSII, notas, fechaEmision, fechaVenc, formaPago, items, aplicarIVA } = data;
         const actual = await prisma.factura.findUnique({
             where: { id },
-            select: { estado: true }
+            include: { items: true }
         });
 
         if (!actual) {
@@ -67,6 +68,27 @@ export async function PATCH(
         }
         if (formaPago && !['CONTADO', 'CREDITO', 'SIN_COSTO'].includes(formaPago)) {
             return NextResponse.json({ error: 'Forma de pago inválida' }, { status: 400 });
+        }
+        if (items !== undefined && (!Array.isArray(items) || items.length === 0)) {
+            return NextResponse.json({ error: 'Debes enviar al menos un ítem' }, { status: 400 });
+        }
+
+        const paidOnlyAllowsCancel = actual.estado === 'pagada';
+        const hasNonEstadoChanges = numeroSII !== undefined
+            || notas !== undefined
+            || fechaEmision !== undefined
+            || fechaVenc !== undefined
+            || formaPago !== undefined
+            || items !== undefined
+            || aplicarIVA !== undefined;
+
+        if (paidOnlyAllowsCancel) {
+            if (hasNonEstadoChanges) {
+                return NextResponse.json({ error: 'Las facturas pagadas no se pueden modificar. Solo puedes cambiarlas a cancelada.' }, { status: 400 });
+            }
+            if (estado !== undefined && estado !== 'cancelada' && estado !== 'pagada') {
+                return NextResponse.json({ error: 'Una factura pagada solo puede mantenerse pagada o pasar a cancelada.' }, { status: 400 });
+            }
         }
 
         const updateData: Prisma.FacturaUpdateInput = {};
@@ -81,6 +103,33 @@ export async function PATCH(
             }
         }
         if (notas !== undefined) updateData.notas = notas;
+        if (items !== undefined) {
+            const sanitizedItems = items.map((item: { descripcion: string; cantidad: number; precioUnit: number; servicioId?: string | null }) => ({
+                descripcion: String(item.descripcion ?? '').trim(),
+                cantidad: Number(item.cantidad),
+                precioUnit: Number(item.precioUnit),
+                servicioId: item.servicioId ?? null,
+            }));
+
+            const invalidItem = sanitizedItems.find(
+                (item) => !item.descripcion || !Number.isFinite(item.cantidad) || item.cantidad <= 0 || !Number.isFinite(item.precioUnit) || item.precioUnit < 0
+            );
+
+            if (invalidItem) {
+                return NextResponse.json({ error: 'Los ítems de la factura son inválidos' }, { status: 400 });
+            }
+
+            const useIva = typeof aplicarIVA === 'boolean' ? aplicarIVA : actual.impuesto > 0;
+            const { itemsWithTotal, subtotal, impuesto, total } = calcularTotalesFactura(sanitizedItems, useIva);
+
+            updateData.subtotal = subtotal;
+            updateData.impuesto = impuesto;
+            updateData.total = total;
+            updateData.items = {
+                deleteMany: {},
+                create: itemsWithTotal,
+            };
+        }
 
         const factura = await prisma.factura.update({
             where: { id },

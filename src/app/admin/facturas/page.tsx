@@ -31,10 +31,12 @@ interface Factura {
 }
 
 interface ItemFactura {
+    id?: string;
     descripcion: string;
     cantidad: number;
     precioUnit: number;
     total?: number;
+    servicioId?: string | null;
 }
 
 interface Cliente {
@@ -95,8 +97,11 @@ export default function FacturasPage() {
     const [tempNumeroSII, setTempNumeroSII] = useState<string | null>(null);
     const [tempFechaEmision, setTempFechaEmision] = useState<string | null>(null);
     const [tempFechaVenc, setTempFechaVenc] = useState<string | null>(null);
+    const [tempItems, setTempItems] = useState<ItemFactura[]>([]);
+    const [tempAplicaIVA, setTempAplicaIVA] = useState(true);
     const [savingNumeroSII, setSavingNumeroSII] = useState(false);
     const [savingFechas, setSavingFechas] = useState(false);
+    const [savingItems, setSavingItems] = useState(false);
     const [updatingEstados, setUpdatingEstados] = useState<Record<string, boolean>>({});
     const [saving, setSaving] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
@@ -201,6 +206,8 @@ export default function FacturasPage() {
         setTempEstado(null);
         setTempFechaEmision(null);
         setTempFechaVenc(null);
+        setTempItems(factura.items.map((item) => ({ ...item })));
+        setTempAplicaIVA(factura.impuesto > 0);
         setShowModal(true);
     };
 
@@ -211,6 +218,7 @@ export default function FacturasPage() {
         setTempNumeroSII(null);
         setTempFechaEmision(null);
         setTempFechaVenc(null);
+        setTempItems([]);
     };
 
     const addItem = () => {
@@ -238,6 +246,43 @@ export default function FacturasPage() {
 
     const calculateIVA = (subtotal: number, aplicar: boolean) => {
         return aplicar ? Math.round(subtotal * 0.19) : 0;
+    };
+
+    const getEstadoOptions = (estadoActual: string) => {
+        if (estadoActual === 'pagada') {
+            return [
+                { value: 'pagada', label: 'Pagada' },
+                { value: 'cancelada', label: 'Cancelada' },
+            ];
+        }
+
+        return [
+            { value: 'emitida', label: 'Emitida' },
+            { value: 'enviada', label: 'Enviada' },
+            { value: 'pendiente', label: 'Pendiente' },
+            { value: 'pagada', label: 'Pagada' },
+            { value: 'cancelada', label: 'Cancelada' },
+            { value: 'vencida', label: 'Vencida' },
+        ];
+    };
+
+    const isFacturaPagada = (factura?: Factura | null) => factura?.estado === 'pagada';
+    const canEditFactura = (factura?: Factura | null) => !isFacturaPagada(factura);
+
+    const updateTempItem = (index: number, field: keyof ItemFactura, value: string | number) => {
+        setTempItems((prev) => {
+            const next = [...prev];
+            next[index] = { ...next[index], [field]: value };
+            return next;
+        });
+    };
+
+    const addTempItem = () => {
+        setTempItems((prev) => [...prev, { descripcion: '', cantidad: 1, precioUnit: 0 }]);
+    };
+
+    const removeTempItem = (index: number) => {
+        setTempItems((prev) => prev.length === 1 ? prev : prev.filter((_, i) => i !== index));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -308,12 +353,21 @@ export default function FacturasPage() {
             return;
         }
 
+        if (estadoActual === 'pagada' && !['pagada', 'cancelada'].includes(nuevoEstado)) {
+            toast.error('Una factura pagada solo puede mantenerse pagada o pasar a cancelada.');
+            return;
+        }
+
+        const message = estadoActual === 'pagada' && nuevoEstado === 'cancelada'
+            ? 'Vas a cancelar una factura pagada. Luego debes emitir una nota de crédito para anularla formalmente. ¿Deseas continuar?'
+            : `¿Deseas cambiar el estado de la factura a "${nuevoEstado}"?`;
+
         // Si es desde la tabla, usar el estado de la factura directamente
         if (facturaActual) {
             setConfirmDialog({
                 isOpen: true,
                 title: 'Cambiar Estado',
-                message: `¿Deseas cambiar el estado de la factura a "${nuevoEstado}"?`,
+                message,
                 type: nuevoEstado === 'cancelada' ? 'danger' : 'info',
                 onConfirm: async () => {
                     setConfirmDialog({ ...confirmDialog, isOpen: false });
@@ -351,7 +405,7 @@ export default function FacturasPage() {
         setConfirmDialog({
             isOpen: true,
             title: 'Cambiar Estado',
-            message: `¿Deseas cambiar el estado de la factura a "${nuevoEstado}"?`,
+            message,
             type: nuevoEstado === 'cancelada' ? 'danger' : 'info',
             onConfirm: async () => {
                 setConfirmDialog({ ...confirmDialog, isOpen: false });
@@ -504,6 +558,54 @@ export default function FacturasPage() {
             toast.success('Forma de pago actualizada');
         } catch {
             toast.error('Error al actualizar forma de pago');
+        }
+    };
+
+    const handleSaveItems = async () => {
+        if (!viewingFactura) return;
+        if (isFacturaPagada(viewingFactura)) {
+            toast.error('Las facturas pagadas no permiten editar ítems');
+            return;
+        }
+
+        const sanitizedItems = tempItems.map((item) => ({
+            descripcion: item.descripcion.trim(),
+            cantidad: Number(item.cantidad),
+            precioUnit: Number(item.precioUnit),
+            servicioId: item.servicioId ?? null,
+        }));
+
+        if (sanitizedItems.length === 0 || sanitizedItems.some((item) => !item.descripcion || item.cantidad <= 0 || item.precioUnit < 0 || Number.isNaN(item.cantidad) || Number.isNaN(item.precioUnit))) {
+            toast.error('Revisa los ítems antes de guardar');
+            return;
+        }
+
+        setSavingItems(true);
+        try {
+            const res = await fetch(`/api/facturas/${viewingFactura.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    items: sanitizedItems,
+                    aplicarIVA: tempAplicaIVA,
+                }),
+            });
+
+            const payload = await res.json().catch(() => ({ error: 'Error al actualizar ítems' }));
+            if (!res.ok) {
+                toast.error(payload.error || 'Error al actualizar ítems');
+                return;
+            }
+
+            setViewingFactura(payload);
+            setTempItems(payload.items.map((item: ItemFactura) => ({ ...item })));
+            setTempAplicaIVA(payload.impuesto > 0);
+            fetchData();
+            toast.success('Ítems actualizados');
+        } catch {
+            toast.error('Error al actualizar ítems');
+        } finally {
+            setSavingItems(false);
         }
     };
 
@@ -795,12 +897,9 @@ export default function FacturasPage() {
                                                 disabled={updatingEstados[f.id]}
                                                 className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1 text-xs text-white focus:ring-1 focus:ring-cyan-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
                                             >
-                                                <option value="emitida">Emitida</option>
-                                                <option value="enviada">Enviada</option>
-                                                <option value="pendiente">Pendiente</option>
-                                                <option value="pagada">Pagada</option>
-                                                <option value="cancelada">Cancelada</option>
-                                                <option value="vencida">Vencida</option>
+                                                {getEstadoOptions(f.estado).map((option) => (
+                                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                                ))}
                                             </select>
                                         </td>
                                         <td className="p-4 text-right">
@@ -850,12 +949,9 @@ export default function FacturasPage() {
                                                 disabled={updatingEstado}
                                                 className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-sm text-white focus:ring-2 focus:ring-cyan-500 outline-none disabled:opacity-50"
                                             >
-                                                <option value="emitida">Emitida</option>
-                                                <option value="enviada">Enviada</option>
-                                                <option value="pendiente">Pendiente</option>
-                                                <option value="pagada">Pagada</option>
-                                                <option value="cancelada">Cancelada</option>
-                                                <option value="vencida">Vencida</option>
+                                                {getEstadoOptions(viewingFactura.estado).map((option) => (
+                                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                                ))}
                                             </select>
                                         </div>
                                     </div>
@@ -865,6 +961,12 @@ export default function FacturasPage() {
                                     <div className="rounded-xl border border-slate-700/50 bg-slate-900/40 p-4">
                                         <p className="text-xs uppercase font-bold tracking-wide text-slate-500">Notas</p>
                                         <pre className="mt-2 whitespace-pre-wrap text-sm text-slate-300 font-sans">{viewingFactura.notas}</pre>
+                                    </div>
+                                )}
+
+                                {isFacturaPagada(viewingFactura) && (
+                                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+                                        La factura está marcada como pagada. Solo permitimos cambiar su estado a cancelada; cualquier anulación formal debe complementarse con una nota de crédito.
                                     </div>
                                 )}
 
@@ -906,6 +1008,7 @@ export default function FacturasPage() {
                                                 type="date"
                                                 value={tempFechaEmision ?? viewingFactura.fechaEmision.slice(0, 10)}
                                                 onChange={(e) => setTempFechaEmision(e.target.value)}
+                                                disabled={!canEditFactura(viewingFactura)}
                                                 className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:ring-1 focus:ring-cyan-500 outline-none"
                                             />
                                         </div>
@@ -917,12 +1020,13 @@ export default function FacturasPage() {
                                                 type="date"
                                                 value={tempFechaVenc ?? viewingFactura.fechaVenc.slice(0, 10)}
                                                 onChange={(e) => setTempFechaVenc(e.target.value)}
+                                                disabled={!canEditFactura(viewingFactura)}
                                                 className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:ring-1 focus:ring-cyan-500 outline-none"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={handleSaveFechas}
-                                                disabled={savingFechas}
+                                                disabled={savingFechas || !canEditFactura(viewingFactura)}
                                                 className="p-1 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 hover:text-white rounded transition-colors"
                                                 title="Guardar fechas"
                                             >
@@ -944,6 +1048,7 @@ export default function FacturasPage() {
                                             <select
                                                 value={viewingFactura.formaPago}
                                                 onChange={(e) => handleSaveFormaPago(e.target.value as 'CONTADO' | 'CREDITO' | 'SIN_COSTO')}
+                                                disabled={!canEditFactura(viewingFactura)}
                                                 className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:ring-1 focus:ring-cyan-500 outline-none w-full"
                                             >
                                                 <option value="CONTADO">Contado</option>
@@ -965,6 +1070,7 @@ export default function FacturasPage() {
                                                 onChange={(e) => {
                                                     setTempNumeroSII(e.target.value);
                                                 }}
+                                                disabled={!canEditFactura(viewingFactura)}
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter') {
                                                         e.preventDefault();
@@ -977,7 +1083,7 @@ export default function FacturasPage() {
                                             <button
                                                 type="button"
                                                 onClick={handleSaveNumeroSII}
-                                                disabled={savingNumeroSII || (tempNumeroSII !== null ? tempNumeroSII : (viewingFactura.numeroSII || '')) === (viewingFactura.numeroSII || '')}
+                                                disabled={savingNumeroSII || !canEditFactura(viewingFactura) || (tempNumeroSII !== null ? tempNumeroSII : (viewingFactura.numeroSII || '')) === (viewingFactura.numeroSII || '')}
                                                 className="p-1 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 hover:text-white rounded transition-colors"
                                                 title="Guardar número SII"
                                             >
@@ -996,30 +1102,93 @@ export default function FacturasPage() {
                                 </div>
 
                                 <div>
-                                    <h3 className="text-white font-semibold mb-4 border-b border-slate-700/50 pb-2">Ítems</h3>
+                                    <div className="flex items-center justify-between mb-4 border-b border-slate-700/50 pb-2">
+                                        <h3 className="text-white font-semibold">Ítems</h3>
+                                        <div className="flex items-center gap-3">
+                                            <label className="flex items-center gap-2 text-sm text-slate-300">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={tempAplicaIVA}
+                                                    onChange={(e) => setTempAplicaIVA(e.target.checked)}
+                                                    disabled={!canEditFactura(viewingFactura)}
+                                                    className="rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500"
+                                                />
+                                                Aplicar IVA
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={addTempItem}
+                                                disabled={!canEditFactura(viewingFactura)}
+                                                className="text-xs bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg transition-colors"
+                                            >
+                                                + Agregar ítem
+                                            </button>
+                                        </div>
+                                    </div>
                                     <div className="space-y-3">
-                                        {viewingFactura.items.map((item, i) => (
-                                            <div key={i} className="flex justify-between py-2 border-b border-slate-800 text-sm">
-                                                <div className="flex-1">
-                                                    <p className="text-slate-200">{item.descripcion}</p>
-                                                    <p className="text-slate-500 text-xs">{item.cantidad} x {formatPrice(item.precioUnit)}</p>
+                                        {tempItems.map((item, i) => (
+                                            <div key={item.id || i} className="flex gap-3 items-start border-b border-slate-800 pb-3">
+                                                <input
+                                                    type="text"
+                                                    value={item.descripcion}
+                                                    onChange={(e) => updateTempItem(i, 'descripcion', e.target.value)}
+                                                    disabled={!canEditFactura(viewingFactura)}
+                                                    className="flex-1 bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white disabled:opacity-60"
+                                                />
+                                                <input
+                                                    type="number"
+                                                    min="0.01"
+                                                    value={item.cantidad}
+                                                    onChange={(e) => updateTempItem(i, 'cantidad', Number(e.target.value))}
+                                                    disabled={!canEditFactura(viewingFactura)}
+                                                    className="w-24 bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white disabled:opacity-60"
+                                                />
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={item.precioUnit}
+                                                    onChange={(e) => updateTempItem(i, 'precioUnit', Number(e.target.value))}
+                                                    disabled={!canEditFactura(viewingFactura)}
+                                                    className="w-32 bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white disabled:opacity-60"
+                                                />
+                                                <div className="w-32 pt-2 text-right text-slate-200 font-mono">
+                                                    {formatPrice((item.total ?? 0) || (item.cantidad * item.precioUnit))}
                                                 </div>
-                                                <p className="text-slate-200 font-mono">{formatPrice(item.total || item.cantidad * item.precioUnit)}</p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeTempItem(i)}
+                                                    disabled={!canEditFactura(viewingFactura) || tempItems.length === 1}
+                                                    className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg disabled:opacity-40"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
                                             </div>
                                         ))}
+                                    </div>
+                                    <div className="mt-4 flex justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={handleSaveItems}
+                                            disabled={savingItems || !canEditFactura(viewingFactura)}
+                                            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:opacity-40 text-white rounded-lg font-medium transition-colors"
+                                        >
+                                            {savingItems ? 'Guardando ítems...' : 'Guardar ítems'}
+                                        </button>
                                     </div>
                                     <div className="mt-6 pt-4 border-t border-slate-700 space-y-2">
                                         <div className="flex justify-between text-slate-300">
                                             <span>Subtotal:</span>
-                                            <span className="font-mono">{formatPrice(viewingFactura.subtotal)}</span>
+                                            <span className="font-mono">{formatPrice(calculateSubtotal(tempItems))}</span>
                                         </div>
                                         <div className="flex justify-between text-slate-300">
                                             <span>IVA (19%):</span>
-                                            <span className="font-mono">{formatPrice(viewingFactura.impuesto)}</span>
+                                            <span className="font-mono">{formatPrice(calculateIVA(calculateSubtotal(tempItems), tempAplicaIVA))}</span>
                                         </div>
                                         <div className="flex justify-between text-white text-xl font-bold pt-2 border-t border-slate-700">
                                             <span>TOTAL:</span>
-                                            <span className="text-emerald-400">{formatPrice(viewingFactura.total)}</span>
+                                            <span className="text-emerald-400">{formatPrice(calculateSubtotal(tempItems) + calculateIVA(calculateSubtotal(tempItems), tempAplicaIVA))}</span>
                                         </div>
                                     </div>
                                 </div>
