@@ -104,7 +104,7 @@ export async function PATCH(
         }
         if (notas !== undefined) updateData.notas = notas;
         if (items !== undefined) {
-            const sanitizedItems = items.map((item: { descripcion: string; cantidad: number; precioUnit: number; servicioId?: string | null }) => ({
+            const sanitizedItems: Array<{ descripcion: string; cantidad: number; precioUnit: number; servicioId?: string | null }> = items.map((item: { descripcion: string; cantidad: number; precioUnit: number; servicioId?: string | null }) => ({
                 descripcion: String(item.descripcion ?? '').trim(),
                 cantidad: Number(item.cantidad),
                 precioUnit: Number(item.precioUnit),
@@ -112,7 +112,8 @@ export async function PATCH(
             }));
 
             const invalidItem = sanitizedItems.find(
-                (item) => !item.descripcion || !Number.isFinite(item.cantidad) || item.cantidad <= 0 || !Number.isFinite(item.precioUnit) || item.precioUnit < 0
+                (item: { descripcion: string; cantidad: number; precioUnit: number; servicioId?: string | null }) =>
+                    !item.descripcion || !Number.isFinite(item.cantidad) || item.cantidad <= 0 || !Number.isFinite(item.precioUnit) || item.precioUnit < 0
             );
 
             if (invalidItem) {
