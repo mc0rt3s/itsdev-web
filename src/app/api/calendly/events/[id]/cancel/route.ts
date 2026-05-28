@@ -16,7 +16,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
+  const ok = await checkAuth(request);
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   try {

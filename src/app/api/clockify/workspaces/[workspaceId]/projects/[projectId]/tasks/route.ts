@@ -7,7 +7,7 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ workspaceId: string; projectId: string }> }
 ) {
-  const session = await auth();
+  const ok = await checkAuth(request);
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const apiKey = process.env.CLOCKIFY_API_KEY;

@@ -7,9 +7,9 @@ import { buildFacturaWhere, calcularTotalesFactura } from '@/lib/facturas-utils'
 
 // GET - Listar todas las facturas
 export async function GET(request: NextRequest) {
-    const session = await auth();
+    const ok = await checkAuth(request);
 
-    if (!session) {
+    if (!ok) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
@@ -40,9 +40,9 @@ export async function GET(request: NextRequest) {
 
 // POST - Crear nueva factura
 export async function POST(request: NextRequest) {
-    const session = await auth();
+    const ok = await checkAuth(request);
 
-    if (!session) {
+    if (!ok) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

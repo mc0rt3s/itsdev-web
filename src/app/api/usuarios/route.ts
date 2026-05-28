@@ -6,9 +6,9 @@ import bcrypt from 'bcryptjs';
 
 // GET - Listar todos los usuarios
 export async function GET() {
-  const session = await auth();
+  const ok = await checkAuth(request);
 
-  if (!session) {
+  if (!ok) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
@@ -40,9 +40,9 @@ export async function GET() {
 
 // POST - Crear nuevo usuario
 export async function POST(request: NextRequest) {
-  const session = await auth();
+  const ok = await checkAuth(request);
 
-  if (!session) {
+  if (!ok) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 

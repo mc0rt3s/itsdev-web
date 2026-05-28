@@ -6,7 +6,7 @@ import { gastoSchema } from '@/lib/schemas';
 
 // GET - Listar todos los gastos
 export async function GET(request: NextRequest) {
-    const session = await auth();
+    const ok = await checkAuth(request);
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     try {
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
 // POST - Crear un nuevo gasto
 export async function POST(request: NextRequest) {
-    const session = await auth();
+    const ok = await checkAuth(request);
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     try {

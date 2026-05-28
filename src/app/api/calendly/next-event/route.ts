@@ -13,7 +13,7 @@ async function getCalendlyClient() {
 
 // GET - Obtener el próximo evento programado
 export async function GET() {
-  const session = await auth();
+  const ok = await checkAuth(request);
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   try {

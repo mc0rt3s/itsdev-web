@@ -3,8 +3,8 @@ import { auth } from '@/lib/auth';
 import { baseApiGetEmisor } from '@/lib/baseapi';
 
 export async function POST() {
-  const session = await auth();
-  if (!session) {
+  const ok = await checkAuth(request);
+  if (!ok) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 

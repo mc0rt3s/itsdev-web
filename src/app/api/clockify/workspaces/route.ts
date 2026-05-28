@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth';
 const CLOCKIFY_API_BASE = 'https://api.clockify.me/api/v1';
 
 export async function GET() {
-  const session = await auth();
+  const ok = await checkAuth(request);
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const apiKey = process.env.CLOCKIFY_API_KEY;

@@ -9,8 +9,8 @@ interface AuditMetadata {
 }
 
 export async function GET(request: NextRequest) {
-    const session = await auth();
-    if (!session) {
+    const ok = await checkAuth(request);
+    if (!ok) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

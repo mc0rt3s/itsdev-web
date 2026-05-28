@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { auth } from '@/lib/auth';
+// import { auth } from '@/lib/auth';
+import { checkAuth } from '@/lib/api-auth';
 import { clienteSchema } from '@/lib/schemas';
 
 // GET - Listar todos los clientes
-export async function GET() {
-  const session = await auth();
-
-  if (!session) {
+export async function GET(request: NextRequest) {
+  const ok = await checkAuth(request);
+  if (!ok) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
@@ -30,9 +30,9 @@ export async function GET() {
 
 // POST - Crear nuevo cliente
 export async function POST(request: NextRequest) {
-  const session = await auth();
+  const ok = await checkAuth(request);
 
-  if (!session) {
+  if (!ok) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 

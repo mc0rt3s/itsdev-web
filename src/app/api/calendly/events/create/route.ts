@@ -13,7 +13,7 @@ async function getCalendlyClient() {
 
 // POST - Crear un evento programado
 export async function POST(request: NextRequest) {
-  const session = await auth();
+  const ok = await checkAuth(request);
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   try {

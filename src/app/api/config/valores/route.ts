@@ -10,7 +10,7 @@ const DEFAULTS: Record<string, number> = {
 
 // GET - Obtener valores actuales (tipo de cambio, etc.)
 export async function GET() {
-  const session = await auth();
+  const ok = await checkAuth(request);
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   try {
@@ -33,7 +33,7 @@ export async function GET() {
 
 // PUT - Actualizar valores
 export async function PUT(request: NextRequest) {
-  const session = await auth();
+  const ok = await checkAuth(request);
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   try {

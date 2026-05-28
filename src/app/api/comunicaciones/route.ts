@@ -6,7 +6,7 @@ import { comunicacionSchema } from '@/lib/schemas';
 
 // GET
 export async function GET(request: NextRequest) {
-    const session = await auth();
+    const ok = await checkAuth(request);
     if (!session?.user?.email) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const { searchParams } = new URL(request.url);
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
 // POST
 export async function POST(request: NextRequest) {
-    const session = await auth();
+    const ok = await checkAuth(request);
     if (!session?.user?.email) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     try {

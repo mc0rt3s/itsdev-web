@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
-    const session = await auth();
+    const ok = await checkAuth(request);
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     try {

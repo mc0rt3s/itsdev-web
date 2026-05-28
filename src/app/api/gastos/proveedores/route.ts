@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth';
 
 // GET - Listar proveedores usados previamente (para autocompletado)
 export async function GET() {
-  const session = await auth();
+  const ok = await checkAuth(request);
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   try {

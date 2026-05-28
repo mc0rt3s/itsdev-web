@@ -5,9 +5,9 @@ import { accesoSchema } from '@/lib/schemas';
 
 // GET - Listar todos los accesos
 export async function GET(request: NextRequest) {
-  const session = await auth();
+  const ok = await checkAuth(request);
 
-  if (!session) {
+  if (!ok) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
@@ -40,9 +40,9 @@ export async function GET(request: NextRequest) {
 
 // POST - Crear nuevo acceso
 export async function POST(request: NextRequest) {
-  const session = await auth();
+  const ok = await checkAuth(request);
 
-  if (!session) {
+  if (!ok) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 

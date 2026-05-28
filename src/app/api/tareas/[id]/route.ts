@@ -5,7 +5,7 @@ import { tareaSchema } from '@/lib/schemas';
 
 // GET
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-    const session = await auth();
+    const ok = await checkAuth(request);
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const { id } = await params;
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 // PUT
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-    const session = await auth();
+    const ok = await checkAuth(request);
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const { id } = await params;
@@ -50,7 +50,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 // DELETE
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-    const session = await auth();
+    const ok = await checkAuth(request);
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const { id } = await params;

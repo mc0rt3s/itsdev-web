@@ -5,9 +5,9 @@ import { notaSchema } from '@/lib/schemas';
 
 // GET - Listar todas las notas
 export async function GET() {
-  const session = await auth();
+  const ok = await checkAuth(request);
 
-  if (!session) {
+  if (!ok) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
@@ -28,9 +28,9 @@ export async function GET() {
 
 // POST - Crear nueva nota
 export async function POST(request: NextRequest) {
-  const session = await auth();
+  const ok = await checkAuth(request);
 
-  if (!session) {
+  if (!ok) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
