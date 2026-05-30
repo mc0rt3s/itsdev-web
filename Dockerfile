@@ -9,7 +9,8 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-
+ENV PRISMA_QUERY_ENGINE_TYPE=binary
+ENV DATABASE_URL=file:./prisma/dev.db
 # Generar cliente Prisma
 RUN npx prisma generate
 
