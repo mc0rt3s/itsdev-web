@@ -5,6 +5,7 @@ import { Resend } from 'resend';
 import { generateCotizacionPDF } from '@/lib/pdf-generator';
 import { createCotizacionDecisionToken } from '@/lib/cotizacion-links';
 import { writeAuditLog } from '@/lib/audit';
+import { checkAuth, requireSession } from '@/lib/api-auth';
 
 function escapeHtml(value: string) {
     return value
@@ -68,8 +69,8 @@ export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const ok = await checkAuth(request);
-    if (!ok) {
+    const session = await requireSession(request);
+    if (!session) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 

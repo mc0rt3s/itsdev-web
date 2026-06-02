@@ -3,12 +3,13 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { userSchema } from '@/lib/schemas';
 import bcrypt from 'bcryptjs';
+import { requireSession } from '@/lib/api-auth';
 
 // GET - Listar todos los usuarios
-export async function GET() {
-  const ok = await checkAuth(request);
+export async function GET(request: NextRequest) {
+  const session = await requireSession(request);
 
-  if (!ok) {
+  if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
@@ -40,9 +41,8 @@ export async function GET() {
 
 // POST - Crear nuevo usuario
 export async function POST(request: NextRequest) {
-  const ok = await checkAuth(request);
-
-  if (!ok) {
+  const session = await requireSession(request);
+  if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 

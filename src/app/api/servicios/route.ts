@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { servicioSchema } from '@/lib/schemas';
+import { checkAuth } from '@/lib/api-auth';
 
 // GET - Listar todos los servicios
-export async function GET() {
+export async function GET(request: NextRequest) {
     const ok = await checkAuth(request);
 
     if (!ok) {

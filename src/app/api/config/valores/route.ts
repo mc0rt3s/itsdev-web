@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { checkAuth } from '@/lib/api-auth';
 
 const DEFAULTS: Record<string, number> = {
   tipoCambioUSD: 924,
@@ -9,9 +10,9 @@ const DEFAULTS: Record<string, number> = {
 };
 
 // GET - Obtener valores actuales (tipo de cambio, etc.)
-export async function GET() {
+export async function GET(request: NextRequest) {
   const ok = await checkAuth(request);
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   try {
     const configs = await prisma.configValor.findMany({
@@ -34,7 +35,7 @@ export async function GET() {
 // PUT - Actualizar valores
 export async function PUT(request: NextRequest) {
   const ok = await checkAuth(request);
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   try {
     const data = (await request.json()) as Record<string, number>;

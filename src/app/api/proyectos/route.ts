@@ -3,11 +3,12 @@ import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { proyectoSchema } from '@/lib/schemas';
+import { checkAuth } from '@/lib/api-auth';
 
 // GET
 export async function GET(request: NextRequest) {
     const ok = await checkAuth(request);
-    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const { searchParams } = new URL(request.url);
     const clienteId = searchParams.get('clienteId');
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
 // POST
 export async function POST(request: NextRequest) {
     const ok = await checkAuth(request);
-    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     try {
         const data = await request.json();

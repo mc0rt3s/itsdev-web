@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { clockifyTaskTipoSchema } from '@/lib/schemas';
+import { checkAuth } from '@/lib/api-auth';
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const ok = await checkAuth(request);
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const { id } = await params;
   try {
@@ -48,8 +49,8 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const ok = await checkAuth(request);
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  const ok = await checkAuth(_request);
+  if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const { id } = await params;
   try {

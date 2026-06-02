@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { accesoSchema } from '@/lib/schemas';
+import { checkAuth } from '@/lib/api-auth';
 
 // GET - Listar todos los accesos
 export async function GET(request: NextRequest) {

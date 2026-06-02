@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { checkAuth } from '@/lib/api-auth';
 
 function getChileNow() {
     return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' }));

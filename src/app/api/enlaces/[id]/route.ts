@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { enlaceSchema } from '@/lib/schemas';
+import { checkAuth } from '@/lib/api-auth';
 
 // GET - Obtener un enlace específico
 export async function GET(

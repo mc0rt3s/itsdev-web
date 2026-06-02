@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { unlink } from 'fs/promises';
 import { join } from 'path';
+import { checkAuth } from '@/lib/api-auth';
 
 // GET - Obtener un gasto específico
 export async function GET(
@@ -11,7 +12,7 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const ok = await checkAuth(request);
-    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     try {
         const { id } = await params;
@@ -36,7 +37,7 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const ok = await checkAuth(request);
-    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     try {
         const { id } = await params;
@@ -81,7 +82,7 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const ok = await checkAuth(request);
-    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     try {
         const { id } = await params;

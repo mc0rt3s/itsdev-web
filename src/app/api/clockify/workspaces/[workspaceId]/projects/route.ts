@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { checkAuth } from '@/lib/api-auth';
 
 const CLOCKIFY_API_BASE = 'https://api.clockify.me/api/v1';
 
@@ -8,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ workspaceId: string }> }
 ) {
   const ok = await checkAuth(request);
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const apiKey = process.env.CLOCKIFY_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'Clockify API key no configurada' }, { status: 500 });

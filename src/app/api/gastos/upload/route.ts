@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { auth } from '@/lib/auth';
+import { checkAuth } from '@/lib/api-auth';
 
 export async function POST(request: NextRequest) {
     const ok = await checkAuth(request);
-    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     try {
         const formData = await request.formData();

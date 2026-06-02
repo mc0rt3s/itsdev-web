@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { checkAuth } from '@/lib/api-auth';
 
 const CALENDLY_API_BASE = 'https://api.calendly.com';
 
@@ -17,7 +18,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const ok = await checkAuth(request);
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   try {
     const token = await getCalendlyClient();

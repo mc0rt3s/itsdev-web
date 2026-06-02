@@ -2,16 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
+import { checkAuth, requireSession } from '@/lib/api-auth';
 
 // GET - Obtener un usuario específico
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const ok = await checkAuth(request);
-  
-  if (!ok) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  const session = await requireSession(request);
+    if (!session) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
   if (session.user.role !== 'admin') {
@@ -49,10 +49,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const ok = await checkAuth(request);
-  
-  if (!ok) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  const session = await requireSession(request);
+    if (!session) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
   if (session.user.role !== 'admin') {
@@ -134,10 +133,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const ok = await checkAuth(request);
-  
-  if (!ok) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  const session = await requireSession(request);
+    if (!session) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
   if (session.user.role !== 'admin') {

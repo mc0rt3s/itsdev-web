@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { checkAuth } from '@/lib/api-auth';
 
 const CLOCKIFY_REPORTS_BASE = 'https://reports.api.clockify.me/v1';
 
@@ -25,7 +26,7 @@ interface ClockifyTimeEntry {
 
 export async function GET(request: NextRequest) {
   const ok = await checkAuth(request);
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const apiKey = process.env.CLOCKIFY_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'Clockify API key no configurada' }, { status: 500 });

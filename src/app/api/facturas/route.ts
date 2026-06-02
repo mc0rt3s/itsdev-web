@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { facturaSchema } from '@/lib/schemas';
 import { buildFacturaWhere, calcularTotalesFactura } from '@/lib/facturas-utils';
+import { checkAuth } from '@/lib/api-auth';
 
 // GET - Listar todas las facturas
 export async function GET(request: NextRequest) {

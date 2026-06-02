@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { calcularTotalesFactura } from '@/lib/facturas-utils';
+import { checkAuth } from '@/lib/api-auth';
 
 // GET - Obtener una factura específica
 export async function GET(
@@ -10,7 +11,7 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const ok = await checkAuth(request);
-    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     try {
         const { id } = await params;
@@ -47,7 +48,7 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const ok = await checkAuth(request);
-    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     try {
         const { id } = await params;
@@ -162,7 +163,7 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const ok = await checkAuth(request);
-    if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     try {
         const { id } = await params;

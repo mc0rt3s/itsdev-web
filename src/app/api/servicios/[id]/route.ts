@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { servicioSchema } from '@/lib/schemas';
+import { checkAuth } from '@/lib/api-auth';
 
 // GET - Obtener un servicio
 export async function GET(

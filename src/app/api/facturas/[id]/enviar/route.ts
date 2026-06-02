@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { Resend } from 'resend';
 import { generateFacturaPDF } from '@/lib/pdf-generator';
+import { checkAuth } from '@/lib/api-auth';
 
 function getResendClient() {
     const apiKey = process.env.RESEND_API_KEY;

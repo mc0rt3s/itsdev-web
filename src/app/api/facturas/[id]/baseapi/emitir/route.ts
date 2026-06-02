@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { writeAuditLog } from '@/lib/audit';
 import { baseApiEmitFactura, getBaseApiConfig, summarizeBaseApiResponse, truncateItemName } from '@/lib/baseapi';
+import { requireSession } from '@/lib/api-auth';
 
 function formatChileDate(date: Date) {
   return new Intl.DateTimeFormat('en-CA', {
@@ -19,8 +20,8 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const ok = await checkAuth(request);
-  if (!ok) {
+  const session = await requireSession(_request);
+  if (!session) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 

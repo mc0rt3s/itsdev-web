@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { checkAuth, requireSession } from '@/lib/api-auth';
 
 function getMonthRange(month: string) {
     const [year, monthNumber] = month.split('-').map(Number);
@@ -245,7 +246,7 @@ async function getReportData(clienteId: string, month: string) {
 }
 
 export async function GET(request: NextRequest) {
-    const ok = await checkAuth(request);
+    const session = await requireSession(request);
     if (!session?.user?.id) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const clienteId = request.nextUrl.searchParams.get('clienteId');
@@ -297,7 +298,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-    const ok = await checkAuth(request);
+    const session = await requireSession(request);
     if (!session?.user?.id) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const body = await request.json();

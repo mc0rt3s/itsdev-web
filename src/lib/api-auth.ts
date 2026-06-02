@@ -34,3 +34,15 @@ export async function checkAuth(request?: NextRequest) {
   if (!ok) return null;
   return true;
 }
+
+/**
+ * Autenticación + sesión NextAuth (necesaria cuando se usa session.user).
+ * El token de Estrella no devuelve sesión; en esas rutas usar solo checkAuth.
+ */
+export async function requireSession(request?: NextRequest) {
+  const ok = await isAuthenticated(request);
+  if (!ok) return null;
+  const session = await auth();
+  if (!session?.user) return null;
+  return session;
+}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { writeAuditLog } from '@/lib/audit';
+import { checkAuth, requireSession } from '@/lib/api-auth';
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
     borrador: ['enviada', 'anulada'],
@@ -16,8 +17,8 @@ export async function PATCH(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const ok = await checkAuth(request);
-    if (!ok) {
+    const session = await requireSession(request);
+    if (!session) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
