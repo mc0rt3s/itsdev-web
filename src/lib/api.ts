@@ -16,16 +16,24 @@ interface AuthFailure {
 }
 
 export async function requireAuth(options?: AuthOptions): Promise<AuthSuccess | AuthFailure> {
-  const session = (await auth()) as Session | null;
+  // Verificar token de Estrella/Electron
+  const { headers } = await import('next/headers');
+  const headersList = await headers();
+  const authHeader = headersList.get('authorization');
+  const estrelllaToken = process.env.ESTRELLA_API_TOKEN;
+  
+  if (estrelllaToken && authHeader === `Bearer ${estrelllaToken}`) {
+    return { session: { user: { id: 'estrella', name: 'Estrella', email: 'estrella@itsdev.cl', role: 'admin' }, expires: '' } as Session };
+  }
 
+  // Verificar sesión NextAuth normal
+  const session = (await auth()) as Session | null;
   if (!session) {
     return { response: NextResponse.json({ error: 'No autorizado' }, { status: 401 }) };
   }
-
   if (options?.roles && !options.roles.includes(session.user.role)) {
     return { response: NextResponse.json({ error: 'No tienes permisos' }, { status: 403 }) };
   }
-
   return { session };
 }
 
