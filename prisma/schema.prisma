@@ -36,7 +36,7 @@ model Cliente {
   facturaPorTiempo  Boolean  @default(false)   // Si se factura por tiempo registrado
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  
+
   // Relaciones
   accesos         Acceso[]
   proyectos       Proyecto[]
@@ -44,6 +44,8 @@ model Cliente {
   cotizaciones    Cotizacion[]
   suscripciones   Suscripcion[]
   comunicaciones  Comunicacion[]
+  oportunidades   Oportunidad[]
+  actividades     Actividad[]
 }
 
 model Acceso {
@@ -251,7 +253,7 @@ model Cotizacion {
   cliente     Cliente? @relation(fields: [clienteId], references: [id])
   
   numero      String   @unique
-  oportunidad String?
+  etiquetaOportunidad String? @map("oportunidad")
   etiquetaComercial String?
   fecha       DateTime @default(now())
   validez     DateTime // Fecha hasta la cual es válida
@@ -279,6 +281,7 @@ model Cotizacion {
   // Relaciones
   items       ItemCotizacion[]
   facturas    Factura[] // Facturas generadas desde esta cotización
+  oportunidad Oportunidad?
 }
 
 model ItemCotizacion {
@@ -350,4 +353,67 @@ model AuditLog {
   @@index([action, createdAt])
   @@index([entity, entityId])
   @@index([actorId, createdAt])
+}
+
+model Pipeline {
+  id            String          @id @default(cuid())
+  name          String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  stages        PipelineStage[]
+  oportunidades Oportunidad[]
+}
+
+model PipelineStage {
+  id            String        @id @default(cuid())
+  pipelineId    String
+  pipeline      Pipeline      @relation(fields: [pipelineId], references: [id])
+  name          String
+  color         String        @default("#64748b")
+  order         Int           @default(0)
+  isWon         Boolean       @default(false)
+  isLost        Boolean       @default(false)
+  probability   Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  oportunidades Oportunidad[]
+}
+
+model Oportunidad {
+  id                String        @id @default(cuid())
+  clienteId         String
+  cliente           Cliente       @relation(fields: [clienteId], references: [id])
+  pipelineId        String
+  pipeline          Pipeline      @relation(fields: [pipelineId], references: [id])
+  stageId           String
+  stage             PipelineStage @relation(fields: [stageId], references: [id])
+  titulo            String
+  tipo              String        @default("proyecto") // proyecto | licencia | equipo | soporte
+  monto             Float?
+  moneda            String        @default("CLP")
+  expectedCloseDate DateTime?
+  closedAt          DateTime?
+  lostReason        String?
+  source            String?
+  cotizacionId      String?       @unique
+  cotizacion        Cotizacion?   @relation(fields: [cotizacionId], references: [id])
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  actividades       Actividad[]
+}
+
+model Actividad {
+  id              String       @id @default(cuid())
+  oportunidadId   String?
+  oportunidad     Oportunidad? @relation(fields: [oportunidadId], references: [id], onDelete: Cascade)
+  clienteId       String?
+  cliente         Cliente?     @relation(fields: [clienteId], references: [id])
+  tipo            String       // llamada, reunion, correo, whatsapp, visita, nota
+  asunto          String
+  notas           String?
+  scheduledAt     DateTime?
+  completedAt     DateTime?
+  nextActionDate  DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 }

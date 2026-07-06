@@ -8,6 +8,7 @@ import { checkAuth, requireSession } from '@/lib/api-auth';
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const session = await requireSession(request);
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (session.user.role === 'finanzas') return NextResponse.json({ error: 'No tienes permisos' }, { status: 403 });
 
     const { id } = await params;
 
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const session = await requireSession(request);
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (session.user.role === 'finanzas') return NextResponse.json({ error: 'No tienes permisos' }, { status: 403 });
 
     const { id } = await params;
 
@@ -94,6 +96,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const session = await requireSession(request);
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (session.user.role === 'finanzas') return NextResponse.json({ error: 'No tienes permisos' }, { status: 403 });
 
     const { id } = await params;
 

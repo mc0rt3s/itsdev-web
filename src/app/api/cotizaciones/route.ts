@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 
 // POST
 export async function POST(request: NextRequest) {
-    const authResult = await requireAuth();
+    const authResult = await requireAuth({ roles: ['admin', 'user'] });
     if ('response' in authResult) return authResult.response;
 
     try {
@@ -48,9 +48,9 @@ export async function POST(request: NextRequest) {
         if ('response' in parsed) return parsed.response;
 
         const {
-            clienteId, nombreProspecto, emailProspecto, numero, oportunidad, etiquetaComercial, fecha, validez, estado, moneda,
+            clienteId, nombreProspecto, emailProspecto, numero, etiquetaOportunidad, etiquetaComercial, fecha, validez, estado, moneda,
             descuento = 0, tipoCambioUSD, modoEnvio, fechaEntrega, formaPago, duracionValidezDias,
-            notas, items, aplicarIVA
+            notas, items, aplicarIVA, oportunidadId
         } = parsed.data;
 
         const config = await prisma.configValor.findUnique({ where: { clave: 'tipoCambioUSD' } });
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
                 nombreProspecto,
                 emailProspecto,
                 numero,
-                oportunidad: oportunidad || null,
+                etiquetaOportunidad: etiquetaOportunidad || null,
                 etiquetaComercial: etiquetaComercial || null,
                 fecha: new Date(fecha),
                 validez: new Date(validez),
@@ -83,6 +83,14 @@ export async function POST(request: NextRequest) {
             },
             include: { items: true }
         });
+
+        if (oportunidadId) {
+            await prisma.oportunidad.update({
+                where: { id: oportunidadId },
+                data: { cotizacionId: cotizacion.id }
+            });
+        }
+
         return NextResponse.json(cotizacion, { status: 201 });
     } catch (error) {
         console.error('Error al crear cotizacion:', error);

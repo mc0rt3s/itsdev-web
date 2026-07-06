@@ -35,6 +35,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const session = await requireSession(request);
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (session.user.role === 'finanzas') return NextResponse.json({ error: 'No tienes permisos' }, { status: 403 });
 
     const { id } = await params;
 
@@ -83,7 +84,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                 where: { id },
                 data: {
                     ...rest,
-                    oportunidad: rest.oportunidad || null,
+                    etiquetaOportunidad: rest.etiquetaOportunidad || null,
                     etiquetaComercial: rest.etiquetaComercial || null,
                     descuento,
                     tipoCambioUSD: tipoCambioUSD ?? undefined,
@@ -140,6 +141,24 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                         canal: 'panel_admin',
                         actor: session.user.email || session.user.name || session.user.id
                     });
+
+                    if (estado === 'aprobada') {
+                        const oportunidad = await prisma.oportunidad.findUnique({
+                            where: { cotizacionId: id },
+                            include: { stage: true },
+                        });
+                        if (oportunidad && !oportunidad.stage.isWon && !oportunidad.stage.isLost) {
+                            const ganada = await prisma.pipelineStage.findFirst({
+                                where: { pipelineId: oportunidad.stage.pipelineId, isWon: true },
+                            });
+                            if (ganada) {
+                                await prisma.oportunidad.update({
+                                    where: { id: oportunidad.id },
+                                    data: { stageId: ganada.id, closedAt: new Date() },
+                                });
+                            }
+                        }
+                    }
                 }
                 return NextResponse.json(cotizacion);
             }
@@ -154,6 +173,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const session = await requireSession(request);
     if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (session.user.role === 'finanzas') return NextResponse.json({ error: 'No tienes permisos' }, { status: 403 });
 
     try {
         const { id } = await params;

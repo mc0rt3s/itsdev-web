@@ -1,11 +1,25 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV === 'development';
+
 const nextConfig: NextConfig = {
   // Output standalone para Docker
   output: 'standalone',
-  
+
   // Paquetes que deben ejecutarse en el servidor (no bundleados)
   serverExternalPackages: ['better-sqlite3', '@prisma/adapter-better-sqlite3'],
+  async redirects() {
+    return [
+      { source: '/admin/facturas', destination: '/admin/finanzas', permanent: true },
+      { source: '/admin/facturas/:path*', destination: '/admin/finanzas', permanent: true },
+      { source: '/admin/gastos', destination: '/admin/finanzas', permanent: true },
+      { source: '/admin/gastos/:path*', destination: '/admin/finanzas', permanent: true },
+      { source: '/admin/finanzas/facturas', destination: '/admin/finanzas', permanent: true },
+      { source: '/admin/finanzas/facturas/:path*', destination: '/admin/finanzas', permanent: true },
+      { source: '/admin/finanzas/gastos', destination: '/admin/finanzas', permanent: true },
+      { source: '/admin/finanzas/gastos/:path*', destination: '/admin/finanzas', permanent: true },
+    ];
+  },
   async headers() {
     return [
       {
@@ -19,7 +33,7 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' https://assets.calendly.com https://www.googletagmanager.com",
+              `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://assets.calendly.com https://www.googletagmanager.com`,
               "style-src 'self' 'unsafe-inline' https://assets.calendly.com https://fonts.googleapis.com",
               "img-src 'self' data: blob: https:",
               "font-src 'self' https://fonts.gstatic.com data:",

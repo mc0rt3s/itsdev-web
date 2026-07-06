@@ -137,9 +137,8 @@ export default function UsuariosPage() {
   );
 
   const getRoleBadge = (role: string) => {
-    if (role === 'admin') {
-      return 'bg-violet-500/20 text-violet-400 border-violet-500/30';
-    }
+    if (role === 'admin') return 'bg-violet-500/20 text-violet-400 border-violet-500/30';
+    if (role === 'finanzas') return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
     return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
   };
 
@@ -406,6 +405,7 @@ export default function UsuariosPage() {
                 >
                   <option value="user">Usuario</option>
                   <option value="admin">Administrador</option>
+                  <option value="finanzas">Finanzas</option>
                 </select>
                 <p className="text-xs text-slate-500 mt-2">
                   Los administradores pueden gestionar usuarios y acceder a todas las funciones.

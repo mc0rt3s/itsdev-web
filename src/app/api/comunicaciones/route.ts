@@ -9,6 +9,7 @@ import { checkAuth, requireSession } from '@/lib/api-auth';
 export async function GET(request: NextRequest) {
     const session = await requireSession(request);
     if (!session?.user?.email) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (session.user.role === 'finanzas') return NextResponse.json({ error: 'No tienes permisos' }, { status: 403 });
 
     const { searchParams } = new URL(request.url);
     const clienteId = searchParams.get('clienteId');
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     const session = await requireSession(request);
     if (!session?.user?.email) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (session.user.role === 'finanzas') return NextResponse.json({ error: 'No tienes permisos' }, { status: 403 });
 
     try {
         const user = await prisma.user.findUnique({

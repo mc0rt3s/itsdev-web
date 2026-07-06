@@ -18,7 +18,7 @@ export const userSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  role: z.enum(['admin', 'user']).default('user'),
+  role: z.enum(['admin', 'user', 'finanzas']).default('user'),
 });
 
 
@@ -169,7 +169,7 @@ export const cotizacionSchema = z.object({
   nombreProspecto: z.string().optional().nullable(),
   emailProspecto: z.string().email().optional().nullable(),
   numero: z.string().min(1, 'El número de cotización es requerido'),
-  oportunidad: z.string().trim().max(160).optional().nullable(),
+  etiquetaOportunidad: z.string().trim().max(160).optional().nullable(),
   etiquetaComercial: z.string().trim().max(160).optional().nullable(),
   fecha: z.string().transform((str) => new Date(str)),
   validez: z.string().transform((str) => new Date(str)),
@@ -184,6 +184,7 @@ export const cotizacionSchema = z.object({
   items: z.array(itemCotizacionSchema).min(1, 'Debe haber al menos un ítem'),
   notas: z.string().optional().nullable(),
   aplicarIVA: z.boolean().optional().default(true),
+  oportunidadId: z.string().optional().nullable(),
 }).refine(data => data.clienteId || (data.nombreProspecto && data.emailProspecto), {
   message: "Debe especificar un cliente o los datos del prospecto",
   path: ["clienteId"],

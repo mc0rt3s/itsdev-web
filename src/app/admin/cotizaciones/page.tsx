@@ -6,7 +6,7 @@ import Link from 'next/link';
 interface Cotizacion {
     id: string;
     numero: string;
-    oportunidad?: string | null;
+    etiquetaOportunidad?: string | null;
     etiquetaComercial?: string | null;
     cliente?: { razonSocial: string; email?: string | null };
     clienteId?: string;
@@ -63,7 +63,7 @@ export default function CotizacionesPage() {
         nombreProspecto: '',
         emailProspecto: '',
         numero: '',
-        oportunidad: '',
+        etiquetaOportunidad: '',
         etiquetaComercial: '',
         fecha: new Date().toISOString().split('T')[0],
         validez: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -81,6 +81,7 @@ export default function CotizacionesPage() {
     const [saving, setSaving] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
     const [convertingToFactura, setConvertingToFactura] = useState(false);
+    const [oportunidadVinculada, setOportunidadVinculada] = useState<{ id: string; titulo: string } | null>(null);
 
     useEffect(() => {
         fetchData();
@@ -105,8 +106,31 @@ export default function CotizacionesPage() {
                 fetch('/api/cotizaciones'),
                 fetch('/api/clientes')
             ]);
-            if (cotsRes.ok) setCotizaciones(await cotsRes.json());
-            if (clientesRes.ok) setClientes(await clientesRes.json());
+            const cotsData = cotsRes.ok ? await cotsRes.json() : [];
+            const clientesData = clientesRes.ok ? await clientesRes.json() : [];
+            setCotizaciones(cotsData);
+            setClientes(clientesData);
+
+            // Detectar parámetros de vinculación desde el pipeline
+            if (typeof window !== 'undefined') {
+                const params = new URLSearchParams(window.location.search);
+                const opId = params.get('oportunidadId');
+                if (opId) {
+                    const clienteIdParam = params.get('clienteId') || '';
+                    const tituloParam = decodeURIComponent(params.get('titulo') || '');
+                    setOportunidadVinculada({ id: opId, titulo: tituloParam });
+                    const numero = `COT-${new Date().getFullYear()}-${String(cotsData.length + 1).padStart(3, '0')}`;
+                    setFormData(prev => ({
+                        ...prev,
+                        clienteId: clienteIdParam,
+                        numero,
+                        etiquetaOportunidad: tituloParam,
+                    }));
+                    setTargetType('cliente');
+                    setViewingCotizacion(null);
+                    setShowModal(true);
+                }
+            }
         } catch (error) {
             console.error('Error:', error);
         } finally {
@@ -125,7 +149,7 @@ export default function CotizacionesPage() {
             nombreProspecto: '',
             emailProspecto: '',
             numero: `COT-${new Date().getFullYear()}-${String(cotizaciones.length + 1).padStart(3, '0')}`,
-            oportunidad: '',
+            etiquetaOportunidad: '',
             etiquetaComercial: '',
             fecha: new Date().toISOString().split('T')[0],
             validez: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -154,6 +178,7 @@ export default function CotizacionesPage() {
     const closeModal = () => {
         setShowModal(false);
         setViewingCotizacion(null);
+        setOportunidadVinculada(null);
         setDestinatarioEmail('');
         setEmailAsunto('');
         setEmailMensaje('');
@@ -249,6 +274,7 @@ export default function CotizacionesPage() {
             clienteId: targetType === 'cliente' ? clienteIdActual : null,
             nombreProspecto: targetType === 'prospecto' ? nombreProspectoActual : null,
             emailProspecto: targetType === 'prospecto' ? emailProspectoActual : null,
+            oportunidadId: oportunidadVinculada?.id ?? null,
             items: formData.items.map(({ descripcion, sku, cantidad, precioCompraUSD, precioCompraCLP, margenPorcentaje, precioUnit }) => ({
                 descripcion,
                 sku: sku || null,
@@ -380,7 +406,7 @@ export default function CotizacionesPage() {
 
             if (!res.ok) {
                 if (res.status === 409 && payload.facturaId) {
-                    window.location.href = `/admin/facturas?facturaId=${payload.facturaId}`;
+                    window.location.href = `/admin/finanzas/facturas?facturaId=${payload.facturaId}`;
                     return;
                 }
                 alert(payload.error || 'Error al convertir cotización');
@@ -393,7 +419,7 @@ export default function CotizacionesPage() {
                 setViewingCotizacion(await detailRes.json());
             }
             if (payload.facturaId) {
-                window.location.href = `/admin/facturas?facturaId=${payload.facturaId}`;
+                window.location.href = `/admin/finanzas/facturas?facturaId=${payload.facturaId}`;
                 return;
             }
         } catch {
@@ -408,7 +434,7 @@ export default function CotizacionesPage() {
     };
 
     const buildSuggestedSubject = (cot: Cotizacion) => {
-        const parts = [cot.etiquetaComercial, cot.oportunidad, `Cotización ${cot.numero}`].filter(Boolean);
+        const parts = [cot.etiquetaComercial, cot.etiquetaOportunidad, `Cotización ${cot.numero}`].filter(Boolean);
         return `${parts.join(' | ')} - ITSDev`;
     };
 
@@ -420,7 +446,7 @@ export default function CotizacionesPage() {
             cot.etiquetaComercial
                 ? `Te comparto la alternativa "${cot.etiquetaComercial}" asociada a la cotización ${cot.numero}.`
                 : `Te comparto la cotización ${cot.numero}.`,
-            cot.oportunidad ? `Esta propuesta forma parte de la oportunidad "${cot.oportunidad}".` : '',
+            cot.etiquetaOportunidad ? `Esta propuesta forma parte de la oportunidad "${cot.etiquetaOportunidad}".` : '',
             'Quedo atento a tus comentarios para revisar esta opción o compararla con otras alternativas.',
             '',
             'Saludos cordiales,',
@@ -488,7 +514,7 @@ export default function CotizacionesPage() {
                                             )}
                                         </td>
                                         <td className="p-4 text-slate-400">
-                                            {c.oportunidad || <span className="text-slate-600">Sin oportunidad</span>}
+                                            {c.etiquetaOportunidad || <span className="text-slate-600">Sin oportunidad</span>}
                                         </td>
                                         <td className="p-4 text-slate-400">{new Date(c.fecha).toLocaleDateString('es-CL')}</td>
                                         <td className="p-4 text-slate-400">{new Date(c.validez).toLocaleDateString('es-CL')}</td>
@@ -575,7 +601,7 @@ export default function CotizacionesPage() {
                                     </div>
                                     <div>
                                         <label className="text-slate-500 text-xs uppercase font-bold">Oportunidad</label>
-                                        <p className="text-slate-300">{viewingCotizacion.oportunidad || 'Sin oportunidad definida'}</p>
+                                        <p className="text-slate-300">{viewingCotizacion.etiquetaOportunidad || 'Sin oportunidad definida'}</p>
                                     </div>
                                 </div>
 
@@ -593,7 +619,7 @@ export default function CotizacionesPage() {
                                                         </p>
                                                     </div>
                                                     <Link
-                                                        href={`/admin/facturas?facturaId=${factura.id}`}
+                                                        href={`/admin/finanzas/facturas?facturaId=${factura.id}`}
                                                         className="text-cyan-400 hover:text-cyan-300"
                                                     >
                                                         Abrir factura
@@ -727,6 +753,17 @@ export default function CotizacionesPage() {
                             </div>
                         ) : (
                             <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                                {oportunidadVinculada && (
+                                    <div className="flex items-center gap-3 px-4 py-3 bg-violet-500/10 border border-violet-500/30 rounded-xl">
+                                        <svg className="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                        </svg>
+                                        <div>
+                                            <p className="text-xs text-violet-400 font-medium">Vinculada a oportunidad</p>
+                                            <p className="text-white text-sm font-semibold">{oportunidadVinculada.titulo}</p>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-2 gap-6">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-300 mb-2">Destinatario</label>
@@ -794,8 +831,8 @@ export default function CotizacionesPage() {
                                         <label className="block text-sm font-medium text-slate-300 mb-2">Oportunidad</label>
                                         <input
                                             type="text"
-                                            value={formData.oportunidad}
-                                            onChange={e => setFormData({ ...formData, oportunidad: e.target.value })}
+                                            value={formData.etiquetaOportunidad}
+                                            onChange={e => setFormData({ ...formData, etiquetaOportunidad: e.target.value })}
                                             placeholder="Ej: Renovación licencias endpoint 2026"
                                             className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
                                         />

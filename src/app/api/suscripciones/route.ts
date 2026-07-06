@@ -7,7 +7,7 @@ import { checkAuth } from '@/lib/api-auth';
 
 // GET
 export async function GET(request: NextRequest) {
-    const ok = await checkAuth(request);
+    const ok = await checkAuth(request, ['admin', 'user']);
     if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     const { searchParams } = new URL(request.url);
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
 // POST
 export async function POST(request: NextRequest) {
-    const ok = await checkAuth(request);
+    const ok = await checkAuth(request, ['admin', 'user']);
     if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
     try {

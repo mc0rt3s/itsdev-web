@@ -248,6 +248,7 @@ async function getReportData(clienteId: string, month: string) {
 export async function GET(request: NextRequest) {
     const session = await requireSession(request);
     if (!session?.user?.id) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (session.user.role === 'finanzas') return NextResponse.json({ error: 'No tienes permisos' }, { status: 403 });
 
     const clienteId = request.nextUrl.searchParams.get('clienteId');
     const month = request.nextUrl.searchParams.get('month');
@@ -300,6 +301,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     const session = await requireSession(request);
     if (!session?.user?.id) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (session.user.role === 'finanzas') return NextResponse.json({ error: 'No tienes permisos' }, { status: 403 });
 
     const body = await request.json();
     const clienteId = body?.clienteId as string | undefined;

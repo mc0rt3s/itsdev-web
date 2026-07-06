@@ -5,7 +5,7 @@ import { clockifyTaskTipoSchema } from '@/lib/schemas';
 import { checkAuth } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
-  const ok = await checkAuth(request);
+  const ok = await checkAuth(request, ['admin', 'user']);
   if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   try {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const ok = await checkAuth(request);
+  const ok = await checkAuth(request, ['admin', 'user']);
   if (!ok) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   try {

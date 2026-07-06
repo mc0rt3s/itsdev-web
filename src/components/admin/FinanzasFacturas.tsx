@@ -68,7 +68,7 @@ function formatChileDateForInput(date: Date) {
     }).format(date);
 }
 
-export default function FacturasPage() {
+export default function FinanzasFacturas() {
     const toast = useToast();
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState<'dashboard' | 'lista'>('dashboard');

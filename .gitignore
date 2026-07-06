@@ -50,3 +50,6 @@ dev.db
 
 # uploads
 /public/uploads
+
+# claude code local settings
+.claude/settings.local.json

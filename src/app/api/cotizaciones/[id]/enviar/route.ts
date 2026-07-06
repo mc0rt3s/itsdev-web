@@ -73,6 +73,7 @@ export async function POST(
     if (!session) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+    if (session.user.role === 'finanzas') return NextResponse.json({ error: 'No tienes permisos' }, { status: 403 });
 
     const { id } = await params;
 
@@ -111,7 +112,7 @@ export async function POST(
         // Generate PDF
         const pdfBuffer = generateCotizacionPDF({
             numero: cotizacion.numero,
-            oportunidad: cotizacion.oportunidad || undefined,
+            oportunidad: cotizacion.etiquetaOportunidad || undefined,
             etiquetaComercial: cotizacion.etiquetaComercial || undefined,
             fecha: cotizacion.fecha.toISOString(),
             validez: cotizacion.validez.toISOString(),
@@ -165,13 +166,13 @@ export async function POST(
             : '';
         const subject = customSubject || buildDefaultSubject({
             numero: cotizacion.numero,
-            oportunidad: cotizacion.oportunidad,
+            oportunidad: cotizacion.etiquetaOportunidad,
             etiquetaComercial: cotizacion.etiquetaComercial
         });
         const message = customMessage || buildDefaultMessage({
             recipientName: recipientName || 'cliente',
             numero: cotizacion.numero,
-            oportunidad: cotizacion.oportunidad,
+            oportunidad: cotizacion.etiquetaOportunidad,
             etiquetaComercial: cotizacion.etiquetaComercial,
             total: cotizacion.total,
             validez: cotizacion.validez
@@ -188,7 +189,7 @@ export async function POST(
         <div style="font-family: Arial, sans-serif; color: #0f172a; max-width: 680px; margin: 0 auto;">
           <h2 style="margin: 0 0 14px;">Cotización ${escapeHtml(cotizacion.numero)}</h2>
           <div style="margin: 0 0 16px; padding: 14px 16px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0;">
-            ${cotizacion.oportunidad ? `<p style="margin: 0 0 6px;"><strong>Oportunidad:</strong> ${escapeHtml(cotizacion.oportunidad)}</p>` : ''}
+            ${cotizacion.etiquetaOportunidad ? `<p style="margin: 0 0 6px;"><strong>Oportunidad:</strong> ${escapeHtml(cotizacion.etiquetaOportunidad)}</p>` : ''}
             ${cotizacion.etiquetaComercial ? `<p style="margin: 0 0 6px;"><strong>Alternativa:</strong> ${escapeHtml(cotizacion.etiquetaComercial)}</p>` : ''}
             <p style="margin: 0 0 6px;"><strong>Total:</strong> $${cotizacion.total.toLocaleString('es-CL')}</p>
             <p style="margin: 0;"><strong>Válida hasta:</strong> ${new Date(cotizacion.validez).toLocaleDateString('es-CL')}</p>
@@ -233,7 +234,7 @@ export async function POST(
                 numero: cotizacion.numero,
                 destinatario: recipientEmail,
                 asunto: subject,
-                oportunidad: cotizacion.oportunidad,
+                oportunidad: cotizacion.etiquetaOportunidad,
                 etiquetaComercial: cotizacion.etiquetaComercial
             }
         });

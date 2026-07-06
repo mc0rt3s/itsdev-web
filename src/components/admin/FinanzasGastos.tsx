@@ -40,7 +40,7 @@ interface DashboardMetrics {
     tendenciaMensual: Array<{ mes: string; total: number; cantidad: number }>;
 }
 
-export default function GastosPage() {
+export default function FinanzasGastos() {
     const toast = useToast();
     const [gastos, setGastos] = useState<Gasto[]>([]);
     const [loading, setLoading] = useState(true);

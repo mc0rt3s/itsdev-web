@@ -28,10 +28,17 @@ export async function isAuthenticated(request?: NextRequest): Promise<boolean> {
 /**
  * Reemplaza el chequeo de session en las routes existentes.
  * Uso: const ok = await checkAuth(request);
+ * Uso con roles: const ok = await checkAuth(request, ['admin', 'user']);
+ * El token de Estrella siempre pasa (equivale a admin).
  */
-export async function checkAuth(request?: NextRequest) {
-  const ok = await isAuthenticated(request);
-  if (!ok) return null;
+export async function checkAuth(request?: NextRequest, allowedRoles?: string[]) {
+  if (request && ESTRELLA_TOKEN) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader === `Bearer ${ESTRELLA_TOKEN}`) return true;
+  }
+  const session = await auth();
+  if (!session?.user) return null;
+  if (allowedRoles && !allowedRoles.includes(session.user.role)) return null;
   return true;
 }
 

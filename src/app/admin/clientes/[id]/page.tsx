@@ -57,6 +57,17 @@ export default function ClienteDetallePage({ params }: { params: Promise<{ id: s
   const [reportEntries, setReportEntries] = useState<ReportEntry[]>([]);
   const [reportResumen, setReportResumen] = useState<ReportResumen | null>(null);
 
+  // Timeline de actividades
+  const [actividades, setActividades] = useState<Array<{
+    id: string; tipo: string; asunto: string; notas: string | null;
+    scheduledAt: string | null; completedAt: string | null; nextActionDate: string | null;
+    createdAt: string;
+    oportunidad: { id: string; titulo: string } | null;
+  }>>([]);
+  const [actLoading, setActLoading] = useState(false);
+  const [actForm, setActForm] = useState({ tipo: 'llamada', asunto: '', notas: '', scheduledAt: '', nextActionDate: '' });
+  const [showActForm, setShowActForm] = useState(false);
+
   useEffect(() => {
     params.then((p) => setClienteId(p.id));
   }, [params]);
@@ -93,6 +104,43 @@ export default function ClienteDetallePage({ params }: { params: Promise<{ id: s
     };
     fetchWorkspaces();
   }, []);
+
+  useEffect(() => {
+    if (!clienteId) return;
+    const fetchActividades = async () => {
+      setActLoading(true);
+      try {
+        const res = await fetch(`/api/clientes/${clienteId}/actividades`);
+        if (res.ok) setActividades(await res.json());
+      } finally {
+        setActLoading(false);
+      }
+    };
+    fetchActividades();
+  }, [clienteId]);
+
+  const crearActividad = async () => {
+    if (!clienteId || !actForm.tipo || !actForm.asunto) return;
+    const res = await fetch(`/api/clientes/${clienteId}/actividades`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...actForm,
+        scheduledAt: actForm.scheduledAt || null,
+        nextActionDate: actForm.nextActionDate || null,
+      }),
+    });
+    if (res.ok) {
+      const created = await res.json();
+      setActividades(prev => [created, ...prev]);
+      setActForm({ tipo: 'llamada', asunto: '', notas: '', scheduledAt: '', nextActionDate: '' });
+      setShowActForm(false);
+    }
+  };
+
+  const tipoIcon: Record<string, string> = {
+    llamada: '📞', reunion: '🤝', correo: '✉️', whatsapp: '💬', visita: '🚗', nota: '📝',
+  };
 
   const formatRut = (rut: string) => {
     const cleaned = rut.replace(/[^0-9kK]/g, '');
@@ -414,6 +462,134 @@ export default function ClienteDetallePage({ params }: { params: Promise<{ id: s
           </p>
         </div>
       )}
+
+      {/* Timeline de actividades CRM */}
+      <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Actividades</h2>
+            <p className="text-sm text-slate-400 mt-0.5">Historial de contacto y seguimiento</p>
+          </div>
+          <button
+            onClick={() => setShowActForm(v => !v)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/40 rounded-xl text-sm font-medium transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Nueva actividad
+          </button>
+        </div>
+
+        {showActForm && (
+          <div className="px-6 py-4 border-b border-slate-700/50 bg-slate-900/30">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Tipo *</label>
+                <select
+                  value={actForm.tipo}
+                  onChange={e => setActForm(p => ({ ...p, tipo: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                >
+                  {['llamada', 'reunion', 'correo', 'whatsapp', 'visita', 'nota'].map(t => (
+                    <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Asunto *</label>
+                <input
+                  value={actForm.asunto}
+                  onChange={e => setActForm(p => ({ ...p, asunto: e.target.value }))}
+                  placeholder="Ej: Llamada de seguimiento"
+                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-xs text-slate-400 block mb-1">Notas</label>
+                <textarea
+                  value={actForm.notas}
+                  onChange={e => setActForm(p => ({ ...p, notas: e.target.value }))}
+                  rows={2}
+                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Fecha/hora</label>
+                <input
+                  type="datetime-local"
+                  value={actForm.scheduledAt}
+                  onChange={e => setActForm(p => ({ ...p, scheduledAt: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Próxima acción</label>
+                <input
+                  type="date"
+                  value={actForm.nextActionDate}
+                  onChange={e => setActForm(p => ({ ...p, nextActionDate: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-3">
+              <button
+                onClick={() => setShowActForm(false)}
+                className="px-4 py-2 text-sm text-slate-400 border border-slate-600/50 rounded-xl hover:bg-slate-700/50 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={crearActividad}
+                disabled={!actForm.asunto}
+                className="px-4 py-2 text-sm text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-xl transition-all font-medium"
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="p-6">
+          {actLoading && <p className="text-slate-400 text-sm">Cargando actividades...</p>}
+          {!actLoading && actividades.length === 0 && (
+            <p className="text-slate-500 text-sm text-center py-4">Sin actividades registradas</p>
+          )}
+          {!actLoading && actividades.length > 0 && (
+            <div className="relative space-y-4">
+              <div className="absolute left-4 top-0 bottom-0 w-px bg-slate-700/50" />
+              {actividades.map(act => (
+                <div key={act.id} className="flex gap-4 relative">
+                  <div className="w-8 h-8 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center text-sm flex-shrink-0 z-10">
+                    {tipoIcon[act.tipo] || '📌'}
+                  </div>
+                  <div className="flex-1 bg-slate-900/30 border border-slate-700/50 rounded-xl p-3 space-y-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium text-white text-sm">{act.asunto}</p>
+                      {act.completedAt && (
+                        <span className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-0.5 flex-shrink-0">Completada</span>
+                      )}
+                    </div>
+                    {act.notas && <p className="text-slate-400 text-xs">{act.notas}</p>}
+                    {act.oportunidad && (
+                      <p className="text-xs text-cyan-400">Oportunidad: {act.oportunidad.titulo}</p>
+                    )}
+                    {act.nextActionDate && (
+                      <p className="text-xs text-amber-400">Próxima acción: {new Date(act.nextActionDate).toLocaleDateString('es-CL')}</p>
+                    )}
+                    <p className="text-xs text-slate-500">
+                      {act.scheduledAt
+                        ? new Date(act.scheduledAt).toLocaleString('es-CL')
+                        : new Date(act.createdAt).toLocaleString('es-CL')}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

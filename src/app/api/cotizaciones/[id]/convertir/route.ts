@@ -11,7 +11,7 @@ export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const ok = await checkAuth(request);
+    const ok = await checkAuth(request, ['admin', 'user']);
     if (!ok) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
@@ -86,7 +86,7 @@ export async function POST(
                 total: cotizacion.total,
                 notas: [
                     `Generada desde cotización ${cotizacion.numero}`,
-                    cotizacion.oportunidad ? `Oportunidad: ${cotizacion.oportunidad}` : null,
+                    cotizacion.etiquetaOportunidad ? `Oportunidad: ${cotizacion.etiquetaOportunidad}` : null,
                     cotizacion.etiquetaComercial ? `Alternativa: ${cotizacion.etiquetaComercial}` : null,
                 ].filter(Boolean).join('\n'),
                 cotizacionId: cotizacion.id,

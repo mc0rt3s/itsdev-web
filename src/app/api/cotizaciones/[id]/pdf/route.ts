@@ -35,7 +35,7 @@ export async function GET(
 
         const pdfBuffer = generateCotizacionPDF({
             numero: cotizacion.numero,
-            oportunidad: cotizacion.oportunidad || undefined,
+            oportunidad: cotizacion.etiquetaOportunidad || undefined,
             etiquetaComercial: cotizacion.etiquetaComercial || undefined,
             fecha: cotizacion.fecha.toISOString(),
             validez: cotizacion.validez.toISOString(),
