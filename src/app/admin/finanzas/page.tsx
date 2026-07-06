@@ -27,6 +27,9 @@ interface DashData {
 const CLP = (n: number) =>
   new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
 
+const UFFormat = (n: number) =>
+  new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
 const pct = (current: number, prev: number) => {
   if (prev === 0) return current > 0 ? '+100%' : '0%';
   const change = ((current - prev) / Math.abs(prev)) * 100;
@@ -73,7 +76,7 @@ function DashboardTab() {
           {uf && (
             <div className="text-right">
               <p className="text-xs text-slate-500">UF hoy</p>
-              <p className="text-lg font-bold text-cyan-400">{CLP(uf.valor)}</p>
+              <p className="text-lg font-bold text-cyan-400">$ {UFFormat(uf.valor)}</p>
             </div>
           )}
           <input
