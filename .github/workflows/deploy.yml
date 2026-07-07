@@ -12,6 +12,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
+          port: 5022
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
