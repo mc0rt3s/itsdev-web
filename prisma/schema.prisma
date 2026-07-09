@@ -357,6 +357,38 @@ model AuditLog {
   @@index([actorId, createdAt])
 }
 
+model SiiConfig {
+  id              String   @id @default(cuid())
+  certBase64      String   // .p12 codificado en base64
+  certPassword    String   // clave del certificado
+  rutFirmante     String   // RUT del representante legal (ej: "12345678-9")
+  rutEmpresa      String   // RUT empresa (ej: "76732709-9")
+  razonSocial     String
+  giro            String
+  acteco          Int      // código actividad económica SII
+  direccion       String
+  comuna          String
+  ciudad          String
+  fechaResolucion String   // "YYYY-MM-DD" fecha de la resolución SII
+  numResolucion   Int      // número de resolución SII
+  ambiente        String   @default("certification") // certification | production
+  updatedAt       DateTime @updatedAt
+}
+
+model SiiCaf {
+  id          String   @id @default(cuid())
+  tipoDte     Int      // 33 o 34
+  xml         String   // XML completo del CAF
+  folioDesde  Int
+  folioHasta  Int
+  folioActual Int      @default(0) // último folio utilizado
+  ambiente    String   @default("certification")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tipoDte, ambiente])
+}
+
 model Pipeline {
   id            String          @id @default(cuid())
   name          String

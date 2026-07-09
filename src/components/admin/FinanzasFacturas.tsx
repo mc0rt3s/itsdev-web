@@ -109,7 +109,6 @@ export default function FinanzasFacturas() {
     const [updatingEstados, setUpdatingEstados] = useState<Record<string, boolean>>({});
     const [saving, setSaving] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
-    const [checkingBaseApi, setCheckingBaseApi] = useState(false);
     const [emittingBaseApi, setEmittingBaseApi] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState<{
         isOpen: boolean;
@@ -645,39 +644,21 @@ export default function FinanzasFacturas() {
         }
     };
 
-    const handleCheckBaseApiEmisor = async () => {
-        setCheckingBaseApi(true);
-        try {
-            const res = await fetch('/api/facturas/baseapi/emisor', { method: 'POST' });
-            const payload = await res.json();
-            if (!res.ok) {
-                toast.error(payload.error || 'No se pudo consultar BaseAPI');
-                return;
-            }
-            const emisor = payload?.data || payload;
-            toast.success(`BaseAPI OK${emisor?.razonSocial ? `: ${emisor.razonSocial}` : ''}`);
-        } catch {
-            toast.error('No se pudo consultar BaseAPI');
-        } finally {
-            setCheckingBaseApi(false);
-        }
-    };
-
-    const handleEmitirBaseApi = async (factura: Factura) => {
+    const handleEmitirSii = async (factura: Factura) => {
         setConfirmDialog({
             isOpen: true,
             title: 'Emitir en SII',
-            message: 'Esta acción emite la factura en SII a través de BaseAPI y es irreversible. ¿Deseas continuar?',
+            message: 'Esta acción emite la factura directamente en el SII y consume un folio. Es irreversible. ¿Deseas continuar?',
             type: 'warning',
             onConfirm: async () => {
                 setConfirmDialog({ ...confirmDialog, isOpen: false });
                 setEmittingBaseApi(true);
                 try {
-                    const res = await fetch(`/api/facturas/${factura.id}/baseapi/emitir`, { method: 'POST' });
-                    const payload = await res.json().catch(() => ({ error: 'No se pudo emitir en BaseAPI' }));
+                    const res = await fetch(`/api/facturas/${factura.id}/emitir`, { method: 'POST' });
+                    const payload = await res.json().catch(() => ({ error: 'No se pudo emitir en SII' }));
 
                     if (!res.ok) {
-                        toast.error(payload.error || 'No se pudo emitir en BaseAPI');
+                        toast.error(payload.error || 'No se pudo emitir en SII');
                         return;
                     }
 
@@ -694,7 +675,7 @@ export default function FinanzasFacturas() {
                     if (activeTab === 'dashboard') fetchDashboard();
                     toast.success(`Factura emitida en SII${payload.folio ? ` · Folio ${payload.folio}` : ''}`);
                 } catch {
-                    toast.error('No se pudo emitir en BaseAPI');
+                    toast.error('Error al emitir en SII');
                 } finally {
                     setEmittingBaseApi(false);
                 }
@@ -1257,19 +1238,9 @@ export default function FinanzasFacturas() {
                                 </div>
 
                                 <div className="flex gap-3 pt-4">
-                                    <button
-                                        onClick={handleCheckBaseApiEmisor}
-                                        disabled={checkingBaseApi}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-all disabled:opacity-50"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        {checkingBaseApi ? 'Probando BaseAPI...' : 'Probar BaseAPI'}
-                                    </button>
                                     {!viewingFactura.numeroSII && (
                                         <button
-                                            onClick={() => handleEmitirBaseApi(viewingFactura)}
+                                            onClick={() => handleEmitirSii(viewingFactura)}
                                             disabled={emittingBaseApi}
                                             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50"
                                         >
