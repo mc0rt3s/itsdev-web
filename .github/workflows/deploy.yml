@@ -16,6 +16,7 @@ jobs:
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            docker network create itsdev-net 2>/dev/null || true
             cd /opt/itsdev/apps/itsdev-web
             git pull origin main
             docker compose up --build -d
