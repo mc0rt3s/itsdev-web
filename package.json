@@ -11,9 +11,11 @@
     "db:seed": "npx tsx prisma/seed.ts",
     "db:migrate": "npx prisma migrate deploy",
     "db:studio": "npx prisma studio",
-    "user:create": "npx tsx scripts/create-user.ts"
+    "user:create": "npx tsx scripts/create-user.ts",
+    "user:reset-password": "npx tsx scripts/reset-password.ts"
   },
   "dependencies": {
+    "@emisso/sii": "^0.1.1",
     "@libsql/client": "^0.17.0",
     "@prisma/adapter-better-sqlite3": "^7.2.0",
     "@prisma/adapter-libsql": "^7.2.0",
