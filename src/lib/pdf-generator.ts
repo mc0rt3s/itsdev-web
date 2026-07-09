@@ -21,6 +21,7 @@ interface FacturaData {
     impuesto: number;
     total: number;
     notas?: string;
+    ordenCompra?: string;
 }
 
 interface CotizacionData {
@@ -150,6 +151,11 @@ export function generateFacturaPDF(data: FacturaData): Buffer {
     doc.setFont('helvetica', 'normal');
     doc.text(`RUT: ${data.cliente.rut || 'N/A'}`, 15, infoY + 13);
     doc.text(`Email: ${data.cliente.email || 'N/A'}`, 15, infoY + 18);
+    if (data.ordenCompra) {
+        doc.setFont('helvetica', 'bold');
+        doc.text(`O.C. N°: ${data.ordenCompra}`, 15, infoY + 24);
+        doc.setFont('helvetica', 'normal');
+    }
 
     // "Factura De:" section
     doc.setTextColor(...green);

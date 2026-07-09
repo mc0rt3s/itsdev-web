@@ -201,6 +201,8 @@ model Factura {
   proyectoId  String?
   proyecto    Proyecto? @relation(fields: [proyectoId], references: [id])
   
+  ordenCompra  String?  // Número de orden de compra del cliente
+
   cotizacionId String?
   cotizacion   Cotizacion? @relation(fields: [cotizacionId], references: [id])
   

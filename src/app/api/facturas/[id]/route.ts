@@ -53,7 +53,7 @@ export async function PATCH(
     try {
         const { id } = await params;
         const data = await request.json();
-        const { estado, numeroSII, notas, fechaEmision, fechaVenc, formaPago, items, aplicarIVA } = data;
+        const { estado, numeroSII, notas, ordenCompra, fechaEmision, fechaVenc, formaPago, items, aplicarIVA } = data;
         const actual = await prisma.factura.findUnique({
             where: { id },
             include: { items: true }
@@ -77,6 +77,7 @@ export async function PATCH(
         const paidOnlyAllowsCancel = actual.estado === 'pagada';
         const hasNonEstadoChanges = numeroSII !== undefined
             || notas !== undefined
+            || ordenCompra !== undefined
             || fechaEmision !== undefined
             || fechaVenc !== undefined
             || formaPago !== undefined
@@ -104,6 +105,7 @@ export async function PATCH(
             }
         }
         if (notas !== undefined) updateData.notas = notas;
+        if (ordenCompra !== undefined) updateData.ordenCompra = ordenCompra === '' ? null : ordenCompra;
         if (items !== undefined) {
             const sanitizedItems: Array<{ descripcion: string; cantidad: number; precioUnit: number; servicioId?: string | null }> = items.map((item: { descripcion: string; cantidad: number; precioUnit: number; servicioId?: string | null }) => ({
                 descripcion: String(item.descripcion ?? '').trim(),

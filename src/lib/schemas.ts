@@ -148,6 +148,7 @@ export const facturaSchema = z.object({
   moneda: z.enum(['CLP', 'USD', 'UF']).default('CLP'),
   items: z.array(itemFacturaSchema).min(1, 'Debe haber al menos un ítem'),
   notas: z.string().optional().nullable(),
+  ordenCompra: z.string().optional().nullable(),
   proyectoId: z.string().optional().nullable(),
   aplicarIVA: z.boolean().optional().default(true),
 });

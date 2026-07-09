@@ -48,7 +48,8 @@ export async function GET(
             subtotal: factura.subtotal,
             impuesto: factura.impuesto,
             total: factura.total,
-            notas: factura.notas || undefined
+            notas: factura.notas || undefined,
+            ordenCompra: factura.ordenCompra || undefined
         });
 
         return new NextResponse(new Uint8Array(pdfBuffer), {

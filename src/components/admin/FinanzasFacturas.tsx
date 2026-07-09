@@ -28,6 +28,7 @@ interface Factura {
     items: ItemFactura[];
     cotizacion?: { numero: string } | null;
     notas?: string | null;
+    ordenCompra?: string | null;
 }
 
 interface ItemFactura {
@@ -90,11 +91,14 @@ export default function FinanzasFacturas() {
         formaPago: 'CONTADO' as 'CONTADO' | 'CREDITO' | 'SIN_COSTO',
         items: [{ descripcion: '', cantidad: 1, precioUnit: 0 }],
         notas: '',
+        ordenCompra: '',
         aplicarIVA: true
     });
     const [updatingEstado, setUpdatingEstado] = useState(false);
     const [tempEstado, setTempEstado] = useState<string | null>(null);
     const [tempNumeroSII, setTempNumeroSII] = useState<string | null>(null);
+    const [tempOrdenCompra, setTempOrdenCompra] = useState<string | null>(null);
+    const [savingOrdenCompra, setSavingOrdenCompra] = useState(false);
     const [tempFechaEmision, setTempFechaEmision] = useState<string | null>(null);
     const [tempFechaVenc, setTempFechaVenc] = useState<string | null>(null);
     const [tempItems, setTempItems] = useState<ItemFactura[]>([]);
@@ -195,6 +199,7 @@ export default function FinanzasFacturas() {
             formaPago: 'CONTADO',
             items: [{ descripcion: '', cantidad: 1, precioUnit: 0 }],
             notas: '',
+            ordenCompra: '',
             aplicarIVA: true
         });
         setShowModal(true);
@@ -202,7 +207,8 @@ export default function FinanzasFacturas() {
 
     const openDetailModal = (factura: Factura) => {
         setViewingFactura(factura);
-        setTempNumeroSII(null); // Resetear el estado temporal
+        setTempNumeroSII(null);
+        setTempOrdenCompra(null);
         setTempEstado(null);
         setTempFechaEmision(null);
         setTempFechaVenc(null);
@@ -216,6 +222,7 @@ export default function FinanzasFacturas() {
         setViewingFactura(null);
         setTempEstado(null);
         setTempNumeroSII(null);
+        setTempOrdenCompra(null);
         setTempFechaEmision(null);
         setTempFechaVenc(null);
         setTempItems([]);
@@ -479,6 +486,35 @@ export default function FinanzasFacturas() {
         const valorAnterior = viewingFactura.numeroSII || '';
         if (nuevoValor !== valorAnterior) {
             handleUpdateNumeroSII(viewingFactura.id, nuevoValor);
+        }
+    };
+
+    const handleSaveOrdenCompra = async () => {
+        if (!viewingFactura) return;
+        const nuevoValor = (tempOrdenCompra !== null ? tempOrdenCompra : viewingFactura.ordenCompra || '').trim();
+        const valorAnterior = viewingFactura.ordenCompra || '';
+        if (nuevoValor === valorAnterior) return;
+
+        setSavingOrdenCompra(true);
+        try {
+            const res = await fetch(`/api/facturas/${viewingFactura.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ordenCompra: nuevoValor || null })
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ error: 'Error desconocido' }));
+                throw new Error(err.error);
+            }
+            const facturaActualizada = await res.json();
+            setViewingFactura(facturaActualizada);
+            setTempOrdenCompra(null);
+            toast.success('Orden de compra actualizada');
+            fetchData();
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Error al actualizar orden de compra');
+        } finally {
+            setSavingOrdenCompra(false);
         }
     };
 
@@ -1000,7 +1036,7 @@ export default function FinanzasFacturas() {
                                     </div>
                                 )}
 
-                                <div className="grid grid-cols-5 gap-6 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
+                                <div className="grid grid-cols-6 gap-6 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
                                     <div>
                                         <label className="text-slate-500 text-xs uppercase font-bold">Fecha Emisión</label>
                                         <div className="mt-1 flex gap-1.5 items-center">
@@ -1060,6 +1096,33 @@ export default function FinanzasFacturas() {
                                     <div>
                                         <label className="text-slate-500 text-xs uppercase font-bold">Folio Interno</label>
                                         <p className="text-slate-300 font-mono">{viewingFactura.numero}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-slate-500 text-xs uppercase font-bold mb-1 block">O.C. Cliente</label>
+                                        <div className="flex gap-1.5 items-center">
+                                            <input
+                                                type="text"
+                                                value={tempOrdenCompra !== null ? tempOrdenCompra : (viewingFactura.ordenCompra || '')}
+                                                onChange={(e) => setTempOrdenCompra(e.target.value)}
+                                                disabled={!canEditFactura(viewingFactura)}
+                                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSaveOrdenCompra(); } }}
+                                                placeholder="N° orden de compra"
+                                                className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:ring-1 focus:ring-cyan-500 outline-none max-w-[140px]"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleSaveOrdenCompra}
+                                                disabled={savingOrdenCompra || !canEditFactura(viewingFactura) || (tempOrdenCompra !== null ? tempOrdenCompra : (viewingFactura.ordenCompra || '')) === (viewingFactura.ordenCompra || '')}
+                                                className="p-1 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300 hover:text-white rounded transition-colors"
+                                                title="Guardar orden de compra"
+                                            >
+                                                {savingOrdenCompra ? (
+                                                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                                ) : (
+                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="text-slate-500 text-xs uppercase font-bold mb-1 block">N° Factura SII</label>
@@ -1272,6 +1335,16 @@ export default function FinanzasFacturas() {
                                             value={formData.numeroSII}
                                             onChange={e => setFormData({ ...formData, numeroSII: e.target.value })}
                                             placeholder="Ingresar número SII"
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">N° Orden de Compra (Opcional)</label>
+                                        <input
+                                            type="text"
+                                            value={formData.ordenCompra}
+                                            onChange={e => setFormData({ ...formData, ordenCompra: e.target.value })}
+                                            placeholder="Ej: OC-2026-001"
                                             className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
                                         />
                                     </div>
