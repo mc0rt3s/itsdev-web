@@ -178,6 +178,7 @@ export const cotizacionSchema = z.object({
   moneda: z.enum(['CLP', 'USD', 'UF']).default('CLP'),
   descuento: z.number().min(0).optional().default(0),
   tipoCambioUSD: z.number().positive().optional().nullable(),
+  tipoCambioUF: z.number().positive().optional().nullable(),
   modoEnvio: z.string().optional().nullable(),
   fechaEntrega: z.string().optional().nullable(),
   formaPago: z.string().optional().nullable(),

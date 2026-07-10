@@ -269,6 +269,7 @@ model Cotizacion {
   
   // Términos y condiciones (para PDF)
   tipoCambioUSD    Float?  // Snapshot del tipo de cambio al crear
+  tipoCambioUF     Float?  // Snapshot del valor UF al crear
   modoEnvio        String? // "Entrega en oficina de cliente", etc.
   fechaEntrega     String? // "24 Hrs posteriores confirmado el pago"
   formaPago        String? // "Transferencia"

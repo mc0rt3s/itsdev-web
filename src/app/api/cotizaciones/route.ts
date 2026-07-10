@@ -7,6 +7,7 @@ import {
     buildCotizacionWhere,
     calcularTotalesCotizacion,
     resolveTipoCambioUSD,
+    resolveTipoCambioUF,
 } from '@/lib/cotizaciones-utils';
 
 // GET
@@ -49,12 +50,16 @@ export async function POST(request: NextRequest) {
 
         const {
             clienteId, nombreProspecto, emailProspecto, numero, etiquetaOportunidad, etiquetaComercial, fecha, validez, estado, moneda,
-            descuento = 0, tipoCambioUSD, modoEnvio, fechaEntrega, formaPago, duracionValidezDias,
+            descuento = 0, tipoCambioUSD, tipoCambioUF, modoEnvio, fechaEntrega, formaPago, duracionValidezDias,
             notas, items, aplicarIVA, oportunidadId
         } = parsed.data;
 
-        const config = await prisma.configValor.findUnique({ where: { clave: 'tipoCambioUSD' } });
-        const tcUSD = resolveTipoCambioUSD(tipoCambioUSD, config?.valor);
+        const [cfgUSD, cfgUF] = await Promise.all([
+            prisma.configValor.findUnique({ where: { clave: 'tipoCambioUSD' } }),
+            prisma.configValor.findUnique({ where: { clave: 'tipoCambioUF' } }),
+        ]);
+        const tcUSD = resolveTipoCambioUSD(tipoCambioUSD, cfgUSD?.valor);
+        const tcUF = resolveTipoCambioUF(tipoCambioUF, cfgUF?.valor);
         const { itemsWithTotal, subtotal, impuesto, total } = calcularTotalesCotizacion(items, descuento, aplicarIVA);
 
         const cotizacion = await prisma.cotizacion.create({
@@ -71,6 +76,7 @@ export async function POST(request: NextRequest) {
                 moneda,
                 descuento,
                 tipoCambioUSD: tcUSD,
+                tipoCambioUF: tcUF,
                 modoEnvio: modoEnvio || null,
                 fechaEntrega: fechaEntrega || null,
                 formaPago: formaPago || null,

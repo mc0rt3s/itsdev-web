@@ -33,6 +33,7 @@ interface ItemCotizacion {
     descripcion: string;
     cantidad: number;
     precioCompraUSD?: number;
+    precioCompraUF?: number;
     precioCompraCLP?: number;
     margenPorcentaje?: number;
     precioUnit: number;
@@ -57,7 +58,7 @@ export default function CotizacionesPage() {
     // Use a string 'prospecto' or 'cliente' to toggle form mode
     const [targetType, setTargetType] = useState<'cliente' | 'prospecto'>('cliente');
 
-    const [valores, setValores] = useState<{ tipoCambioUSD: number }>({ tipoCambioUSD: 924 });
+    const [valores, setValores] = useState<{ tipoCambioUSD: number; tipoCambioUF: number }>({ tipoCambioUSD: 924, tipoCambioUF: 38000 });
     const [formData, setFormData] = useState({
         clienteId: '',
         nombreProspecto: '',
@@ -70,6 +71,7 @@ export default function CotizacionesPage() {
         estado: 'borrador',
         descuento: 0,
         tipoCambioUSD: 924,
+        tipoCambioUF: 38000,
         modoEnvio: 'Entrega en oficina de cliente',
         fechaEntrega: '24 Hrs posteriores confirmado el pago',
         formaPago: 'Transferencia',
@@ -93,10 +95,13 @@ export default function CotizacionesPage() {
             const res = await fetch('/api/config/valores');
             if (res.ok) {
                 const data = await res.json();
-                setValores({ tipoCambioUSD: data.tipoCambioUSD ?? 924 });
+                setValores({
+                    tipoCambioUSD: data.tipoCambioUSD ?? 924,
+                    tipoCambioUF: data.tipoCambioUF ?? 38000,
+                });
             }
         } catch {
-            setValores({ tipoCambioUSD: 924 });
+            setValores({ tipoCambioUSD: 924, tipoCambioUF: 38000 });
         }
     };
 
@@ -156,6 +161,7 @@ export default function CotizacionesPage() {
             estado: 'borrador',
             descuento: 0,
             tipoCambioUSD: valores.tipoCambioUSD,
+            tipoCambioUF: valores.tipoCambioUF,
             modoEnvio: 'Entrega en oficina de cliente',
             fechaEntrega: '24 Hrs posteriores confirmado el pago',
             formaPago: 'Transferencia',
@@ -202,32 +208,49 @@ export default function CotizacionesPage() {
         const newItems = [...formData.items];
         const item = { ...newItems[index], [field]: value };
 
-        // Auto-calc: costo USD (decimal) * tipo cambio → costo CLP (entero); costo CLP / (1 - %G) → precioUnit
+        // USD → CLP → precio con margen
         if (field === 'precioCompraUSD' && typeof value === 'number') {
             if (value > 0) {
-                item.precioCompraCLP = Math.round(value * formData.tipoCambioUSD); // CLP sin decimales
+                item.precioCompraCLP = Math.round(value * formData.tipoCambioUSD);
+                item.precioCompraUF = undefined;
                 if (item.margenPorcentaje != null && item.margenPorcentaje > 0 && item.margenPorcentaje < 100) {
-                    item.precioUnit = calcPrecioConMargen(item.precioCompraCLP || 0, item.margenPorcentaje);
+                    item.precioUnit = calcPrecioConMargen(item.precioCompraCLP, item.margenPorcentaje);
+                }
+            } else {
+                item.precioCompraCLP = undefined;
+            }
+        }
+        // UF → CLP → precio con margen
+        if (field === 'precioCompraUF' && typeof value === 'number') {
+            if (value > 0) {
+                item.precioCompraCLP = Math.round(value * formData.tipoCambioUF);
+                item.precioCompraUSD = undefined;
+                if (item.margenPorcentaje != null && item.margenPorcentaje > 0 && item.margenPorcentaje < 100) {
+                    item.precioUnit = calcPrecioConMargen(item.precioCompraCLP, item.margenPorcentaje);
                 }
             } else {
                 item.precioCompraCLP = undefined;
             }
         }
         if (field === 'precioCompraCLP' && typeof value === 'number') {
-            const costoCLP = Math.round(value); // CLP siempre entero
+            const costoCLP = Math.round(value);
             item.precioCompraCLP = costoCLP > 0 ? costoCLP : undefined;
+            item.precioCompraUSD = undefined;
+            item.precioCompraUF = undefined;
             if (costoCLP > 0 && item.margenPorcentaje != null && item.margenPorcentaje > 0 && item.margenPorcentaje < 100) {
                 item.precioUnit = calcPrecioConMargen(costoCLP, item.margenPorcentaje);
             }
         }
         if (field === 'margenPorcentaje' && typeof value === 'number') {
-            const costo = item.precioCompraCLP ?? (item.precioCompraUSD != null && item.precioCompraUSD > 0 ? Math.round(item.precioCompraUSD * formData.tipoCambioUSD) : 0);
-            if (costo > 0 && value > 0 && value < 100) {
-                item.precioUnit = calcPrecioConMargen(costo, value);
+            const costoBase = item.precioCompraCLP
+                ?? (item.precioCompraUSD != null && item.precioCompraUSD > 0 ? Math.round(item.precioCompraUSD * formData.tipoCambioUSD) : 0)
+                ?? (item.precioCompraUF != null && item.precioCompraUF > 0 ? Math.round(item.precioCompraUF * formData.tipoCambioUF) : 0);
+            if (costoBase > 0 && value > 0 && value < 100) {
+                item.precioUnit = calcPrecioConMargen(costoBase, value);
             }
         }
         if (field === 'precioUnit' && typeof value === 'number') {
-            item.precioUnit = Math.round(value); // CLP sin decimales
+            item.precioUnit = Math.round(value);
         }
 
         newItems[index] = item;
@@ -858,6 +881,17 @@ export default function CotizacionesPage() {
                                             placeholder="924"
                                         />
                                     </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">Valor UF</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={formData.tipoCambioUF}
+                                            onChange={e => setFormData({ ...formData, tipoCambioUF: Number(e.target.value) || 38000 })}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                            placeholder="38000"
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
@@ -909,7 +943,7 @@ export default function CotizacionesPage() {
                                             + Agregar Ítem
                                         </button>
                                     </div>
-                                    <p className="text-xs text-slate-500 mb-3">Costo: USD (con decimal) o CLP (entero). Precio venta = Costo / (1 - % ganancia). El descuento global se aplica al total.</p>
+                                    <p className="text-xs text-slate-500 mb-3">Costo: USD, UF (con decimal) o CLP (entero). Se convierten automáticamente a CLP. Precio venta = Costo / (1 - % ganancia). El descuento global se aplica al total.</p>
                                     <div className="space-y-3">
                                         {formData.items.map((item, idx) => (
                                             <div key={idx} className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50 space-y-2">
@@ -942,17 +976,27 @@ export default function CotizacionesPage() {
                                                     <input
                                                         type="number"
                                                         step="0.01"
-                                                        placeholder="USD (con decimal)"
+                                                        placeholder="USD"
                                                         value={item.precioCompraUSD ?? ''}
                                                         onChange={e => updateItem(idx, 'precioCompraUSD', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
-                                                        className="w-24 bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white"
+                                                        className="w-20 bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white"
                                                         min="0"
                                                     />
-                                                    <span className="text-slate-500 text-xs">o</span>
+                                                    <span className="text-slate-500 text-xs">UF</span>
+                                                    <input
+                                                        type="number"
+                                                        step="0.0001"
+                                                        placeholder="UF"
+                                                        value={item.precioCompraUF ?? ''}
+                                                        onChange={e => updateItem(idx, 'precioCompraUF', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+                                                        className="w-20 bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white"
+                                                        min="0"
+                                                    />
+                                                    <span className="text-slate-500 text-xs">CLP</span>
                                                     <input
                                                         type="number"
                                                         step="1"
-                                                        placeholder="CLP (entero)"
+                                                        placeholder="CLP"
                                                         value={item.precioCompraCLP ?? ''}
                                                         onChange={e => updateItem(idx, 'precioCompraCLP', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
                                                         className="w-24 bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white"

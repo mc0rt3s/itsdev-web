@@ -42,6 +42,18 @@ export function resolveTipoCambioUSD(input: number | null | undefined, configVal
   return 924;
 }
 
+export function resolveTipoCambioUF(input: number | null | undefined, configValue: string | null | undefined): number {
+  const fromInput = input ?? 0;
+  if (fromInput > 0) return fromInput;
+
+  const parsed = Number.parseFloat(configValue ?? '');
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return parsed;
+  }
+
+  return 38000;
+}
+
 export function calcularTotalesCotizacion(
   items: CotizacionItemInput[],
   descuento: number,
