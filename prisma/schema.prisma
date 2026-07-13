@@ -277,7 +277,17 @@ model Cotizacion {
   
   nombreProspecto String? // Si no hay clienteId
   emailProspecto  String?
-  
+
+  // Propuesta de servicios
+  tipo                 String  @default("cotizacion") // cotizacion | propuesta
+  titulo               String? // Propuesta: subtítulo/tema del documento
+  contexto             String? // Propuesta: sección "Contexto y Objetivo"
+  alcance              String? // Propuesta: sección "Alcance del Servicio"
+  conceptoInversion    String? // Propuesta: descripción en tabla de inversión
+  condicionesGenerales String? // Propuesta: sección "Condiciones Generales"
+  plazoEstimado        String? // Propuesta: ej "3 a 5 días hábiles"
+  seccionesAdicionales String? // Propuesta: JSON [{titulo, contenido}] secciones extra post-inversión
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   

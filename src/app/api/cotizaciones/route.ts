@@ -51,7 +51,8 @@ export async function POST(request: NextRequest) {
         const {
             clienteId, nombreProspecto, emailProspecto, numero, etiquetaOportunidad, etiquetaComercial, fecha, validez, estado, moneda,
             descuento = 0, tipoCambioUSD, tipoCambioUF, modoEnvio, fechaEntrega, formaPago, duracionValidezDias,
-            notas, items, aplicarIVA, oportunidadId
+            notas, items, aplicarIVA, oportunidadId,
+            tipo, precioNeto, titulo, contexto, alcance, conceptoInversion, condicionesGenerales, plazoEstimado, seccionesAdicionales,
         } = parsed.data;
 
         const [cfgUSD, cfgUF] = await Promise.all([
@@ -60,7 +61,17 @@ export async function POST(request: NextRequest) {
         ]);
         const tcUSD = resolveTipoCambioUSD(tipoCambioUSD, cfgUSD?.valor);
         const tcUF = resolveTipoCambioUF(tipoCambioUF, cfgUF?.valor);
-        const { itemsWithTotal, subtotal, impuesto, total } = calcularTotalesCotizacion(items, descuento, aplicarIVA);
+
+        let subtotal: number, impuesto: number, total: number;
+        let itemsWithTotal: ReturnType<typeof calcularTotalesCotizacion>['itemsWithTotal'] = [];
+
+        if (tipo === 'propuesta') {
+            subtotal = precioNeto ?? 0;
+            impuesto = aplicarIVA ? Math.round(subtotal * 19) / 100 : 0;
+            total = subtotal + impuesto;
+        } else {
+            ({ itemsWithTotal, subtotal, impuesto, total } = calcularTotalesCotizacion(items, descuento, aplicarIVA));
+        }
 
         const cotizacion = await prisma.cotizacion.create({
             data: {
@@ -85,6 +96,14 @@ export async function POST(request: NextRequest) {
                 subtotal,
                 impuesto,
                 total,
+                tipo,
+                titulo: titulo || null,
+                contexto: contexto || null,
+                alcance: alcance || null,
+                conceptoInversion: conceptoInversion || null,
+                condicionesGenerales: condicionesGenerales || null,
+                plazoEstimado: plazoEstimado || null,
+                seccionesAdicionales: seccionesAdicionales || null,
                 items: { create: itemsWithTotal }
             },
             include: { items: true }

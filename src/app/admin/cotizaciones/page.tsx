@@ -6,6 +6,7 @@ import Link from 'next/link';
 interface Cotizacion {
     id: string;
     numero: string;
+    tipo: 'cotizacion' | 'propuesta';
     etiquetaOportunidad?: string | null;
     etiquetaComercial?: string | null;
     cliente?: { razonSocial: string; email?: string | null };
@@ -15,17 +16,23 @@ interface Cotizacion {
     fecha: string;
     validez: string;
     estado: string;
+    moneda: string;
     subtotal: number;
     descuento?: number;
     impuesto: number;
     total: number;
+    tipoCambioUF?: number | null;
     items: ItemCotizacion[];
-    facturas?: Array<{
-        id: string;
-        numero: string;
-        numeroSII?: string | null;
-        estado: string;
-    }>;
+    facturas?: Array<{ id: string; numero: string; numeroSII?: string | null; estado: string }>;
+    // Propuesta
+    titulo?: string | null;
+    contexto?: string | null;
+    alcance?: string | null;
+    conceptoInversion?: string | null;
+    condicionesGenerales?: string | null;
+    plazoEstimado?: string | null;
+    formaPago?: string | null;
+    seccionesAdicionales?: string | null;
 }
 
 interface ItemCotizacion {
@@ -60,6 +67,7 @@ export default function CotizacionesPage() {
 
     const [valores, setValores] = useState<{ tipoCambioUSD: number; tipoCambioUF: number }>({ tipoCambioUSD: 924, tipoCambioUF: 38000 });
     const [formData, setFormData] = useState({
+        tipo: 'cotizacion' as 'cotizacion' | 'propuesta',
         clienteId: '',
         nombreProspecto: '',
         emailProspecto: '',
@@ -78,7 +86,15 @@ export default function CotizacionesPage() {
         duracionValidezDias: 2,
         items: [{ descripcion: '', cantidad: 1, precioUnit: 0 }] as ItemCotizacion[],
         notas: '',
-        aplicarIVA: true
+        aplicarIVA: true,
+        // Propuesta
+        precioNeto: 0,
+        titulo: '',
+        contexto: '',
+        alcance: '',
+        conceptoInversion: '',
+        condicionesGenerales: '',
+        plazoEstimado: '',
     });
     const [saving, setSaving] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
@@ -143,33 +159,45 @@ export default function CotizacionesPage() {
         }
     };
 
+    const getBlankFormData = (tipo: 'cotizacion' | 'propuesta') => ({
+        tipo,
+        clienteId: '',
+        nombreProspecto: '',
+        emailProspecto: '',
+        numero: `COT-${new Date().getFullYear()}-${String(cotizaciones.length + 1).padStart(3, '0')}`,
+        etiquetaOportunidad: '',
+        etiquetaComercial: '',
+        fecha: new Date().toISOString().split('T')[0],
+        validez: tipo === 'propuesta'
+            ? new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            : new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split('T')[0],
+        estado: 'borrador',
+        descuento: 0,
+        tipoCambioUSD: valores.tipoCambioUSD,
+        tipoCambioUF: valores.tipoCambioUF,
+        modoEnvio: 'Entrega en oficina de cliente',
+        fechaEntrega: '24 Hrs posteriores confirmado el pago',
+        formaPago: tipo === 'propuesta' ? '50% al inicio del servicio, 50% contra entrega' : 'Transferencia',
+        duracionValidezDias: tipo === 'propuesta' ? 10 : 2,
+        items: [{ descripcion: '', cantidad: 1, precioUnit: 0 }] as ItemCotizacion[],
+        notas: '',
+        aplicarIVA: true,
+        precioNeto: 0,
+        titulo: '',
+        contexto: '',
+        alcance: '',
+        conceptoInversion: '',
+        condicionesGenerales: '',
+        plazoEstimado: '',
+    });
+
     const openNewModal = () => {
         setViewingCotizacion(null);
         setTargetType('cliente');
         setDestinatarioEmail('');
         setEmailAsunto('');
         setEmailMensaje('');
-        setFormData({
-            clienteId: '',
-            nombreProspecto: '',
-            emailProspecto: '',
-            numero: `COT-${new Date().getFullYear()}-${String(cotizaciones.length + 1).padStart(3, '0')}`,
-            etiquetaOportunidad: '',
-            etiquetaComercial: '',
-            fecha: new Date().toISOString().split('T')[0],
-            validez: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().split('T')[0],
-            estado: 'borrador',
-            descuento: 0,
-            tipoCambioUSD: valores.tipoCambioUSD,
-            tipoCambioUF: valores.tipoCambioUF,
-            modoEnvio: 'Entrega en oficina de cliente',
-            fechaEntrega: '24 Hrs posteriores confirmado el pago',
-            formaPago: 'Transferencia',
-            duracionValidezDias: 2,
-            items: [{ descripcion: '', cantidad: 1, precioUnit: 0 }],
-            notas: '',
-            aplicarIVA: true
-        });
+        setFormData(getBlankFormData('cotizacion'));
         setShowModal(true);
     };
 
@@ -292,22 +320,28 @@ export default function CotizacionesPage() {
         const nombreProspectoActual = inputNombre?.value?.trim() || null;
         const emailProspectoActual = inputEmail?.value?.trim() || null;
 
-        const payload = {
+        const base = {
             ...formData,
             clienteId: targetType === 'cliente' ? clienteIdActual : null,
             nombreProspecto: targetType === 'prospecto' ? nombreProspectoActual : null,
             emailProspecto: targetType === 'prospecto' ? emailProspectoActual : null,
             oportunidadId: oportunidadVinculada?.id ?? null,
-            items: formData.items.map(({ descripcion, sku, cantidad, precioCompraUSD, precioCompraCLP, margenPorcentaje, precioUnit }) => ({
-                descripcion,
-                sku: sku || null,
-                cantidad,
-                precioCompraUSD: precioCompraUSD ?? null,
-                precioCompraCLP: precioCompraCLP ?? null,
-                margenPorcentaje: margenPorcentaje ?? null,
-                precioUnit
-            })),
         };
+
+        const payload = formData.tipo === 'propuesta'
+            ? { ...base, moneda: 'UF', items: [] }
+            : {
+                ...base,
+                items: formData.items.map(({ descripcion, sku, cantidad, precioCompraUSD, precioCompraCLP, margenPorcentaje, precioUnit }) => ({
+                    descripcion,
+                    sku: sku || null,
+                    cantidad,
+                    precioCompraUSD: precioCompraUSD ?? null,
+                    precioCompraCLP: precioCompraCLP ?? null,
+                    margenPorcentaje: margenPorcentaje ?? null,
+                    precioUnit
+                })),
+            };
 
         try {
             const res = await fetch('/api/cotizaciones', {
@@ -496,10 +530,27 @@ export default function CotizacionesPage() {
                     <h1 className="text-3xl font-bold text-white">Cotizaciones</h1>
                     <p className="text-slate-400 mt-1">Propuestas comerciales</p>
                 </div>
-                <button onClick={openNewModal} className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-violet-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-cyan-500/25 transition-all flex items-center gap-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                    Nueva Cotización
-                </button>
+                <div className="flex gap-2">
+                    <button onClick={openNewModal} className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-violet-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-cyan-500/25 transition-all flex items-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                        Nueva Cotización
+                    </button>
+                    <button
+                        onClick={() => {
+                            setViewingCotizacion(null);
+                            setTargetType('cliente');
+                            setDestinatarioEmail('');
+                            setEmailAsunto('');
+                            setEmailMensaje('');
+                            setFormData(getBlankFormData('propuesta'));
+                            setShowModal(true);
+                        }}
+                        className="px-5 py-2.5 bg-gradient-to-r from-violet-500 to-pink-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-violet-500/25 transition-all flex items-center gap-2"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        Nueva Propuesta
+                    </button>
+                </div>
             </div>
 
             <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl overflow-hidden">
@@ -525,12 +576,20 @@ export default function CotizacionesPage() {
                             <tbody>
                                 {cotizaciones.map(c => (
                                     <tr key={c.id} className="border-b border-slate-700/20 hover:bg-slate-700/20 transition-colors">
-                                        <td className="p-4 font-mono text-cyan-400">{c.numero}</td>
+                                        <td className="p-4">
+                                            <span className="font-mono text-cyan-400">{c.numero}</span>
+                                            {c.tipo === 'propuesta' && (
+                                                <span className="ml-2 text-xs font-medium text-violet-400 bg-violet-500/10 border border-violet-500/20 px-1.5 py-0.5 rounded">Propuesta</span>
+                                            )}
+                                        </td>
                                         <td className="p-4 text-white font-medium">
                                             {c.cliente ? c.cliente.razonSocial : (
                                                 <span className="flex items-center gap-1">
                                                     {c.nombreProspecto} <span className="text-xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">Prospecto</span>
                                                 </span>
+                                            )}
+                                            {c.titulo && (
+                                                <p className="text-xs text-violet-400 mt-1 truncate max-w-[200px]">{c.titulo}</p>
                                             )}
                                             {c.etiquetaComercial && (
                                                 <p className="text-xs text-cyan-400 mt-1">{c.etiquetaComercial}</p>
@@ -566,7 +625,9 @@ export default function CotizacionesPage() {
                     <div className="relative bg-slate-800 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col">
                         <div className="p-6 border-b border-slate-700/50 flex justify-between items-center sticky top-0 bg-slate-800 z-10">
                             <h2 className="text-xl font-bold text-white">
-                                {viewingCotizacion ? `Cotización ${viewingCotizacion.numero}` : 'Nueva Cotización'}
+                                {viewingCotizacion
+                                    ? `${viewingCotizacion.tipo === 'propuesta' ? 'Propuesta' : 'Cotización'} ${viewingCotizacion.numero}`
+                                    : formData.tipo === 'propuesta' ? 'Nueva Propuesta de Servicios' : 'Nueva Cotización'}
                             </h2>
                             <button onClick={closeModal} className="text-slate-400 hover:text-white"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
                         </div>
@@ -653,6 +714,68 @@ export default function CotizacionesPage() {
                                     </div>
                                 )}
 
+                                {viewingCotizacion.tipo === 'propuesta' ? (
+                                    <div className="space-y-4">
+                                        {viewingCotizacion.titulo && (
+                                            <div>
+                                                <p className="text-slate-500 text-xs uppercase font-bold mb-1">Título del servicio</p>
+                                                <p className="text-slate-200">{viewingCotizacion.titulo}</p>
+                                            </div>
+                                        )}
+                                        {viewingCotizacion.contexto && (
+                                            <div>
+                                                <p className="text-slate-500 text-xs uppercase font-bold mb-1">Contexto y Objetivo</p>
+                                                <p className="text-slate-300 text-sm whitespace-pre-wrap">{viewingCotizacion.contexto}</p>
+                                            </div>
+                                        )}
+                                        {viewingCotizacion.alcance && (
+                                            <div>
+                                                <p className="text-slate-500 text-xs uppercase font-bold mb-1">Alcance del Servicio</p>
+                                                <p className="text-slate-300 text-sm whitespace-pre-wrap">{viewingCotizacion.alcance}</p>
+                                            </div>
+                                        )}
+                                        <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-700/50 space-y-2">
+                                            <p className="text-slate-500 text-xs uppercase font-bold">Inversión</p>
+                                            <div className="flex justify-between text-slate-300">
+                                                <span>{viewingCotizacion.conceptoInversion || viewingCotizacion.titulo || 'Servicio'}</span>
+                                                <span className="font-mono">{viewingCotizacion.subtotal.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} UF</span>
+                                            </div>
+                                            {viewingCotizacion.impuesto > 0 && (
+                                                <div className="flex justify-between text-slate-300">
+                                                    <span>IVA (19%)</span>
+                                                    <span className="font-mono">{viewingCotizacion.impuesto.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} UF</span>
+                                                </div>
+                                            )}
+                                            <div className="flex justify-between text-white font-bold pt-1 border-t border-slate-700">
+                                                <span>Total (con IVA)</span>
+                                                <span className="text-emerald-400">{viewingCotizacion.total.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} UF</span>
+                                            </div>
+                                            {viewingCotizacion.tipoCambioUF && (
+                                                <p className="text-xs text-slate-500">
+                                                    Ref. CLP: ${Math.round(viewingCotizacion.total * viewingCotizacion.tipoCambioUF).toLocaleString('es-CL')} aprox.
+                                                </p>
+                                            )}
+                                        </div>
+                                        {viewingCotizacion.plazoEstimado && (
+                                            <div>
+                                                <p className="text-slate-500 text-xs uppercase font-bold mb-1">Plazo estimado</p>
+                                                <p className="text-slate-300 text-sm">{viewingCotizacion.plazoEstimado}</p>
+                                            </div>
+                                        )}
+                                        {viewingCotizacion.formaPago && (
+                                            <div>
+                                                <p className="text-slate-500 text-xs uppercase font-bold mb-1">Forma de pago</p>
+                                                <p className="text-slate-300 text-sm">{viewingCotizacion.formaPago}</p>
+                                            </div>
+                                        )}
+                                        {viewingCotizacion.condicionesGenerales && (
+                                            <div>
+                                                <p className="text-slate-500 text-xs uppercase font-bold mb-1">Condiciones Generales</p>
+                                                <p className="text-slate-300 text-sm whitespace-pre-wrap">{viewingCotizacion.condicionesGenerales}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
                                 <div>
                                     <h3 className="text-white font-semibold mb-4 border-b border-slate-700/50 pb-2">Ítems</h3>
                                     <div className="space-y-3">
@@ -690,6 +813,7 @@ export default function CotizacionesPage() {
                                         </div>
                                     </div>
                                 </div>
+                                )}
 
                                 <div className="rounded-xl border border-slate-700/50 bg-slate-900/40 p-4 space-y-4">
                                     <div className="flex items-center justify-between gap-3">
@@ -936,6 +1060,120 @@ export default function CotizacionesPage() {
                                     </div>
                                 </div>
 
+                                {formData.tipo === 'propuesta' ? (
+                                    <div className="space-y-4 bg-slate-900/30 p-4 rounded-xl border border-slate-700/50">
+                                        <h3 className="text-white font-medium border-b border-slate-700/50 pb-2">Contenido de la Propuesta</h3>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-300 mb-1">Título del servicio</label>
+                                            <input
+                                                type="text"
+                                                value={formData.titulo}
+                                                onChange={e => setFormData({ ...formData, titulo: e.target.value })}
+                                                placeholder="Ej: Migración de Sitio WordPress a DigitalOcean"
+                                                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-violet-500 outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-300 mb-1">Contexto y Objetivo</label>
+                                            <textarea
+                                                rows={4}
+                                                value={formData.contexto}
+                                                onChange={e => setFormData({ ...formData, contexto: e.target.value })}
+                                                placeholder="Describe el contexto del cliente y el objetivo del servicio..."
+                                                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-violet-500 outline-none resize-y"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-300 mb-1">Alcance del Servicio</label>
+                                            <p className="text-xs text-slate-500 mb-1">Usa saltos de línea para separar ítems. Puedes incluir subsecciones con títulos en la primera línea.</p>
+                                            <textarea
+                                                rows={8}
+                                                value={formData.alcance}
+                                                onChange={e => setFormData({ ...formData, alcance: e.target.value })}
+                                                placeholder={"Configuración del servidor\n• Aprovisionamiento del Droplet (Ubuntu LTS)\n• Hardening básico: firewall, fail2ban, SSH por llave\n\nMigración del sitio\n• Extracción de archivos y base de datos\n• Restauración en el nuevo servidor"}
+                                                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-violet-500 outline-none resize-y font-mono text-sm"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-300 mb-1">Concepto en tabla de inversión</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.conceptoInversion}
+                                                    onChange={e => setFormData({ ...formData, conceptoInversion: e.target.value })}
+                                                    placeholder="Ej: Migración completa (droplet + sitio + DNS + SSL)"
+                                                    className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-violet-500 outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-300 mb-1">Precio neto (UF)</label>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        required
+                                                        value={formData.precioNeto}
+                                                        onChange={e => setFormData({ ...formData, precioNeto: parseFloat(e.target.value) || 0 })}
+                                                        className="flex-1 bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-violet-500 outline-none"
+                                                        placeholder="12"
+                                                    />
+                                                    <span className="text-slate-400 text-sm">UF</span>
+                                                </div>
+                                                {formData.precioNeto > 0 && (
+                                                    <div className="mt-1 text-xs text-slate-500 space-y-0.5">
+                                                        <p>Neto: {formData.precioNeto.toFixed(2)} UF · IVA: {(formData.precioNeto * 0.19).toFixed(2)} UF</p>
+                                                        <p className="font-medium text-slate-400">Total: {(formData.precioNeto * 1.19).toFixed(2)} UF ≈ ${Math.round(formData.precioNeto * 1.19 * formData.tipoCambioUF).toLocaleString('es-CL')}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-300 mb-1">Plazo estimado</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.plazoEstimado}
+                                                    onChange={e => setFormData({ ...formData, plazoEstimado: e.target.value })}
+                                                    placeholder="Ej: 3 a 5 días hábiles"
+                                                    className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-violet-500 outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-300 mb-1">Forma de pago</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.formaPago}
+                                                    onChange={e => setFormData({ ...formData, formaPago: e.target.value })}
+                                                    placeholder="Ej: 50% al inicio, 50% contra entrega"
+                                                    className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-violet-500 outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-300 mb-1">Condiciones Generales</label>
+                                            <p className="text-xs text-slate-500 mb-1">Una condición por línea.</p>
+                                            <textarea
+                                                rows={5}
+                                                value={formData.condicionesGenerales}
+                                                onChange={e => setFormData({ ...formData, condicionesGenerales: e.target.value })}
+                                                placeholder={"• Forma de pago: 50% al inicio del servicio, 50% contra entrega.\n• Plazo estimado: 3 a 5 días hábiles.\n• El precio no incluye desarrollo de nuevas funcionalidades.\n• Valores expresados en UF más IVA."}
+                                                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-violet-500 outline-none resize-y text-sm"
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.aplicarIVA}
+                                                    onChange={(e) => setFormData({ ...formData, aplicarIVA: e.target.checked })}
+                                                    className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-violet-500"
+                                                />
+                                                <span className="text-sm">Aplicar IVA (19%)</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                ) : (
                                 <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-700/50">
                                     <div className="flex justify-between items-center mb-4">
                                         <h3 className="text-white font-medium">Ítems</h3>
@@ -1077,11 +1315,20 @@ export default function CotizacionesPage() {
                                         </div>
                                     </div>
                                 </div>
+                                )}
 
                                 <div className="flex gap-4 pt-4">
                                     <button type="button" onClick={closeModal} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl transition-colors">Cancelar</button>
-                                    <button type="submit" disabled={saving} className="flex-1 bg-gradient-to-r from-cyan-500 to-violet-500 text-white font-bold py-3 rounded-xl hover:shadow-lg hover:shadow-cyan-500/25 transition-all">
-                                        {saving ? 'Guardando...' : 'Crear Cotización'}
+                                    <button
+                                        type="submit"
+                                        disabled={saving}
+                                        className={`flex-1 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all ${
+                                            formData.tipo === 'propuesta'
+                                                ? 'bg-gradient-to-r from-violet-500 to-pink-500 hover:shadow-violet-500/25'
+                                                : 'bg-gradient-to-r from-cyan-500 to-violet-500 hover:shadow-cyan-500/25'
+                                        }`}
+                                    >
+                                        {saving ? 'Guardando...' : formData.tipo === 'propuesta' ? 'Crear Propuesta' : 'Crear Cotización'}
                                     </button>
                                 </div>
                             </form>

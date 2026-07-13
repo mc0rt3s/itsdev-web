@@ -579,3 +579,287 @@ function drawLogoTextCotizacion(doc: jsPDF, x: number, y: number) {
     doc.setTextColor(203, 213, 225);
     doc.text('Soluciones tecnológicas', x, y + 4.5);
 }
+
+interface PropuestaData {
+    numero: string;
+    titulo?: string | null;
+    fecha: string;
+    validez: string;
+    validezDias?: number | null;
+    cliente?: { razonSocial: string; rut?: string | null; email?: string | null; contacto?: string | null } | null;
+    nombreProspecto?: string | null;
+    emailProspecto?: string | null;
+    contexto?: string | null;
+    alcance?: string | null;
+    seccionesAdicionales?: { titulo: string; contenido: string }[] | null;
+    conceptoInversion?: string | null;
+    subtotal: number;
+    impuesto: number;
+    total: number;
+    moneda: string;
+    tipoCambioUF?: number | null;
+    aplicarIVA: boolean;
+    condicionesGenerales?: string | null;
+    plazoEstimado?: string | null;
+    formaPago?: string | null;
+    notas?: string | null;
+}
+
+export function generatePropuestaPDF(data: PropuestaData): Buffer {
+    const doc = new jsPDF();
+
+    const navy: [number, number, number] = [24, 39, 58];
+    const green: [number, number, number] = [133, 186, 57];
+    const lineColor: [number, number, number] = [225, 232, 240];
+    const textColor: [number, number, number] = [15, 23, 42];
+    const mutedColor: [number, number, number] = [71, 85, 105];
+    const softBg: [number, number, number] = [248, 250, 252];
+
+    const MARGIN = 14;
+    const TEXT_WIDTH = 210 - MARGIN * 2;
+    const FOOTER_Y = 274;
+    const MAX_Y = FOOTER_Y - 18;
+
+    const clientName = data.cliente?.razonSocial || data.nombreProspecto || 'Prospecto';
+
+    const drawPageHeader = () => {
+        doc.setFillColor(...navy);
+        doc.rect(0, 0, 210, 34, 'F');
+        doc.setFillColor(...green);
+        doc.rect(0, 0, 210, 4, 'F');
+        doc.setFillColor(...green);
+        doc.triangle(162, 34, 210, 34, 210, 22, 'F');
+        if (LOGO_BASE64) {
+            try { doc.addImage(LOGO_BASE64, 'PNG', MARGIN, 8, 58, 16); }
+            catch { drawLogoTextCotizacion(doc, MARGIN, 17); }
+        } else {
+            drawLogoTextCotizacion(doc, MARGIN, 17);
+        }
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.text('PROPUESTA', 194, 16, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.text('ITSDev — Servicios Informáticos', 194, 23, { align: 'right' });
+    };
+
+    const drawPageFooter = () => {
+        doc.setFillColor(...navy);
+        doc.rect(0, FOOTER_Y, 210, 23, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text('+56 9 9095 8220   contacto@itsdev.cl   Casablanca, Chile', MARGIN, 287);
+        doc.text(`Generado: ${new Date().toLocaleString('es-CL')}`, 195, 287, { align: 'right' });
+    };
+
+    let yPos = 0;
+
+    const addPage = () => {
+        drawPageFooter();
+        doc.addPage();
+        drawPageHeader();
+        drawPageFooter();
+        yPos = 42;
+    };
+
+    const ensureSpace = (needed: number) => {
+        if (yPos + needed > MAX_Y) addPage();
+    };
+
+    const drawSectionTitle = (title: string) => {
+        ensureSpace(16);
+        yPos += 6;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(...navy);
+        doc.text(title, MARGIN, yPos);
+        yPos += 2;
+        doc.setDrawColor(...green);
+        doc.setLineWidth(0.5);
+        doc.line(MARGIN, yPos, MARGIN + TEXT_WIDTH, yPos);
+        doc.setLineWidth(0.2);
+        doc.setDrawColor(...lineColor);
+        yPos += 6;
+    };
+
+    const renderTextBlock = (text: string, fontSize = 9) => {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(fontSize);
+        doc.setTextColor(...textColor);
+        for (const line of text.split('\n')) {
+            const wrapped = doc.splitTextToSize(line === '' ? ' ' : line, TEXT_WIDTH);
+            for (const wl of wrapped) {
+                ensureSpace(6);
+                doc.text(wl, MARGIN, yPos);
+                yPos += 5.2;
+            }
+        }
+        yPos += 2;
+    };
+
+    // ── First page ──
+    drawPageHeader();
+    drawPageFooter();
+
+    // Title block
+    yPos = 44;
+    doc.setTextColor(...textColor);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.text('Propuesta de Servicios', MARGIN, yPos);
+    yPos += 7;
+
+    if (data.titulo) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.setTextColor(...green);
+        const titleLines = doc.splitTextToSize(data.titulo, TEXT_WIDTH);
+        doc.text(titleLines, MARGIN, yPos);
+        yPos += titleLines.length * 6.2 + 3;
+    } else {
+        yPos += 4;
+    }
+
+    // Info table (4 rows)
+    const infoRows: [string, string][] = [
+        ['Cliente', clientName],
+        ['Fecha de propuesta', new Date(data.fecha).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })],
+        ['Presentado por', 'Marcelo Cortés Armijo — ItsDev'],
+        ['Validez de la oferta', data.validezDias
+            ? `${data.validezDias} días corridos desde la fecha de emisión`
+            : new Date(data.validez).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })],
+    ];
+
+    infoRows.forEach(([label, value], i) => {
+        const bg: [number, number, number] = i % 2 === 0 ? softBg : [255, 255, 255];
+        doc.setFillColor(...bg);
+        doc.rect(MARGIN, yPos, TEXT_WIDTH, 10, 'F');
+        doc.setDrawColor(...lineColor);
+        doc.rect(MARGIN, yPos, TEXT_WIDTH, 10, 'S');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.setTextColor(...textColor);
+        doc.text(label, MARGIN + 4, yPos + 6.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text(value, MARGIN + 65, yPos + 6.5);
+        yPos += 10;
+    });
+
+    yPos += 6;
+
+    // ── Content sections ──
+    let sectionNum = 1;
+
+    if (data.contexto) {
+        drawSectionTitle(`${sectionNum}. Contexto y Objetivo`);
+        sectionNum++;
+        renderTextBlock(data.contexto);
+    }
+
+    if (data.alcance) {
+        drawSectionTitle(`${sectionNum}. Alcance del Servicio`);
+        sectionNum++;
+        renderTextBlock(data.alcance);
+    }
+
+    // ── Inversión ──
+    drawSectionTitle(`${sectionNum}. Inversión`);
+    sectionNum++;
+
+    const isUF = data.moneda === 'UF';
+    const fmtVal = (v: number) => isUF
+        ? `${v.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} UF`
+        : `$${Math.round(v).toLocaleString('es-CL')}`;
+
+    const conceptLabel = data.conceptoInversion || data.titulo || 'Servicio profesional';
+    const invRows: [string, string, boolean][] = [
+        [conceptLabel, fmtVal(data.subtotal), false],
+        ...(data.aplicarIVA ? [['IVA (19%)', fmtVal(data.impuesto), false] as [string, string, boolean]] : []),
+        ['Total (con IVA)', fmtVal(data.total), true],
+    ];
+
+    ensureSpace(invRows.length * 11 + 24);
+
+    // Table header
+    doc.setFillColor(...navy);
+    doc.rect(MARGIN, yPos, TEXT_WIDTH, 9, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text('Concepto', MARGIN + 4, yPos + 6);
+    doc.text('Valor', MARGIN + TEXT_WIDTH - 4, yPos + 6, { align: 'right' });
+    yPos += 9;
+
+    invRows.forEach(([label, value, isTotal], i) => {
+        const bg: [number, number, number] = isTotal ? [240, 253, 244] : (i % 2 === 0 ? softBg : [255, 255, 255]);
+        doc.setFillColor(...bg);
+        doc.rect(MARGIN, yPos, TEXT_WIDTH, 11, 'F');
+        doc.setDrawColor(...lineColor);
+        doc.rect(MARGIN, yPos, TEXT_WIDTH, 11, 'S');
+        if (isTotal) {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(...navy);
+        } else {
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...textColor);
+        }
+        doc.setFontSize(9);
+        const labelLines = doc.splitTextToSize(label, 130);
+        doc.text(labelLines[0], MARGIN + 4, yPos + 7);
+        doc.text(value, MARGIN + TEXT_WIDTH - 4, yPos + 7, { align: 'right' });
+        yPos += 11;
+    });
+
+    if (isUF && data.tipoCambioUF && data.tipoCambioUF > 0) {
+        yPos += 3;
+        ensureSpace(12);
+        const ufDate = new Date(data.fecha).toLocaleDateString('es-CL');
+        const ufValStr = data.tipoCambioUF.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const clpTotal = `$${Math.round(data.total * data.tipoCambioUF).toLocaleString('es-CL')}`;
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(7.5);
+        doc.setTextColor(...mutedColor);
+        doc.text(`Referencia en pesos chilenos (UF del ${ufDate}, $${ufValStr}): ${clpTotal} aprox. (con IVA incluido).`, MARGIN, yPos);
+        yPos += 4.5;
+        doc.text('El valor final se calcula según el valor de la UF vigente a la fecha de emisión de la factura.', MARGIN, yPos);
+        yPos += 5;
+    }
+
+    // ── Extra sections (post-inversión) ──
+    if (data.seccionesAdicionales && data.seccionesAdicionales.length > 0) {
+        for (const sec of data.seccionesAdicionales) {
+            drawSectionTitle(`${sectionNum}. ${sec.titulo}`);
+            sectionNum++;
+            renderTextBlock(sec.contenido);
+        }
+    }
+
+    // ── Condiciones Generales ──
+    if (data.condicionesGenerales) {
+        drawSectionTitle(`${sectionNum}. Condiciones Generales`);
+        sectionNum++;
+        renderTextBlock(data.condicionesGenerales);
+    }
+
+    // ── Closing ──
+    ensureSpace(28);
+    yPos += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...mutedColor);
+    doc.text('Quedo atento a sus comentarios para coordinar el inicio del servicio.', MARGIN, yPos);
+    yPos += 10;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(...textColor);
+    doc.text('Marcelo Cortés Armijo', MARGIN, yPos);
+    yPos += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...mutedColor);
+    doc.text('Ingeniero en Gestión Informática — ItsDev', MARGIN, yPos);
+
+    return Buffer.from(doc.output('arraybuffer'));
+}

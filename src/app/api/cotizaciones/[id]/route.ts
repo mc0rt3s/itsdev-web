@@ -47,38 +47,48 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         // Let's rely on schema for consistency but handling items is complex.
         // If client sends items, we replace.
 
-        // Check if items are present
-        if (data.items) {
-            // Full update logic with items replacement
+        // Check if this is a full update (has items array or is a propuesta with precioNeto)
+        if (data.items !== undefined || data.precioNeto !== undefined) {
             const validation = cotizacionSchema.safeParse(data);
             if (!validation.success) return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
 
             const {
                 items, aplicarIVA = true, descuento = 0,
                 tipoCambioUSD, modoEnvio, fechaEntrega, formaPago, duracionValidezDias,
+                oportunidadId, precioNeto,
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 ...rest
             } = validation.data;
 
-            let subtotal = 0;
-            const itemsWithTotal = items.map(item => {
-                const t = item.cantidad * item.precioUnit;
-                subtotal += t;
-                return {
-                    sku: item.sku || null,
-                    descripcion: item.descripcion,
-                    cantidad: item.cantidad,
-                    precioCompraUSD: item.precioCompraUSD ?? null,
-                    precioCompraCLP: item.precioCompraCLP ?? null,
-                    margenPorcentaje: item.margenPorcentaje ?? null,
-                    precioUnit: item.precioUnit,
-                    total: t,
-                    servicioId: item.servicioId || null,
-                };
-            });
+            let subtotal: number, impuesto: number, total: number;
+            let itemsWithTotal: { sku: string | null; descripcion: string; cantidad: number; precioCompraUSD: number | null; precioCompraCLP: number | null; margenPorcentaje: number | null; precioUnit: number; total: number; servicioId: string | null }[] = [];
 
-            const subtotalDescontado = Math.max(0, subtotal - descuento);
-            const impuesto = aplicarIVA ? Math.round(subtotalDescontado * 0.19) : 0;
-            const total = subtotalDescontado + impuesto;
+            if (rest.tipo === 'propuesta') {
+                subtotal = precioNeto ?? 0;
+                impuesto = aplicarIVA ? Math.round(subtotal * 19) / 100 : 0;
+                total = subtotal + impuesto;
+            } else {
+                let sub = 0;
+                itemsWithTotal = items.map(item => {
+                    const t = item.cantidad * item.precioUnit;
+                    sub += t;
+                    return {
+                        sku: item.sku || null,
+                        descripcion: item.descripcion,
+                        cantidad: item.cantidad,
+                        precioCompraUSD: item.precioCompraUSD ?? null,
+                        precioCompraCLP: item.precioCompraCLP ?? null,
+                        margenPorcentaje: item.margenPorcentaje ?? null,
+                        precioUnit: item.precioUnit,
+                        total: t,
+                        servicioId: item.servicioId || null,
+                    };
+                });
+                const subtotalDescontado = Math.max(0, sub - descuento);
+                subtotal = sub;
+                impuesto = aplicarIVA ? Math.round(subtotalDescontado * 0.19) : 0;
+                total = subtotalDescontado + impuesto;
+            }
 
             const cotizacion = await prisma.cotizacion.update({
                 where: { id },
@@ -86,6 +96,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                     ...rest,
                     etiquetaOportunidad: rest.etiquetaOportunidad || null,
                     etiquetaComercial: rest.etiquetaComercial || null,
+                    titulo: rest.titulo || null,
+                    contexto: rest.contexto || null,
+                    alcance: rest.alcance || null,
+                    conceptoInversion: rest.conceptoInversion || null,
+                    condicionesGenerales: rest.condicionesGenerales || null,
+                    plazoEstimado: rest.plazoEstimado || null,
+                    seccionesAdicionales: rest.seccionesAdicionales || null,
                     descuento,
                     tipoCambioUSD: tipoCambioUSD ?? undefined,
                     modoEnvio: modoEnvio || null,

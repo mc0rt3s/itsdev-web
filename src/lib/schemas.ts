@@ -183,13 +183,30 @@ export const cotizacionSchema = z.object({
   fechaEntrega: z.string().optional().nullable(),
   formaPago: z.string().optional().nullable(),
   duracionValidezDias: z.number().int().min(1).optional().nullable(),
-  items: z.array(itemCotizacionSchema).min(1, 'Debe haber al menos un ítem'),
+  items: z.array(itemCotizacionSchema).default([]),
   notas: z.string().optional().nullable(),
   aplicarIVA: z.boolean().optional().default(true),
   oportunidadId: z.string().optional().nullable(),
-}).refine(data => data.clienteId || (data.nombreProspecto && data.emailProspecto), {
-  message: "Debe especificar un cliente o los datos del prospecto",
-  path: ["clienteId"],
+  // Propuesta de servicios
+  tipo: z.enum(['cotizacion', 'propuesta']).default('cotizacion'),
+  precioNeto: z.number().min(0).optional().nullable(),
+  titulo: z.string().optional().nullable(),
+  contexto: z.string().optional().nullable(),
+  alcance: z.string().optional().nullable(),
+  conceptoInversion: z.string().optional().nullable(),
+  condicionesGenerales: z.string().optional().nullable(),
+  plazoEstimado: z.string().optional().nullable(),
+  seccionesAdicionales: z.string().optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (!data.clienteId && (!data.nombreProspecto || !data.emailProspecto)) {
+    ctx.addIssue({ code: 'custom', message: 'Debe especificar un cliente o los datos del prospecto', path: ['clienteId'] });
+  }
+  if (data.tipo === 'cotizacion' && data.items.length === 0) {
+    ctx.addIssue({ code: 'custom', message: 'Debe haber al menos un ítem', path: ['items'] });
+  }
+  if (data.tipo === 'propuesta' && (!data.precioNeto || data.precioNeto <= 0)) {
+    ctx.addIssue({ code: 'custom', message: 'La propuesta requiere un precio neto mayor a 0', path: ['precioNeto'] });
+  }
 });
 export type CotizacionInput = z.infer<typeof cotizacionSchema>;
 
