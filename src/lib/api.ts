@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { Session } from 'next-auth';
 import { z } from 'zod';
+import { timingSafeEqual } from 'crypto';
 import { auth } from '@/lib/auth';
 
 interface AuthOptions {
@@ -15,15 +16,27 @@ interface AuthFailure {
   response: NextResponse;
 }
 
+function safeCompareToken(a: string, b: string): boolean {
+  try {
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  } catch {
+    return false;
+  }
+}
+
 export async function requireAuth(options?: AuthOptions): Promise<AuthSuccess | AuthFailure> {
   // Verificar token de Estrella/Electron
   const { headers } = await import('next/headers');
   const headersList = await headers();
   const authHeader = headersList.get('authorization');
   const estrelllaToken = process.env.ESTRELLA_API_TOKEN;
-  
-  if (estrelllaToken && authHeader === `Bearer ${estrelllaToken}`) {
-    return { session: { user: { id: 'estrella', name: 'Estrella', email: 'estrella@itsdev.cl', role: 'admin' }, expires: '' } as Session };
+
+  if (estrelllaToken && authHeader) {
+    const expectedBearer = `Bearer ${estrelllaToken}`;
+    if (safeCompareToken(authHeader, expectedBearer)) {
+      return { session: { user: { id: 'estrella', name: 'Estrella', email: 'estrella@itsdev.cl', role: 'admin' }, expires: '' } as Session };
+    }
   }
 
   // Verificar sesión NextAuth normal

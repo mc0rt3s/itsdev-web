@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { contactSchema } from '@/lib/schemas';
 
+// Escape HTML para prevenir XSS en emails
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // Inicialización lazy de Resend (evita error en build time)
 function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY;
@@ -87,26 +97,26 @@ export async function POST(request: NextRequest) {
             </div>
             <div class="content">
               <div class="contact-card">
-                <h2 class="contact-name">${data.nombre}</h2>
-                ${data.empresa ? `<p class="contact-company">${data.empresa}</p>` : ''}
-                
+                <h2 class="contact-name">${escapeHtml(data.nombre)}</h2>
+                ${data.empresa ? `<p class="contact-company">${escapeHtml(data.empresa)}</p>` : ''}
+
                 <div class="contact-info">
                   <div class="contact-row">
                     <span class="contact-icon">📧</span>
-                    <a href="mailto:${data.email}" class="contact-link">${data.email}</a>
+                    <a href="mailto:${escapeHtml(data.email)}" class="contact-link">${escapeHtml(data.email)}</a>
                   </div>
                   ${data.telefono ? `
                   <div class="contact-row">
                     <span class="contact-icon">📱</span>
-                    <a href="tel:${data.telefono}" class="contact-link">${data.telefono}</a>
+                    <a href="tel:${escapeHtml(data.telefono)}" class="contact-link">${escapeHtml(data.telefono)}</a>
                   </div>
                   ` : ''}
                 </div>
-                
+
                 <div class="divider"></div>
-                
+
                 <div class="message-label">Mensaje</div>
-                <div class="message-text">${data.mensaje}</div>
+                <div class="message-text">${escapeHtml(data.mensaje)}</div>
               </div>
             </div>
             <div class="footer">
@@ -157,7 +167,7 @@ export async function POST(request: NextRequest) {
             </div>
             <div class="content">
               <div class="message">
-                <p>Hola <strong>${data.nombre}</strong>,</p>
+                <p>Hola <strong>${escapeHtml(data.nombre)}</strong>,</p>
                 <p>Gracias por tu interés en ItsDev. Hemos recibido tu mensaje y nos pondremos en contacto contigo en las próximas <strong>24 horas hábiles</strong>.</p>
                 <p>Si tu consulta es urgente, puedes contactarnos directamente por WhatsApp:</p>
               </div>

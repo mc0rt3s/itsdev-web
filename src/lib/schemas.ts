@@ -51,11 +51,11 @@ export const accesoInformeSchema = z.object({
 
 
 export const contactSchema = z.object({
-  nombre: z.string().min(2, 'El nombre es requerido (mínimo 2 caracteres)'),
-  empresa: z.string().optional().nullable(),
-  email: z.string().email('Email inválido'),
-  telefono: z.string().optional().nullable(),
-  mensaje: z.string().min(10, 'El mensaje es requerido (mínimo 10 caracteres)'),
+  nombre: z.string().min(2, 'El nombre es requerido (mínimo 2 caracteres)').max(100, 'El nombre no puede exceder 100 caracteres').trim(),
+  empresa: z.string().max(200, 'La empresa no puede exceder 200 caracteres').trim().optional().nullable(),
+  email: z.string().email('Email inválido').max(200, 'El email no puede exceder 200 caracteres').trim(),
+  telefono: z.string().max(30, 'El teléfono no puede exceder 30 caracteres').trim().optional().nullable(),
+  mensaje: z.string().min(10, 'El mensaje es requerido (mínimo 10 caracteres)').max(5000, 'El mensaje no puede exceder 5000 caracteres').trim(),
 });
 
 export type ContactInput = z.infer<typeof contactSchema>;
