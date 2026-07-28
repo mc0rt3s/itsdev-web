@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { contactSchema } from '@/lib/schemas';
+import { z } from 'zod';
 
 // Escape HTML para prevenir XSS en emails
 function escapeHtml(str: string): string {
@@ -21,10 +22,44 @@ function getResendClient() {
   return new Resend(apiKey);
 }
 
+// Verificar token reCAPTCHA
+async function verifyRecaptcha(token: string): Promise<boolean> {
+  const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+  if (!secretKey) {
+    console.warn('RECAPTCHA_SECRET_KEY no configurada');
+    return true; // Allow if not configured
+  }
+
+  try {
+    const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `secret=${secretKey}&response=${token}`,
+    });
+
+    const data = await response.json() as { success: boolean; score?: number };
+    // v3 returns a score (0.0 - 1.0), reject if score < 0.5 (likely bot)
+    return data.success && (data.score ?? 1) > 0.5;
+  } catch (error) {
+    console.error('Error verifying reCAPTCHA:', error);
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const body = await request.json();
+    const { recaptchaToken, ...formData } = body;
 
-    const validationResult = contactSchema.safeParse(await request.json());
+    // Verify reCAPTCHA token
+    if (!recaptchaToken || !(await verifyRecaptcha(recaptchaToken))) {
+      return NextResponse.json(
+        { error: 'Validación de reCAPTCHA fallida. Intenta de nuevo.' },
+        { status: 400 }
+      );
+    }
+
+    const validationResult = contactSchema.safeParse(formData);
 
     if (!validationResult.success) {
       return NextResponse.json(

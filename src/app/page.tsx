@@ -8,10 +8,8 @@ import PorQueItsDev from '@/components/PorQueItsDev';
 import Contacto from '@/components/Contacto';
 import Footer from '@/components/Footer';
 import WhatsAppButton from '@/components/WhatsAppButton';
-import CalendlyBadgeWidget from '@/components/CalendlyBadgeWidget';
 
 export default function Home() {
-  const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL || 'https://calendly.com/itsdev-cl/30min';
 
   return (
     <>
@@ -27,15 +25,6 @@ export default function Home() {
       </main>
       <Footer />
       <WhatsAppButton />
-      {calendlyUrl && (
-        <CalendlyBadgeWidget
-          url={calendlyUrl}
-          text="Programe una reunión conmigo"
-          color="#0069ff"
-          textColor="#ffffff"
-          branding
-        />
-      )}
     </>
   );
 }

@@ -1,5 +1,4 @@
 import Image from 'next/image';
-import CalendlyButton from './CalendlyButton';
 
 export default function Hero() {
   return (
@@ -56,11 +55,6 @@ export default function Hero() {
             >
               Conversemos sobre tu proyecto
             </a>
-            <CalendlyButton
-              url={process.env.NEXT_PUBLIC_CALENDLY_URL || 'https://calendly.com/tu-usuario/30min'}
-              text="Agendar reunión"
-              className="w-full sm:w-auto border border-white/30 hover:border-white/50 text-white px-8 py-4 rounded-full text-lg font-medium transition-all hover:bg-white/5"
-            />
             <a
               href="#servicios"
               className="w-full sm:w-auto border border-white/30 hover:border-white/50 text-white px-8 py-4 rounded-full text-lg font-medium transition-all hover:bg-white/5"

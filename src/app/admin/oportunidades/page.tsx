@@ -47,6 +47,17 @@ interface NewOportunidad {
   source: string;
 }
 
+interface Actividad {
+  id: string;
+  tipo: string;
+  asunto: string;
+  notas: string | null;
+  scheduledAt: string | null;
+  completedAt: string | null;
+  nextActionDate: string | null;
+  createdAt: string;
+}
+
 interface Cliente { id: string; razonSocial: string }
 
 const CLP = (n: number, moneda = 'CLP') => {
@@ -67,6 +78,9 @@ export default function OportunidadesPage() {
   const [form, setForm] = useState<NewOportunidad>({ clienteId: '', stageId: '', titulo: '', tipo: 'proyecto', monto: '', moneda: 'CLP', expectedCloseDate: '', source: '' });
   const [actModal, setActModal] = useState<Oportunidad | null>(null);
   const [actForm, setActForm] = useState({ tipo: 'llamada', asunto: '', notas: '', scheduledAt: '', nextActionDate: '' });
+  const [actividades, setActividades] = useState<Actividad[]>([]);
+  const [loadingActs, setLoadingActs] = useState(false);
+  const [showActForm, setShowActForm] = useState(false);
 
   const fetchAll = useCallback(async () => {
     const [stRes, opRes] = await Promise.all([
@@ -144,6 +158,19 @@ export default function OportunidadesPage() {
     }
   };
 
+  const openActModal = async (op: Oportunidad, openForm = false) => {
+    setActModal(op);
+    setShowActForm(openForm);
+    setActividades([]);
+    setLoadingActs(true);
+    try {
+      const res = await fetch(`/api/oportunidades/${op.id}/actividades`);
+      if (res.ok) setActividades(await res.json());
+    } finally {
+      setLoadingActs(false);
+    }
+  };
+
   const createActividad = async () => {
     if (!actModal || !actForm.tipo || !actForm.asunto) return;
     const res = await fetch(`/api/oportunidades/${actModal.id}/actividades`, {
@@ -156,8 +183,11 @@ export default function OportunidadesPage() {
       }),
     });
     if (res.ok) {
-      setActModal(null);
       setActForm({ tipo: 'llamada', asunto: '', notas: '', scheduledAt: '', nextActionDate: '' });
+      setShowActForm(false);
+      // Refresh activities list and kanban counts
+      const actsRes = await fetch(`/api/oportunidades/${actModal.id}/actividades`);
+      if (actsRes.ok) setActividades(await actsRes.json());
       fetchAll();
     }
   };
@@ -278,7 +308,7 @@ export default function OportunidadesPage() {
 
                     <div className="flex items-center gap-1 pt-1">
                       <button
-                        onClick={() => setActModal(op)}
+                        onClick={() => openActModal(op, true)}
                         className="flex-1 text-xs py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 transition-all"
                       >
                         + Actividad
@@ -297,7 +327,12 @@ export default function OportunidadesPage() {
                       </button>
                     </div>
                     {op._count.actividades > 0 && (
-                      <p className="text-xs text-slate-500">{op._count.actividades} actividad{op._count.actividades !== 1 ? 'es' : ''}</p>
+                      <button
+                        onClick={() => openActModal(op, false)}
+                        className="text-xs text-slate-500 hover:text-cyan-400 transition-colors text-left"
+                      >
+                        {op._count.actividades} actividad{op._count.actividades !== 1 ? 'es' : ''} · ver historial
+                      </button>
                     )}
                   </div>
                 ))}
@@ -467,82 +502,174 @@ export default function OportunidadesPage() {
         </div>
       )}
 
-      {/* Modal: Nueva Actividad */}
+      {/* Modal: Detalle oportunidad + Timeline actividades */}
       {actModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 border border-slate-700/50 rounded-2xl p-6 w-full max-w-md space-y-4">
-            <h3 className="text-lg font-bold text-white">Nueva Actividad</h3>
-            <p className="text-slate-400 text-sm">{actModal.titulo} — {actModal.cliente.razonSocial}</p>
-
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Tipo *</label>
-                  <select
-                    value={actForm.tipo}
-                    onChange={e => setActForm(p => ({ ...p, tipo: e.target.value }))}
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-                  >
-                    {['llamada', 'reunion', 'correo', 'whatsapp', 'visita', 'nota'].map(t => (
-                      <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Asunto *</label>
-                  <input
-                    value={actForm.asunto}
-                    onChange={e => setActForm(p => ({ ...p, asunto: e.target.value }))}
-                    placeholder="Ej: Llamada de seguimiento"
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-                  />
+          <div className="bg-slate-800 border border-slate-700/50 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-700/50 flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-xs text-slate-500 uppercase font-medium mb-0.5">{actModal.cliente.razonSocial}</p>
+                <h3 className="text-lg font-bold text-white leading-tight">{actModal.titulo}</h3>
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  <span className="text-xs px-2 py-0.5 rounded-full border" style={{ borderColor: actModal.stage.color + '40', color: actModal.stage.color, backgroundColor: actModal.stage.color + '15' }}>
+                    {actModal.stage.name}
+                  </span>
+                  {actModal.monto && (
+                    <span className="text-xs text-slate-400">{CLP(actModal.monto, actModal.moneda)}</span>
+                  )}
+                  {actModal.expectedCloseDate && (
+                    <span className="text-xs text-slate-500">Cierre: {new Date(actModal.expectedCloseDate).toLocaleDateString('es-CL')}</span>
+                  )}
                 </div>
               </div>
-              <div>
-                <label className="text-xs text-slate-400 block mb-1">Notas</label>
-                <textarea
-                  value={actForm.notas}
-                  onChange={e => setActForm(p => ({ ...p, notas: e.target.value }))}
-                  rows={2}
-                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Fecha/hora</label>
-                  <input
-                    type="datetime-local"
-                    value={actForm.scheduledAt}
-                    onChange={e => setActForm(p => ({ ...p, scheduledAt: e.target.value }))}
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Próxima acción</label>
-                  <input
-                    type="date"
-                    value={actForm.nextActionDate}
-                    onChange={e => setActForm(p => ({ ...p, nextActionDate: e.target.value }))}
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-                  />
-                </div>
-              </div>
+              <button
+                onClick={() => { setActModal(null); setShowActForm(false); setActForm({ tipo: 'llamada', asunto: '', notas: '', scheduledAt: '', nextActionDate: '' }); }}
+                className="text-slate-400 hover:text-white flex-shrink-0 mt-0.5"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
             </div>
 
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => setActModal(null)}
-                className="flex-1 py-2.5 text-sm text-slate-400 border border-slate-600/50 rounded-xl hover:bg-slate-700/50 transition-all"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={createActividad}
-                disabled={!actForm.asunto}
-                className="flex-1 py-2.5 text-sm text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-xl transition-all font-medium"
-              >
-                Guardar
-              </button>
+            {/* Timeline + form — scrollable */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+
+              {/* Nueva actividad toggle */}
+              {!showActForm ? (
+                <button
+                  onClick={() => setShowActForm(true)}
+                  className="w-full py-2.5 text-sm text-cyan-400 border border-dashed border-cyan-500/30 hover:border-cyan-500/60 hover:bg-cyan-500/5 rounded-xl transition-all flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                  Registrar actividad
+                </button>
+              ) : (
+                <div className="bg-slate-900/50 border border-cyan-500/20 rounded-xl p-4 space-y-3">
+                  <p className="text-xs font-medium text-cyan-400 uppercase tracking-wide">Nueva actividad</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Tipo</label>
+                      <select
+                        value={actForm.tipo}
+                        onChange={e => setActForm(p => ({ ...p, tipo: e.target.value }))}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                      >
+                        {['llamada', 'reunion', 'correo', 'whatsapp', 'visita', 'nota'].map(t => (
+                          <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Asunto *</label>
+                      <input
+                        value={actForm.asunto}
+                        onChange={e => setActForm(p => ({ ...p, asunto: e.target.value }))}
+                        placeholder="Ej: Llamada de seguimiento"
+                        autoFocus
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Notas</label>
+                    <textarea
+                      value={actForm.notas}
+                      onChange={e => setActForm(p => ({ ...p, notas: e.target.value }))}
+                      rows={2}
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Fecha / hora</label>
+                      <input
+                        type="datetime-local"
+                        value={actForm.scheduledAt}
+                        onChange={e => setActForm(p => ({ ...p, scheduledAt: e.target.value }))}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 block mb-1">Próxima acción</label>
+                      <input
+                        type="date"
+                        value={actForm.nextActionDate}
+                        onChange={e => setActForm(p => ({ ...p, nextActionDate: e.target.value }))}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => { setShowActForm(false); setActForm({ tipo: 'llamada', asunto: '', notas: '', scheduledAt: '', nextActionDate: '' }); }}
+                      className="px-3 py-2 text-xs text-slate-400 border border-slate-600/50 rounded-lg hover:bg-slate-700/50 transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={createActividad}
+                      disabled={!actForm.asunto}
+                      className="flex-1 py-2 text-xs text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-lg transition-all font-medium"
+                    >
+                      Guardar actividad
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Timeline */}
+              <div>
+                <p className="text-xs text-slate-500 uppercase font-medium mb-3">
+                  Historial {actividades.length > 0 ? `· ${actividades.length} actividad${actividades.length !== 1 ? 'es' : ''}` : ''}
+                </p>
+
+                {loadingActs ? (
+                  <div className="text-center py-8 text-slate-500 text-sm">Cargando...</div>
+                ) : actividades.length === 0 ? (
+                  <div className="text-center py-8 text-slate-600 text-sm">Sin actividades registradas todavía.</div>
+                ) : (
+                  <div className="relative">
+                    {/* Vertical line */}
+                    <div className="absolute left-4 top-0 bottom-0 w-px bg-slate-700/60" />
+                    <div className="space-y-4">
+                      {actividades.map(act => {
+                        const icons: Record<string, string> = { llamada: '📞', reunion: '🤝', correo: '✉️', whatsapp: '💬', visita: '🚗', nota: '📝' };
+                        const icon = icons[act.tipo] || '📌';
+                        const dateStr = act.scheduledAt
+                          ? new Date(act.scheduledAt).toLocaleString('es-CL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                          : new Date(act.createdAt).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' });
+                        const hasNextAction = act.nextActionDate && new Date(act.nextActionDate) > new Date();
+                        const nextActionPast = act.nextActionDate && new Date(act.nextActionDate) <= new Date();
+
+                        return (
+                          <div key={act.id} className="relative pl-10">
+                            {/* Icon bubble */}
+                            <div className="absolute left-0 top-0 w-8 h-8 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center text-sm">
+                              {icon}
+                            </div>
+                            <div className="bg-slate-700/30 border border-slate-700/50 rounded-xl p-3 space-y-1">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-sm font-medium text-white leading-tight">{act.asunto}</p>
+                                <span className="text-xs text-slate-500 flex-shrink-0">{dateStr}</span>
+                              </div>
+                              {act.notas && (
+                                <p className="text-xs text-slate-400 leading-relaxed">{act.notas}</p>
+                              )}
+                              {(hasNextAction || nextActionPast) && (
+                                <div className={`flex items-center gap-1.5 text-xs mt-1 ${nextActionPast ? 'text-rose-400' : 'text-amber-400'}`}>
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                  {nextActionPast ? 'Acción vencida: ' : 'Próxima acción: '}
+                                  {new Date(act.nextActionDate!).toLocaleDateString('es-CL')}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

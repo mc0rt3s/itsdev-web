@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import ReCAPTCHA from 'react-google-recaptcha';
 import { AnalyticsEvents } from './Analytics';
-import CalendlyWidget from './CalendlyWidget';
 
 interface FormData {
   nombre: string;
@@ -31,7 +31,7 @@ export default function Contacto() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [showCalendly, setShowCalendly] = useState(false);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -74,12 +74,21 @@ export default function Contacto() {
     setErrors({});
 
     try {
+      // Obtener token reCAPTCHA
+      const recaptchaToken = await recaptchaRef.current?.executeAsync();
+      if (!recaptchaToken) {
+        throw new Error('Error con reCAPTCHA. Intenta de nuevo.');
+      }
+
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          recaptchaToken,
+        }),
       });
 
       const data = await response.json();
@@ -90,7 +99,7 @@ export default function Contacto() {
 
       // Track evento de Analytics
       AnalyticsEvents.formSubmit();
-      
+
       setIsSubmitted(true);
     } catch (error) {
       console.error('Error:', error);
@@ -237,51 +246,8 @@ export default function Contacto() {
             </div>
           </div>
 
-          {/* Form / Calendly Toggle */}
           <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 lg:p-10 shadow-xl border border-slate-100 dark:border-slate-700">
-            {/* Toggle entre Formulario y Calendly */}
-            <div className="flex gap-2 mb-6 p-1 bg-slate-100 dark:bg-slate-700 rounded-lg">
-              <button
-                onClick={() => setShowCalendly(false)}
-                className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  !showCalendly
-                    ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                Formulario
-              </button>
-              <button
-                onClick={() => setShowCalendly(true)}
-                className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  showCalendly
-                    ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                Agendar Reunión
-              </button>
-            </div>
-
-            {showCalendly ? (
-              <div className="w-full">
-                <div className="mb-6">
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                    Agenda una conversación
-                  </h3>
-                  <p className="text-slate-600 dark:text-slate-400 text-sm">
-                    Selecciona un horario que funcione para ti. La reunión será una conversación técnica 
-                    sin compromiso para entender tus necesidades.
-                  </p>
-                </div>
-                <div className="w-full rounded-xl overflow-hidden border border-slate-200 dark:border-slate-600 bg-white">
-                  <CalendlyWidget 
-                    url={process.env.NEXT_PUBLIC_CALENDLY_URL || 'https://calendly.com/tu-usuario/30min'} 
-                    height="700px"
-                  />
-                </div>
-              </div>
-            ) : isSubmitted ? (
+            {isSubmitted ? (
               <div className="h-full flex flex-col items-center justify-center text-center py-12">
                 <div className="w-16 h-16 bg-[#7AA228] rounded-full flex items-center justify-center mb-6">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -409,6 +375,12 @@ export default function Contacto() {
                     <p className="mt-1 text-sm text-red-500">{errors.mensaje}</p>
                   )}
                 </div>
+
+                <ReCAPTCHA
+                  ref={recaptchaRef}
+                  size="invisible"
+                  sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
+                />
 
                 <button
                   type="submit"
