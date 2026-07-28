@@ -10,7 +10,8 @@ RUN npm ci
 
 COPY . .
 
-# Generar cliente Prisma (URL viene de prisma.config.ts)
+# Generar cliente Prisma - crear BD dummy para build
+RUN mkdir -p ./prisma && touch ./prisma/dev.db
 ENV DATABASE_URL=file:./prisma/dev.db
 RUN npx prisma generate
 
