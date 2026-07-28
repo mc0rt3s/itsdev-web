@@ -26,8 +26,8 @@ function getResendClient() {
 async function verifyRecaptcha(token: string): Promise<boolean> {
   const secretKey = process.env.RECAPTCHA_SECRET_KEY;
   if (!secretKey) {
-    console.warn('RECAPTCHA_SECRET_KEY no configurada');
-    return true; // Allow if not configured
+    console.error('RECAPTCHA_SECRET_KEY no configurada - rechazando request');
+    return false; // Reject if not configured
   }
 
   try {
@@ -53,6 +53,10 @@ export async function POST(request: NextRequest) {
 
     // Verify reCAPTCHA token
     if (!recaptchaToken || !(await verifyRecaptcha(recaptchaToken))) {
+      console.warn('reCAPTCHA validation failed', {
+        hasToken: !!recaptchaToken,
+        ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
+      });
       return NextResponse.json(
         { error: 'Validación de reCAPTCHA fallida. Intenta de nuevo.' },
         { status: 400 }
