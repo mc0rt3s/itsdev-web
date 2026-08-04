@@ -1,60 +1,17 @@
-version: '3.8'
-
 services:
   itsdev-web:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: itsdev-web
     restart: unless-stopped
     expose:
       - "3000"
     environment:
       - NODE_ENV=production
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://itsdev.cl}
       - DATABASE_URL=file:/app/data/prod.db
-    env_file:
-      - .env
     volumes:
       - itsdev-data:/app/data
       - itsdev-uploads:/app/public/uploads
-    labels:
-      - "traefik.enable=true"
-      
-      # HTTPS Router (con www)
-      - "traefik.http.routers.itsdev-www.rule=Host(`www.itsdev.cl`)"
-      - "traefik.http.routers.itsdev-www.entrypoints=web,websecure"
-      - "traefik.http.routers.itsdev-www.tls=true"
-      - "traefik.http.routers.itsdev-www.tls.certresolver=letsresolver"
-      - "traefik.http.routers.itsdev-www.service=itsdev-web"
-      
-      # HTTPS Router (sin www)
-      - "traefik.http.routers.itsdev.rule=Host(`itsdev.cl`)"
-      - "traefik.http.routers.itsdev.entrypoints=web,websecure"
-      - "traefik.http.routers.itsdev.tls=true"
-      - "traefik.http.routers.itsdev.tls.certresolver=letsresolver"
-      - "traefik.http.routers.itsdev.service=itsdev-web"
-      
-      # HTTP Router (con www) - redirige a HTTPS
-      - "traefik.http.routers.itsdev-www-http.rule=Host(`www.itsdev.cl`)"
-      - "traefik.http.routers.itsdev-www-http.entrypoints=web"
-      - "traefik.http.routers.itsdev-www-http.middlewares=itsdev-https-redirect"
-      
-      # HTTP Router (sin www) - redirige a HTTPS
-      - "traefik.http.routers.itsdev-http.rule=Host(`itsdev.cl`)"
-      - "traefik.http.routers.itsdev-http.entrypoints=web"
-      - "traefik.http.routers.itsdev-http.middlewares=itsdev-https-redirect"
-      
-      # Middleware para redirección HTTPS
-      - "traefik.http.middlewares.itsdev-https-redirect.redirectscheme.scheme=https"
-      
-      # Servicio
-      - "traefik.http.services.itsdev-web.loadbalancer.server.port=3000"
-      
-    networks:
-      - itsdev-net
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000"]
       interval: 30s
@@ -67,7 +24,3 @@ volumes:
     driver: local
   itsdev-uploads:
     driver: local
-
-networks:
-  itsdev-net:
-    external: true
