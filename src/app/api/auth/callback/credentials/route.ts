@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { handlers } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   // Obtener IP del cliente (soporta proxies como Vercel, Cloudflare, etc.)
@@ -30,11 +31,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // El rate limit pasó, delegamos a NextAuth
-  // NextAuth maneja este endpoint automáticamente, así que debería nunca llegar aquí
-  // Si llegó, retornamos error
-  return NextResponse.json(
-    { error: 'Method not allowed' },
-    { status: 405 }
-  );
+  // Rate limit OK: delegar a NextAuth.
+  // Esta ruta estática tiene precedencia sobre el catch-all [...nextauth],
+  // por lo que debemos invocar el handler de NextAuth explícitamente.
+  return handlers.POST(request);
 }
