@@ -2,6 +2,8 @@ import type { NextAuthConfig } from 'next-auth';
 
 export const authConfig = {
   trustHost: true, // Confiar en el host en producción
+  // NextAuth v5 busca AUTH_SECRET; aceptar NEXTAUTH_SECRET (v4) como fallback
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   pages: {
     signIn: '/login',
   },
