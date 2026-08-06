@@ -41,10 +41,15 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
-# Crear directorios necesarios con permisos correctos
-RUN mkdir -p /app/data && chmod 777 /app/data
-RUN mkdir -p /app/public/uploads/comprobantes && chmod -R 777 /app/public/uploads
-RUN chmod -R 777 /app/prisma
+# Directorio de subidas: único que la app escribe en runtime (la BD es Postgres).
+# Se chown a node para no usar chmod 777 ni ejecutar como root.
+RUN mkdir -p /app/public/uploads/comprobantes \
+    && chown -R node:node /app/public \
+    && chown node:node /app
+
+# Ejecutar como usuario no-root (node ya existe en node:20-alpine)
+ENV HOME=/app
+USER node
 
 # Agregar node_modules/.bin al PATH
 ENV PATH="/app/node_modules/.bin:$PATH"
