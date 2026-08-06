@@ -12,19 +12,21 @@ async function main() {
   if (existing) {
     console.log('✓ Usuario marcelo@itsdev.cl ya existe');
   } else {
-    const hashedPassword = await bcrypt.hash('Itsdev2026!', 12);
-    await prisma.user.create({
-      data: {
-        email: 'marcelo@itsdev.cl',
-        name: 'Marcelo Cortés',
-        password: hashedPassword,
-        role: 'admin',
-      },
-    });
-    console.log('✅ Usuario creado:');
-    console.log('   Email:    marcelo@itsdev.cl');
-    console.log('   Password: Itsdev2026!');
-    console.log('   Rol:      admin');
+    const seedPassword = process.env.SEED_ADMIN_PASSWORD;
+    if (!seedPassword) {
+      console.warn('⚠️ SEED_ADMIN_PASSWORD no definida; no se crea el admin automáticamente.');
+    } else {
+      const hashedPassword = await bcrypt.hash(seedPassword, 12);
+      await prisma.user.create({
+        data: {
+          email: 'marcelo@itsdev.cl',
+          name: 'Marcelo Cortés',
+          password: hashedPassword,
+          role: 'admin',
+        },
+      });
+      console.log('✅ Usuario creado (contraseña desde SEED_ADMIN_PASSWORD)');
+    }
   }
 
   // Pipeline CRM
