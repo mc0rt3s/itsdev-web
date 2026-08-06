@@ -10,9 +10,7 @@ RUN npm ci
 
 COPY . .
 
-# Generar cliente Prisma - crear BD dummy para build
-RUN mkdir -p ./prisma && touch ./prisma/dev.db
-ENV DATABASE_URL=file:./prisma/dev.db
+# Generar cliente Prisma (el proveedor real viene de DATABASE_URL inyectada en build)
 RUN npx prisma generate
 
 # Build de Next.js
@@ -54,7 +52,6 @@ EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-ENV DATABASE_URL="file:/app/data/prod.db"
 
-# Script de inicio - prisma lee DATABASE_URL desde prisma.config.ts
-CMD ["sh", "-c", "echo 'DATABASE_URL='$DATABASE_URL && prisma migrate deploy && npx tsx prisma/seed.ts && node server.js"]
+# Script de inicio - prisma lee DATABASE_URL (Postgres en produccion) desde el entorno
+CMD ["sh", "-c", "prisma migrate deploy && npx tsx prisma/seed.ts && node server.js"]
