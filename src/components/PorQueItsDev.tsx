@@ -109,7 +109,9 @@ export default function PorQueItsDev() {
             Sin compromiso, sin presión comercial. Solo análisis profesional y recomendaciones basadas en experiencia real.
           </p>
           <a
-            href="#contacto"
+            href="https://citas.itsdev.cl/contacto/reunion"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-[#7AA228] hover:bg-[#6A9020] text-white px-8 py-4 rounded-full text-lg font-semibold transition-all hover:shadow-xl hover:shadow-[#7AA228]/30"
           >
             Agenda una conversación
