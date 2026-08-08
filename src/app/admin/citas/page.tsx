@@ -6,6 +6,14 @@ import { useToast } from '@/components/Toast';
 const BOOKING_URL =
   process.env.NEXT_PUBLIC_BOOKING_URL?.trim() || 'https://citas.itsdev.cl';
 
+// Página del agendador para incrustar en el CRM.
+const EVENT_PATH = '/contacto/reunion';
+const EMBED_URL = process.env.NEXT_PUBLIC_BOOKING_URL?.trim()
+  ? `${process.env.NEXT_PUBLIC_BOOKING_URL.replace(/\/$/, '')}${
+      process.env.NEXT_PUBLIC_BOOKING_URL.includes(EVENT_PATH) ? '' : EVENT_PATH
+    }`
+  : `https://citas.itsdev.cl${EVENT_PATH}`;
+
 export default function CitasPage() {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
@@ -78,6 +86,35 @@ export default function CitasPage() {
             cambia.
           </p>
         </div>
+      </div>
+
+      {/* Calendario incrustado */}
+      <div className="mt-6 bg-slate-800 rounded-2xl p-4 border border-slate-700">
+        <div className="flex items-center justify-between mb-3 px-2">
+          <div>
+            <h2 className="text-lg font-semibold text-white">
+              Calendario
+            </h2>
+            <p className="text-slate-400 text-sm">
+              Agenda disponibilidad y reservas sin salir del CRM.
+            </p>
+          </div>
+          <a
+            href={EMBED_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#7AA228] hover:text-[#6A9020] text-sm font-semibold whitespace-nowrap"
+          >
+            Abrir en pestaña nueva ↗
+          </a>
+        </div>
+        <iframe
+          src={EMBED_URL}
+          title="Agendador de reuniones"
+          className="w-full h-[720px] rounded-xl border border-slate-700"
+          loading="lazy"
+          allow="clipboard-write"
+        />
       </div>
 
       {/* Instrucciones */}
