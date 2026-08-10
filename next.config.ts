@@ -38,7 +38,7 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: blob: https:",
               "font-src 'self' https://fonts.gstatic.com data:",
               "connect-src 'self' https://api.calendly.com https://api.clockify.me https://www.google-analytics.com https://region1.google-analytics.com",
-              "frame-src 'self' https://calendly.com https://assets.calendly.com",
+              "frame-src 'self' https://calendly.com https://assets.calendly.com https://citas.itsdev.cl",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
