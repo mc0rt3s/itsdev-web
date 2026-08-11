@@ -22,6 +22,7 @@ interface Cliente {
   notas: string | null;
   estado: string;
   clockifyClientId: string | null;
+  kimaiCustomerId: string | null;
   facturaPorTiempo: boolean;
   proyectos: Proyecto[];
 }
@@ -56,6 +57,9 @@ export default function ClienteDetallePage({ params }: { params: Promise<{ id: s
   const [reportError, setReportError] = useState('');
   const [reportEntries, setReportEntries] = useState<ReportEntry[]>([]);
   const [reportResumen, setReportResumen] = useState<ReportResumen | null>(null);
+  // Kimai
+  const [kimaiSyncing, setKimaiSyncing] = useState(false);
+  const [kimaiMsg, setKimaiMsg] = useState('');
 
   // Timeline de actividades
   const [actividades, setActividades] = useState<Array<{
@@ -118,6 +122,30 @@ export default function ClienteDetallePage({ params }: { params: Promise<{ id: s
     };
     fetchActividades();
   }, [clienteId]);
+
+  const syncKimai = async () => {
+    if (!clienteId) return;
+    setKimaiSyncing(true);
+    setKimaiMsg('');
+    try {
+      const res = await fetch(`/api/clientes/${clienteId}/kimai-sync`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        setKimaiMsg(data.error || 'Falló la sincronización con Kimai');
+        return;
+      }
+      if (data.action === 'created') setKimaiMsg('Creado en Kimai');
+      else if (data.action === 'linked') setKimaiMsg('Vinculado a Kimai');
+      else if (data.action === 'updated') setKimaiMsg('Actualizado en Kimai');
+      else setKimaiMsg('Kimai no configurado');
+      const rf = await fetch(`/api/clientes/${clienteId}`);
+      if (rf.ok) setCliente(await rf.json());
+    } catch {
+      setKimaiMsg('Error de red al sincronizar con Kimai');
+    } finally {
+      setKimaiSyncing(false);
+    }
+  };
 
   const crearActividad = async () => {
     if (!clienteId || !actForm.tipo || !actForm.asunto) return;
@@ -240,6 +268,11 @@ export default function ClienteDetallePage({ params }: { params: Promise<{ id: s
                   Clockify
                 </span>
               )}
+              {cliente.kimaiCustomerId && (
+                <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full border bg-violet-500/10 text-violet-400 border-violet-500/30">
+                  Kimai
+                </span>
+              )}
               {cliente.facturaPorTiempo && (
                 <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full border bg-cyan-500/10 text-cyan-400 border-cyan-500/30">
                   Factura por tiempo
@@ -247,15 +280,30 @@ export default function ClienteDetallePage({ params }: { params: Promise<{ id: s
               )}
             </div>
           </div>
-          <Link
-            href="/admin/clientes"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-xl transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Volver a clientes
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="text-right">
+              {kimaiMsg && <p className="text-xs text-violet-400 mb-1">{kimaiMsg}</p>}
+              <button
+                onClick={syncKimai}
+                disabled={kimaiSyncing || !clienteId}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-violet-600/80 hover:bg-violet-500/80 disabled:opacity-50 text-white font-medium rounded-xl transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M5.6 9A7 7 0 0119 8M18.4 15A7 7 0 015 16" />
+                </svg>
+                {kimaiSyncing ? 'Sincronizando...' : 'Sincronizar en Kimai'}
+              </button>
+            </div>
+            <Link
+              href="/admin/clientes"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-xl transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Volver a clientes
+            </Link>
+          </div>
         </div>
         {(cliente.contacto || cliente.email || cliente.telefono) && (
           <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-400">

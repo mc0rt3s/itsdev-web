@@ -33,6 +33,7 @@ model Cliente {
   notas             String?
   estado            String   @default("activo") // activo, inactivo, prospecto
   clockifyClientId  String?  // ID del cliente en Clockify (vinculación manual)
+  kimaiCustomerId   String?  // ID del cliente en Kimai (sync automático vía API)
   facturaPorTiempo  Boolean  @default(false)   // Si se factura por tiempo registrado
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 // import { auth } from '@/lib/auth';
 import { checkAuth } from '@/lib/api-auth';
 import { clienteSchema } from '@/lib/schemas';
+import { syncClienteToKimai } from '@/lib/kimai';
 
 // GET - Listar todos los clientes
 export async function GET(request: NextRequest) {
@@ -73,6 +74,13 @@ export async function POST(request: NextRequest) {
         estado,
       },
     });
+
+    // Sincronizar el cliente con Kimai (fail-soft: no bloquea si Kimai falla)
+    try {
+      await syncClienteToKimai(cliente.id);
+    } catch (e) {
+      console.error('Kimai sync (create):', e);
+    }
 
     return NextResponse.json(cliente, { status: 201 });
   } catch (error) {
