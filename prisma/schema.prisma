@@ -355,6 +355,36 @@ model Gasto {
   updatedAt   DateTime @updatedAt
 }
 
+model Survey {
+  id        String   @id @default(cuid())
+  titulo    String
+  descripcion String?
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relaciones
+  respuestas SurveyResponse[]
+}
+
+model SurveyResponse {
+  id        String   @id @default(cuid())
+  surveyId  String
+  survey    Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  
+  // Respuestas JSON (preguntas dinamicas)
+  pregunta1 String?  // ¿Usas Softland/Edig?
+  pregunta2 String?  // Tiempo máximo aceptas migración?
+  pregunta3 String?  // ¿Web o Desktop?
+  pregunta4 String?  // ¿Qué duele más?
+  pregunta5 String?  // ¿Pagarías setup?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([surveyId, createdAt])
+}
+
 model AuditLog {
   id        String   @id @default(cuid())
   action    String
