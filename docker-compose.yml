@@ -18,7 +18,7 @@ services:
 
   itsdev-web:
     build:
-      context: .
+      context: ./app
       dockerfile: Dockerfile
     depends_on:
       itsdev-web-db:
