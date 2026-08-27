@@ -61,4 +61,4 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Script de inicio - prisma lee DATABASE_URL (Postgres en produccion) desde el entorno
-CMD ["sh", "-c", "prisma db push --accept-data-loss && npx tsx prisma/seed.ts && node server.js"]
+CMD ["sh", "-c", "prisma db push --accept-data-loss; node server.js"]
