@@ -1,16 +1,35 @@
 services:
+  itsdev-web-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: itsdev_db
+      POSTGRES_USER: itsdev_user
+      POSTGRES_PASSWORD: itsdev_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - itsdev-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U itsdev_user -d itsdev_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   itsdev-web:
     build:
       context: .
       dockerfile: Dockerfile
+    depends_on:
+      itsdev-web-db:
+        condition: service_healthy
     restart: unless-stopped
-    expose:
-      - "3000"
+    ports:
+      - "3001:3000"
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=file:/app/data/prod.db
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://itsdev_user:itsdev_pass@itsdev-web-db:5432/itsdev_db"
     volumes:
-      - itsdev-data:/app/data
       - itsdev-uploads:/app/public/uploads
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000"]
@@ -20,7 +39,7 @@ services:
       start_period: 40s
 
 volumes:
-  itsdev-data:
+  itsdev-db:
     driver: local
   itsdev-uploads:
     driver: local
