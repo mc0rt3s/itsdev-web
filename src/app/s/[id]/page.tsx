@@ -55,7 +55,7 @@ export default function SurveyFormPage() {
   const [answers, setAnswers] = useState<Record<number, string>>({});
 
   useEffect(() => {
-    async function fetch() {
+    async function fetchSurvey() {
       try {
         const res = await fetch(`/api/surveys/${surveyId}`);
         if (res.ok) {
@@ -67,7 +67,7 @@ export default function SurveyFormPage() {
         setLoading(false);
       }
     }
-    fetch();
+    fetchSurvey();
   }, [surveyId]);
 
   async function handleSubmit(e: React.FormEvent) {
