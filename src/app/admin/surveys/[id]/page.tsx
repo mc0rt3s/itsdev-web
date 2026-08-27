@@ -32,15 +32,21 @@ const questions = [
 export default function SurveyDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [loading, setLoading] = useState(true);
+  const [surveyId, setSurveyId] = useState<string | null>(null);
 
   useEffect(() => {
+    params.then((p) => setSurveyId(p.id));
+  }, [params]);
+
+  useEffect(() => {
+    if (!surveyId) return;
     async function fetch() {
       try {
-        const res = await fetch(`/api/surveys/${params.id}`);
+        const res = await fetch(`/api/surveys/${surveyId}`);
         if (res.ok) {
           setSurvey(await res.json());
         }
@@ -51,7 +57,7 @@ export default function SurveyDetailPage({
       }
     }
     fetch();
-  }, [params.id]);
+  }, [surveyId]);
 
   function exportToCSV() {
     if (!survey) return;
