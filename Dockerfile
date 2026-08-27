@@ -60,5 +60,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Script de inicio - prisma lee DATABASE_URL (Postgres en produccion) desde el entorno
-CMD ["sh", "-c", "prisma db push --accept-data-loss; node server.js"]
+# Script de inicio - ejecutar Next.js
+CMD ["sh", "-c", "prisma db push --accept-data-loss; next start"]
