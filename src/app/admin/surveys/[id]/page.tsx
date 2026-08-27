@@ -44,7 +44,7 @@ export default function SurveyDetailPage({
 
   useEffect(() => {
     if (!surveyId) return;
-    async function fetch() {
+    async function fetchSurvey() {
       try {
         const res = await fetch(`/api/surveys/${surveyId}`);
         if (res.ok) {
@@ -56,7 +56,7 @@ export default function SurveyDetailPage({
         setLoading(false);
       }
     }
-    fetch();
+    fetchSurvey();
   }, [surveyId]);
 
   function exportToCSV() {
