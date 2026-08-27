@@ -15,6 +15,7 @@ RUN npx prisma generate
 
 # Build de Next.js
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost/dummy"
 RUN npm run build
 
 # Etapa 2: Runner (producción)
