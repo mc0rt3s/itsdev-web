@@ -24,8 +24,6 @@ services:
       itsdev-web-db:
         condition: service_healthy
     restart: unless-stopped
-    ports:
-      - "3001:3000"
     environment:
       NODE_ENV: production
       DATABASE_URL: "postgresql://itsdev_user:itsdev_pass@itsdev-web-db:5432/itsdev_db"
@@ -37,9 +35,21 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.itsdev-web.rule=Host(`itsdev.local`)"
+      - "traefik.http.routers.itsdev-web.entrypoints=web"
+      - "traefik.http.services.itsdev-web.loadbalancer.server.port=3000"
 
 volumes:
   itsdev-db:
     driver: local
   itsdev-uploads:
     driver: local
+
+networks:
+  web:
+    name: web
+    external: true
