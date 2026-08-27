@@ -4,11 +4,12 @@ import { prisma } from '@/lib/prisma';
 // GET survey by id
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const survey = await prisma.survey.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         respuestas: {
           orderBy: { createdAt: 'desc' },
@@ -35,14 +36,15 @@ export async function GET(
 // PATCH update survey
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
     const { titulo, descripcion, activo } = body;
 
     const survey = await prisma.survey.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(titulo && { titulo }),
         ...(descripcion !== undefined && { descripcion }),
@@ -63,11 +65,12 @@ export async function PATCH(
 // DELETE survey
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await prisma.survey.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });

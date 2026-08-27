@@ -4,15 +4,16 @@ import { prisma } from '@/lib/prisma';
 // POST submit survey response (público - sin auth)
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
     const { pregunta1, pregunta2, pregunta3, pregunta4, pregunta5 } = body;
 
     // Validar que survey exista y esté activo
     const survey = await prisma.survey.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!survey) {
@@ -32,7 +33,7 @@ export async function POST(
     // Crear respuesta
     const response = await prisma.surveyResponse.create({
       data: {
-        surveyId: params.id,
+        surveyId: id,
         pregunta1: pregunta1 || null,
         pregunta2: pregunta2 || null,
         pregunta3: pregunta3 || null,
