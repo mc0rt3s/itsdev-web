@@ -10,9 +10,6 @@ RUN npm ci
 
 COPY . .
 
-# Generar cliente Prisma (el proveedor real viene de DATABASE_URL inyectada en build)
-RUN npx prisma generate
-
 # Build de Next.js
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost/dummy"
