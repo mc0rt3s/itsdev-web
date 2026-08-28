@@ -1,26 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import ReCAPTCHA from 'react-google-recaptcha';
-import { AnalyticsEvents } from './Analytics';
-
-interface FormData {
-  nombre: string;
-  empresa: string;
-  email: string;
-  telefono: string;
-  mensaje: string;
-}
-
-interface FormErrors {
-  nombre?: string;
-  email?: string;
-  mensaje?: string;
-  general?: string;
-}
+import { useState } from 'react';
 
 export default function Contacto() {
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState({
     nombre: '',
     empresa: '',
     email: '',
@@ -28,99 +11,22 @@ export default function Contacto() {
     mensaje: '',
   });
 
-  const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const recaptchaRef = useRef<ReCAPTCHA>(null);
-
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
-
-    if (!formData.nombre.trim() || formData.nombre.trim().length < 2) {
-      newErrors.nombre = 'El nombre es requerido (mínimo 2 caracteres)';
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email.trim() || !emailRegex.test(formData.email)) {
-      newErrors.email = 'Ingresa un email válido';
-    }
-
-    if (!formData.mensaje.trim() || formData.mensaje.trim().length < 10) {
-      newErrors.mensaje = 'El mensaje es requerido (mínimo 10 caracteres)';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-    // Limpiar error del campo cuando el usuario escribe
-    if (errors[name as keyof FormErrors]) {
-      setErrors({ ...errors, [name]: undefined });
-    }
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-
-    if (!validateForm()) {
-      return;
-    }
-
     setIsSubmitting(true);
-    setErrors({});
-
-    try {
-      // Obtener token reCAPTCHA
-      const recaptchaToken = await recaptchaRef.current?.executeAsync();
-      if (!recaptchaToken) {
-        throw new Error('Error con reCAPTCHA. Intenta de nuevo.');
-      }
-
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          recaptchaToken,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Error al enviar el mensaje');
-      }
-
-      // Track evento de Analytics
-      AnalyticsEvents.formSubmit();
-
-      setIsSubmitted(true);
-    } catch (error) {
-      console.error('Error:', error);
-      setErrors({
-        general: error instanceof Error ? error.message : 'Error al enviar el mensaje. Intenta de nuevo.',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleWhatsAppClick = () => {
-    AnalyticsEvents.whatsappClick();
-  };
-
-  const handleEmailClick = () => {
-    AnalyticsEvents.emailClick();
-  };
-
-  const handlePhoneClick = () => {
-    AnalyticsEvents.phoneClick();
+    
+    // Simular envío - aquí iría la lógica real de envío
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    setIsSubmitting(false);
+    setIsSubmitted(true);
   };
 
   return (
@@ -137,8 +43,8 @@ export default function Contacto() {
               <br />tu proyecto
             </h2>
             <p className="text-lg text-slate-600 dark:text-slate-400 mb-10">
-              Cada proyecto exitoso comienza con una conversación. Comparte tus desafíos tecnológicos 
-              y trabajemos juntos en diseñar la solución que realmente necesita tu empresa.
+              Cuéntanos qué necesitas. Sin compromiso, sin presión. 
+              Solo una conversación para entender cómo podemos ayudarte.
             </p>
 
             {/* Contact Info */}
@@ -151,11 +57,7 @@ export default function Contacto() {
                 </div>
                 <div>
                   <div className="font-semibold text-slate-900 dark:text-white">Email</div>
-                  <a 
-                    href="mailto:contacto@itsdev.cl" 
-                    onClick={handleEmailClick}
-                    className="text-slate-600 dark:text-slate-400 hover:text-[#7AA228] transition-colors"
-                  >
+                  <a href="mailto:contacto@itsdev.cl" className="text-slate-600 dark:text-slate-400 hover:text-[#7AA228] transition-colors">
                     contacto@itsdev.cl
                   </a>
                 </div>
@@ -169,12 +71,8 @@ export default function Contacto() {
                 </div>
                 <div>
                   <div className="font-semibold text-slate-900 dark:text-white">Teléfono</div>
-                  <a 
-                    href="tel:+56990958220" 
-                    onClick={handlePhoneClick}
-                    className="text-slate-600 dark:text-slate-400 hover:text-[#7AA228] transition-colors"
-                  >
-                    +56 9 9095 8220
+                  <a href="tel:+56975362904" className="text-slate-600 dark:text-slate-400 hover:text-[#7AA228] transition-colors">
+                    +56 9 7536 2904
                   </a>
                 </div>
               </div>
@@ -188,30 +86,10 @@ export default function Contacto() {
                 <div>
                   <div className="font-semibold text-slate-900 dark:text-white">WhatsApp</div>
                   <a 
-                    href="https://wa.me/56990958220?text=Hola%2C%20me%20interesa%20conocer%20más%20sobre%20sus%20servicios"
+                    href="https://wa.me/56975362904?text=Hola%2C%20me%20interesa%20conocer%20más%20sobre%20sus%20servicios"
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={handleWhatsAppClick}
                     className="text-slate-600 dark:text-slate-400 hover:text-[#25D366] transition-colors"
-                  >
-                    Escríbenos directo
-                  </a>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-[#0088cc]/10 rounded-xl flex items-center justify-center text-[#0088cc]">
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.35-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.559z"/>
-                  </svg>
-                </div>
-                <div>
-                  <div className="font-semibold text-slate-900 dark:text-white">Telegram</div>
-                  <a 
-                    href="https://t.me/+56990958220"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-slate-600 dark:text-slate-400 hover:text-[#0088cc] transition-colors"
                   >
                     Escríbenos directo
                   </a>
@@ -246,6 +124,7 @@ export default function Contacto() {
             </div>
           </div>
 
+          {/* Form */}
           <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 lg:p-10 shadow-xl border border-slate-100 dark:border-slate-700">
             {isSubmitted ? (
               <div className="h-full flex flex-col items-center justify-center text-center py-12">
@@ -255,13 +134,10 @@ export default function Contacto() {
                   </svg>
                 </div>
                 <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
-                  ¡Mensaje enviado!
+                  ¡Mensaje recibido!
                 </h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-2">
-                  Gracias por contactarnos.
-                </p>
                 <p className="text-slate-600 dark:text-slate-400 mb-6">
-                  Te enviamos un email de confirmación y te responderemos pronto.
+                  Gracias por contactarnos. Te responderemos pronto.
                 </p>
                 <button
                   onClick={() => {
@@ -275,12 +151,6 @@ export default function Contacto() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
-                {errors.general && (
-                  <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm">
-                    {errors.general}
-                  </div>
-                )}
-
                 <div className="grid sm:grid-cols-2 gap-6">
                   <div>
                     <label htmlFor="nombre" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -293,14 +163,9 @@ export default function Contacto() {
                       required
                       value={formData.nombre}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7AA228] focus:border-transparent transition-all ${
-                        errors.nombre ? 'border-red-400' : 'border-slate-200 dark:border-slate-600'
-                      }`}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7AA228] focus:border-transparent transition-all"
                       placeholder="Tu nombre"
                     />
-                    {errors.nombre && (
-                      <p className="mt-1 text-sm text-red-500">{errors.nombre}</p>
-                    )}
                   </div>
                   <div>
                     <label htmlFor="empresa" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -330,14 +195,9 @@ export default function Contacto() {
                       required
                       value={formData.email}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7AA228] focus:border-transparent transition-all ${
-                        errors.email ? 'border-red-400' : 'border-slate-200 dark:border-slate-600'
-                      }`}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7AA228] focus:border-transparent transition-all"
                       placeholder="tu@email.com"
                     />
-                    {errors.email && (
-                      <p className="mt-1 text-sm text-red-500">{errors.email}</p>
-                    )}
                   </div>
                   <div>
                     <label htmlFor="telefono" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -350,7 +210,7 @@ export default function Contacto() {
                       value={formData.telefono}
                       onChange={handleChange}
                       className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7AA228] focus:border-transparent transition-all"
-                      placeholder="+56 9 9095 8220"
+                      placeholder="+56 9 7536 2904"
                     />
                   </div>
                 </div>
@@ -366,21 +226,10 @@ export default function Contacto() {
                     rows={4}
                     value={formData.mensaje}
                     onChange={handleChange}
-                    className={`w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7AA228] focus:border-transparent transition-all resize-none ${
-                      errors.mensaje ? 'border-red-400' : 'border-slate-200 dark:border-slate-600'
-                    }`}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7AA228] focus:border-transparent transition-all resize-none"
                     placeholder="Cuéntanos sobre tu proyecto o necesidad..."
                   />
-                  {errors.mensaje && (
-                    <p className="mt-1 text-sm text-red-500">{errors.mensaje}</p>
-                  )}
                 </div>
-
-                <ReCAPTCHA
-                  ref={recaptchaRef}
-                  size="invisible"
-                  sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
-                />
 
                 <button
                   type="submit"
