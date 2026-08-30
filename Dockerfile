@@ -10,6 +10,9 @@ RUN npm ci
 
 COPY . .
 
+# Generar cliente Prisma antes del build
+RUN npx prisma generate || true
+
 # Build de Next.js
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost/dummy"
