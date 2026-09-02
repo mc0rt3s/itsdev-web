@@ -530,47 +530,28 @@ export default function ClientesPage() {
                   <span className="text-sm text-slate-300">Facturación por tiempo</span>
                 </label>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Vincular con cliente de Clockify</label>
-                  <div className="space-y-2">
-                    <select
-                      value={clockifyWorkspaceId}
-                      onChange={(e) => {
-                        const id = e.target.value;
-                        setClockifyWorkspaceId(id);
-                        fetchClockifyClients(id);
-                        setFormData((f) => ({ ...f, clockifyClientId: null }));
-                      }}
-                      className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    ID Cliente Clockify
+                  </label>
+                  <p className="text-xs text-slate-500 mb-2">
+                    Obtenlo desde Clockify &gt; Clients &gt; Click en cliente &gt; copia el ID de la URL
+                  </p>
+                  <input
+                    type="text"
+                    value={formData.clockifyClientId || ''}
+                    onChange={(e) => setFormData({ ...formData, clockifyClientId: e.target.value || null })}
+                    placeholder="ej: 12345678901234567890abcd"
+                    className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+                  />
+                  {formData.clockifyClientId && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, clockifyClientId: null })}
+                      className="text-xs text-red-400 hover:text-red-300 mt-2"
                     >
-                      <option value="">Seleccionar workspace</option>
-                      {clockifyWorkspaces.map((w) => (
-                        <option key={w.id} value={w.id}>{w.name}</option>
-                      ))}
-                    </select>
-                    {loadingClockify && (
-                      <p className="text-xs text-slate-500">Cargando...</p>
-                    )}
-                    <select
-                      value={formData.clockifyClientId || ''}
-                      onChange={(e) => setFormData({ ...formData, clockifyClientId: e.target.value || null })}
-                      disabled={!clockifyWorkspaceId || loadingClockify}
-                      className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 disabled:opacity-50"
-                    >
-                      <option value="">Sin vincular</option>
-                      {clockifyClients.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                    {formData.clockifyClientId && (
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, clockifyClientId: null })}
-                        className="text-xs text-red-400 hover:text-red-300"
-                      >
-                        Desvincular
-                      </button>
-                    )}
-                  </div>
+                      Limpiar
+                    </button>
+                  )}
                 </div>
                 {formData.clockifyClientId && (
                   <div className="rounded-xl bg-cyan-500/10 border border-cyan-500/30 p-4 space-y-2">
