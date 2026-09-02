@@ -4,6 +4,8 @@ import { auth } from '@/lib/auth';
 import { checkAuth } from '@/lib/api-auth';
 
 const CLOCKIFY_REPORTS_BASE = 'https://reports.api.clockify.me/v1';
+const PRECIO_HORA_HABIL = 50000; // CLP
+const PRECIO_HORA_INHABIL = 75000; // CLP
 
 interface ClockifyTimeEntry {
   _id?: string;
@@ -113,6 +115,12 @@ export async function GET(request: NextRequest) {
         .map((p) => [p.clockifyProjectId!, p.nombre])
     );
 
+    // Buscar estados de FacturableEntry
+    const facturableEntries = await prisma.facturableEntry.findMany({
+      where: { clienteId },
+    });
+    const estadoMap = new Map(facturableEntries.map((fe) => [fe.clockifyTaskId, fe.estado]));
+
     const entriesWithTipo = allEntries.map((entry) => {
       const durationStr = entry.timeInterval?.duration ?? entry.duration;
       let seconds = 0;
@@ -126,6 +134,8 @@ export async function GET(request: NextRequest) {
       const horas = seconds / 3600;
       const taskId = entry.taskId ?? '';
       const tipoHora = taskTipoMap.get(taskId) ?? 'habil';
+      const precioUnitario = tipoHora === 'inhabil' ? PRECIO_HORA_INHABIL : PRECIO_HORA_HABIL;
+      const montoTotal = horas * precioUnitario;
       const projectName =
         entry.projectName ??
         entry.project?.name ??
@@ -137,6 +147,7 @@ export async function GET(request: NextRequest) {
       const userName = entry.userName ?? entry.user?.name ?? '';
       const start = entry.timeInterval?.start ?? entry.start;
       const end = entry.timeInterval?.end ?? entry.end;
+      const estado = estadoMap.get(entry._id ?? '') ?? 'pendiente';
       return {
         id: entry._id,
         description,
@@ -150,6 +161,9 @@ export async function GET(request: NextRequest) {
         duration: entry.timeInterval?.duration ?? entry.duration,
         horas,
         tipoHora,
+        precioUnitario,
+        montoTotal,
+        estado,
       };
     });
 
