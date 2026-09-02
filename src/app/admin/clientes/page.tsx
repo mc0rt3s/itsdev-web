@@ -48,6 +48,12 @@ export default function ClientesPage() {
     fetchClientes();
   }, []);
 
+  useEffect(() => {
+    if (editingCliente?.clockifyClientId && clockifyWorkspaces.length > 0) {
+      findWorkspaceForClient(editingCliente.clockifyClientId);
+    }
+  }, [editingCliente, clockifyWorkspaces]);
+
   const fetchClientes = async () => {
     try {
       const res = await fetch('/api/clientes');
@@ -100,7 +106,32 @@ export default function ClientesPage() {
     }
   };
 
-  const openModal = (cliente?: Cliente) => {
+  const handleWorkspaceSelect = (workspaceId: string) => {
+    setClockifyWorkspaceId(workspaceId);
+    fetchClockifyClients(workspaceId);
+  };
+
+  const findWorkspaceForClient = async (clientId: string) => {
+    if (!clientId || !clockifyWorkspaces.length) return;
+    // Buscar el workspace que contiene este cliente
+    for (const ws of clockifyWorkspaces) {
+      try {
+        const res = await fetch(`/api/clockify/workspaces/${ws.id}/clients`);
+        if (res.ok) {
+          const clients = await res.json();
+          if (Array.isArray(clients) && clients.find(c => c.id === clientId)) {
+            setClockifyWorkspaceId(ws.id);
+            setClockifyClients(clients);
+            return;
+          }
+        }
+      } catch {
+        // continue
+      }
+    }
+  };
+
+  const openModal = async (cliente?: Cliente) => {
     if (cliente) {
       setEditingCliente(cliente);
       setFormData({
@@ -114,6 +145,10 @@ export default function ClientesPage() {
         clockifyClientId: cliente.clockifyClientId || null,
         facturaPorTiempo: cliente.facturaPorTiempo ?? false,
       });
+      // Si tiene clockifyClientId, cargar workspaces primero
+      if (cliente.clockifyClientId) {
+        await fetchClockifyWorkspaces();
+      }
     } else {
       setEditingCliente(null);
       setFormData({
@@ -127,11 +162,9 @@ export default function ClientesPage() {
         clockifyClientId: null,
         facturaPorTiempo: false,
       });
+      setClockifyWorkspaceId('');
+      setClockifyClients([]);
     }
-    // Always load workspaces for both create and edit
-    setClockifyWorkspaceId('');
-    setClockifyClients([]);
-    fetchClockifyWorkspaces();
     setFormError('');
     setShowModal(true);
   };
@@ -529,20 +562,39 @@ export default function ClientesPage() {
                   />
                   <span className="text-sm text-slate-300">Facturación por tiempo</span>
                 </label>
+
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    ID Cliente Clockify
+                    Workspace Clockify
                   </label>
-                  <p className="text-xs text-slate-500 mb-2">
-                    Obtenlo desde Clockify &gt; Clients &gt; Click en cliente &gt; copia el ID de la URL
-                  </p>
-                  <input
-                    type="text"
+                  <select
+                    value={clockifyWorkspaceId}
+                    onChange={(e) => handleWorkspaceSelect(e.target.value)}
+                    disabled={loadingClockify}
+                    className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all disabled:opacity-50"
+                  >
+                    <option value="">Selecciona workspace...</option>
+                    {clockifyWorkspaces.map(ws => (
+                      <option key={ws.id} value={ws.id}>{ws.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Cliente Clockify
+                  </label>
+                  <select
                     value={formData.clockifyClientId || ''}
                     onChange={(e) => setFormData({ ...formData, clockifyClientId: e.target.value || null })}
-                    placeholder="ej: 12345678901234567890abcd"
-                    className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
-                  />
+                    disabled={!clockifyWorkspaceId || loadingClockify}
+                    className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all disabled:opacity-50"
+                  >
+                    <option value="">Selecciona cliente...</option>
+                    {clockifyClients.map(client => (
+                      <option key={client.id} value={client.id}>{client.name}</option>
+                    ))}
+                  </select>
                   {formData.clockifyClientId && (
                     <button
                       type="button"
