@@ -74,6 +74,13 @@ export async function POST(request: NextRequest) {
     const precioUnitario = tipoCobro === 'inhabil' ? PRECIO_HORA_FUERA_HORARIO : PRECIO_HORA_NORMAL;
     const montoTotal = horas * precioUnitario;
 
+    // Validar fecha: usar end si existe, si no start, si no new Date()
+    const fechaRegistro = timeEntry.end 
+      ? new Date(timeEntry.end)
+      : timeEntry.start 
+        ? new Date(timeEntry.start)
+        : new Date();
+
     // Crear FacturableEntry
     const entry = await prisma.facturableEntry.create({
       data: {
@@ -85,7 +92,7 @@ export async function POST(request: NextRequest) {
         precioUnitario: precioUnitario,
         montoTotal: parseFloat(montoTotal.toFixed(2)),
         estado: 'registrado',
-        fechaRegistro: new Date(timeEntry.end),
+        fechaRegistro,
       },
     });
 
