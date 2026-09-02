@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Decimal } from '@prisma/client/runtime/library';
 
 const PRECIO_HORA_NORMAL = 50000; // CLP, usar desde config después
 const PRECIO_HORA_FUERA_HORARIO = 75000; // CLP
@@ -81,10 +80,10 @@ export async function POST(request: NextRequest) {
         clockifyTaskId: timeEntry.id,
         clienteId: cliente.id,
         descripcion: timeEntry.description || 'Sin descripción',
-        horas: new Decimal(horas.toFixed(2)),
+        horas: parseFloat(horas.toFixed(2)),
         tipoCobro,
-        precioUnitario: new Decimal(precioUnitario),
-        montoTotal: new Decimal(montoTotal.toFixed(2)),
+        precioUnitario: precioUnitario,
+        montoTotal: parseFloat(montoTotal.toFixed(2)),
         estado: 'registrado',
         fechaRegistro: new Date(timeEntry.end),
       },
