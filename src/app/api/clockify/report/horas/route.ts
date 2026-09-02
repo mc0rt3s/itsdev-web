@@ -4,8 +4,8 @@ import { auth } from '@/lib/auth';
 import { checkAuth } from '@/lib/api-auth';
 
 const CLOCKIFY_REPORTS_BASE = 'https://reports.api.clockify.me/v1';
-const PRECIO_HORA_HABIL = 50000; // CLP
-const PRECIO_HORA_INHABIL = 75000; // CLP
+const VALOR_UF = 36500; // CLP (valor aproximado, hacer configurable después)
+const IVA = 0.19; // 19%
 
 interface ClockifyTimeEntry {
   _id?: string;
@@ -134,7 +134,9 @@ export async function GET(request: NextRequest) {
       const horas = seconds / 3600;
       const taskId = entry.taskId ?? '';
       const tipoHora = taskTipoMap.get(taskId) ?? 'habil';
-      const precioUnitario = tipoHora === 'inhabil' ? PRECIO_HORA_INHABIL : PRECIO_HORA_HABIL;
+      // Fórmula: (UF base * 1.19 IVA)
+      const ufsBase = tipoHora === 'inhabil' ? 1.5 : 1;
+      const precioUnitario = ufsBase * VALOR_UF * (1 + IVA);
       const montoTotal = horas * precioUnitario;
       const projectName =
         entry.projectName ??
