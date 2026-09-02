@@ -114,9 +114,6 @@ export default function ClientesPage() {
         clockifyClientId: cliente.clockifyClientId || null,
         facturaPorTiempo: cliente.facturaPorTiempo ?? false,
       });
-      setClockifyWorkspaceId('');
-      setClockifyClients([]);
-      fetchClockifyWorkspaces();
     } else {
       setEditingCliente(null);
       setFormData({
@@ -130,10 +127,11 @@ export default function ClientesPage() {
         clockifyClientId: null,
         facturaPorTiempo: false,
       });
-      setClockifyWorkspaces([]);
-      setClockifyClients([]);
-      setClockifyWorkspaceId('');
     }
+    // Always load workspaces for both create and edit
+    setClockifyWorkspaceId('');
+    setClockifyClients([]);
+    fetchClockifyWorkspaces();
     setFormError('');
     setShowModal(true);
   };
@@ -515,78 +513,76 @@ export default function ClientesPage() {
                 />
               </div>
 
-              {editingCliente && (
-                <div className="border-t border-slate-700/50 pt-5 space-y-4">
-                  <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Integración Clockify
-                  </h3>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.facturaPorTiempo}
-                      onChange={(e) => setFormData({ ...formData, facturaPorTiempo: e.target.checked })}
-                      className="rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/50"
-                    />
-                    <span className="text-sm text-slate-300">Facturación por tiempo</span>
-                  </label>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">Vincular con cliente de Clockify</label>
-                    <div className="space-y-2">
-                      <select
-                        value={clockifyWorkspaceId}
-                        onChange={(e) => {
-                          const id = e.target.value;
-                          setClockifyWorkspaceId(id);
-                          fetchClockifyClients(id);
-                          setFormData((f) => ({ ...f, clockifyClientId: null }));
-                        }}
-                        className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+              <div className="border-t border-slate-700/50 pt-5 space-y-4">
+                <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Integración Clockify
+                </h3>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.facturaPorTiempo}
+                    onChange={(e) => setFormData({ ...formData, facturaPorTiempo: e.target.checked })}
+                    className="rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/50"
+                  />
+                  <span className="text-sm text-slate-300">Facturación por tiempo</span>
+                </label>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Vincular con cliente de Clockify</label>
+                  <div className="space-y-2">
+                    <select
+                      value={clockifyWorkspaceId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        setClockifyWorkspaceId(id);
+                        fetchClockifyClients(id);
+                        setFormData((f) => ({ ...f, clockifyClientId: null }));
+                      }}
+                      className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+                    >
+                      <option value="">Seleccionar workspace</option>
+                      {clockifyWorkspaces.map((w) => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
+                    </select>
+                    {loadingClockify && (
+                      <p className="text-xs text-slate-500">Cargando...</p>
+                    )}
+                    <select
+                      value={formData.clockifyClientId || ''}
+                      onChange={(e) => setFormData({ ...formData, clockifyClientId: e.target.value || null })}
+                      disabled={!clockifyWorkspaceId || loadingClockify}
+                      className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 disabled:opacity-50"
+                    >
+                      <option value="">Sin vincular</option>
+                      {clockifyClients.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                    {formData.clockifyClientId && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, clockifyClientId: null })}
+                        className="text-xs text-red-400 hover:text-red-300"
                       >
-                        <option value="">Seleccionar workspace</option>
-                        {clockifyWorkspaces.map((w) => (
-                          <option key={w.id} value={w.id}>{w.name}</option>
-                        ))}
-                      </select>
-                      {loadingClockify && (
-                        <p className="text-xs text-slate-500">Cargando...</p>
-                      )}
-                      <select
-                        value={formData.clockifyClientId || ''}
-                        onChange={(e) => setFormData({ ...formData, clockifyClientId: e.target.value || null })}
-                        disabled={!clockifyWorkspaceId || loadingClockify}
-                        className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-600/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 disabled:opacity-50"
-                      >
-                        <option value="">Sin vincular</option>
-                        {clockifyClients.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                      {formData.clockifyClientId && (
-                        <button
-                          type="button"
-                          onClick={() => setFormData({ ...formData, clockifyClientId: null })}
-                          className="text-xs text-red-400 hover:text-red-300"
-                        >
-                          Desvincular
-                        </button>
-                      )}
-                    </div>
+                        Desvincular
+                      </button>
+                    )}
                   </div>
-                  {formData.clockifyClientId && (
-                    <div className="rounded-xl bg-cyan-500/10 border border-cyan-500/30 p-4 space-y-2">
-                      <p className="text-sm font-medium text-cyan-300">Próximos pasos</p>
-                      <ul className="text-xs text-slate-400 space-y-1 list-disc list-inside">
-                        <li><strong className="text-slate-300">Proyectos:</strong> en Proyectos, edita cada proyecto y vincula su proyecto de Clockify.</li>
-                        <li><strong className="text-slate-300">Tipos de hora:</strong> en el menú Clockify → Tipos de hora, asocia cada tarea de Clockify a hora hábil o inhábil.</li>
-                        <li><strong className="text-slate-300">Reporte:</strong> haz clic en la razón social del cliente o en &quot;Ver reporte&quot; para ver horas y generar el reporte para facturación.</li>
-                      </ul>
-                    </div>
-                  )}
                 </div>
-              )}
+                {formData.clockifyClientId && (
+                  <div className="rounded-xl bg-cyan-500/10 border border-cyan-500/30 p-4 space-y-2">
+                    <p className="text-sm font-medium text-cyan-300">Próximos pasos</p>
+                    <ul className="text-xs text-slate-400 space-y-1 list-disc list-inside">
+                      <li><strong className="text-slate-300">Proyectos:</strong> en Proyectos, edita cada proyecto y vincula su proyecto de Clockify.</li>
+                      <li><strong className="text-slate-300">Tipos de hora:</strong> en el menú Clockify → Tipos de hora, asocia cada tarea de Clockify a hora hábil o inhábil.</li>
+                      <li><strong className="text-slate-300">Reporte:</strong> haz clic en la razón social del cliente o en &quot;Ver reporte&quot; para ver horas y generar el reporte para facturación.</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
 
               <div className="flex gap-3 pt-4">
                 <button
