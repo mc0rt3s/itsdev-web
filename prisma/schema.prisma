@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
 }
 
 model User {
@@ -33,20 +33,20 @@ model Cliente {
   notas             String?
   estado            String   @default("activo") // activo, inactivo, prospecto
   clockifyClientId  String?  // ID del cliente en Clockify (vinculación manual)
-  kimaiCustomerId   String?  // ID del cliente en Kimai (sync automático vía API)
   facturaPorTiempo  Boolean  @default(false)   // Si se factura por tiempo registrado
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   // Relaciones
-  accesos         Acceso[]
-  proyectos       Proyecto[]
-  facturas        Factura[]
-  cotizaciones    Cotizacion[]
-  suscripciones   Suscripcion[]
-  comunicaciones  Comunicacion[]
-  oportunidades   Oportunidad[]
-  actividades     Actividad[]
+  accesos             Acceso[]
+  proyectos           Proyecto[]
+  facturas            Factura[]
+  cotizaciones        Cotizacion[]
+  suscripciones       Suscripcion[]
+  comunicaciones      Comunicacion[]
+  oportunidades       Oportunidad[]
+  actividades         Actividad[]
+  facturableEntries   FacturableEntry[]
 }
 
 model Acceso {
@@ -492,4 +492,24 @@ model Actividad {
   nextActionDate  DateTime?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
+}
+
+model FacturableEntry {
+  id                String   @id @default(cuid())
+  clockifyTaskId    String   @unique // referencia externa a tarea en Clockify
+  clienteId         String
+  cliente           Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  
+  descripcion       String   // descripción de la tarea desde Clockify
+  horas             Float    // horas trabajadas (decimal en dev SQLite, Decimal en prod PostgreSQL)
+  tipoCobro         String   // "normal" | "fuera_horario"
+  precioUnitario    Float    // precio por hora según tipo
+  montoTotal        Float    // horas * precioUnitario
+  
+  estado            String   @default("registrado") // "registrado" | "reportado" | "facturado" | "pagado"
+  notas             String?
+  
+  fechaRegistro     DateTime @default(now()) // cuando se completó la tarea en Clockify
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
