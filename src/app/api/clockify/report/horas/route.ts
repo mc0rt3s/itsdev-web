@@ -7,6 +7,11 @@ const CLOCKIFY_REPORTS_BASE = 'https://reports.api.clockify.me/v1';
 const VALOR_UF = 36500; // CLP (valor aproximado, hacer configurable después)
 const IVA = 0.19; // 19%
 
+interface ClockifyTag {
+  _id?: string;
+  name?: string;
+}
+
 interface ClockifyTimeEntry {
   _id?: string;
   description?: string;
@@ -23,6 +28,7 @@ interface ClockifyTimeEntry {
   start?: string;
   end?: string;
   duration?: number;
+  tags?: ClockifyTag[];
   [key: string]: unknown;
 }
 
@@ -66,6 +72,16 @@ export async function GET(request: NextRequest) {
 
     const taskTipos = await prisma.clockifyTaskTipo.findMany();
     const taskTipoMap = new Map(taskTipos.map((t) => [t.clockifyTaskId, t.tipoHora]));
+
+    // Map tag names to estado values
+    const tagNameToEstado: Record<string, string> = {
+      'por facturar': 'pendiente',
+      'Pagado': 'pagado',
+      'facturado': 'facturado',
+      'no facturable': 'no_facturable',
+      'Reportado': 'reportado',
+      'proyecto': 'proyecto',
+    };
 
     const dateRangeStart = `${start}T00:00:00.000Z`;
     const dateRangeEnd = `${end}T23:59:59.999Z`;
@@ -115,11 +131,6 @@ export async function GET(request: NextRequest) {
         .map((p) => [p.clockifyProjectId!, p.nombre])
     );
 
-    // Buscar estados de FacturableEntry
-    const facturableEntries = await prisma.facturableEntry.findMany({
-      where: { clienteId },
-    });
-    const estadoMap = new Map(facturableEntries.map((fe) => [fe.clockifyTaskId, fe.estado]));
 
     const entriesWithTipo = allEntries.map((entry) => {
       const durationStr = entry.timeInterval?.duration ?? entry.duration;
@@ -149,7 +160,13 @@ export async function GET(request: NextRequest) {
       const userName = entry.userName ?? entry.user?.name ?? '';
       const start = entry.timeInterval?.start ?? entry.start;
       const end = entry.timeInterval?.end ?? entry.end;
-      const estado = estadoMap.get(entry._id ?? '') ?? 'pendiente';
+      
+      // Extract tags from Clockify entry
+      const clockifyTags = entry.tags ?? [];
+      const clockifyTagId = clockifyTags.length > 0 ? clockifyTags[0]._id : undefined;
+      const firstTagName = clockifyTags.length > 0 ? clockifyTags[0].name : undefined;
+      const estado = firstTagName ? tagNameToEstado[firstTagName] ?? 'pendiente' : 'pendiente';
+      
       return {
         id: entry._id,
         description,
@@ -165,6 +182,8 @@ export async function GET(request: NextRequest) {
         tipoHora,
         precioUnitario,
         montoTotal,
+        clockifyTagId,
+        clockifyTags,
         estado,
       };
     });
