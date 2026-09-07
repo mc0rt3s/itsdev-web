@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { auth } from '@/lib/auth';
-import { generateCotizacionPDF, generatePropuestaPDF } from '@/lib/pdf-generator';
 import { checkAuth } from '@/lib/api-auth';
+import CotizacionPDFDocument, { type CotizacionPDFProps } from '@/components/pdf/CotizacionPDFDocument';
+import { renderPDFToBuffer, loadLogoBase64 } from '@/lib/pdf-react';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
