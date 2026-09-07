@@ -166,7 +166,7 @@ model ClockifyTag {
   updatedAt       DateTime @updatedAt
   
   // Relaciones
-  facturableEntries FacturableEntry[]
+  facturableEntries FacturableEntry[] @relation("ClockifyTagToFacturableEntry")
 }
 
 model Tarea {
@@ -518,7 +518,8 @@ model FacturableEntry {
   precioUnitario    Float    // precio por hora según tipo
   montoTotal        Float    // horas * precioUnitario
   
-  clockifyTagId     String?  // ID del tag principal (primer tag)
+  clockifyTagId     String?  // ID del tag principal (primer tag) - referencia a ClockifyTag.id
+  clockifyTag       ClockifyTag? @relation("ClockifyTagToFacturableEntry", fields: [clockifyTagId], references: [id], onDelete: SetNull)
   clockifyTags      Json?    // Array de tags completos de Clockify
   estado            String   @default("pendiente") // Derivado del tag o manual
   notas             String?
