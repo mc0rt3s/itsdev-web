@@ -1,0 +1,27 @@
+[build]
+# Instalar herramientas necesarias para better-sqlite3 y pg (build-essential, python3)
+cmds = [
+  "npm ci",
+  "npx prisma generate"
+]
+
+[start]
+# No ejecutar db:migrate aqui; se hace en post-deploy script de Dokploy
+cmd = "next start"
+
+[env]
+# Para producción: usar PostgreSQL via DATABASE_URL
+# DATABASE_URL debe estar en secrets de Dokploy
+NODE_ENV = "production"
+NEXT_TELEMETRY_DISABLED = "1"
+
+[phases.setup]
+# Asegurar que tenemos todas las herramientas compiladas
+nixPkgs = ["python3", "make", "g++", "pkg-config", "libpq"]
+
+[cacheDirs]
+# Cachear node_modules entre builds
+"node_modules" = "node_modules"
+# Cachear Prisma generated client
+".prisma" = ".prisma"
+"dist" = "dist"

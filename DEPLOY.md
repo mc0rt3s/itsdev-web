@@ -1,119 +1,179 @@
-# Guía de Despliegue a Producción
+# Deploy a Producción con Dokploy + Nixpacks
 
-## ✅ Checklist Pre-Despliegue
+## Pre-Deploy Checklist
 
-- [x] Todas las migraciones de Prisma creadas
-- [x] Base de datos en volumen persistente (`itsdev-data`)
-- [x] Recharts instalado y funcionando
-- [x] Nuevo módulo de Gastos implementado
-- [x] Dashboard con gráficos de flujo de caja
-- [x] Directorio de uploads configurado
+### 1. Código
+- [ ] Todos los cambios están commitados: `git status` (debe estar limpio)
+- [ ] Branch `main` está actualizado: `git pull origin main`
+- [ ] No hay archivos sin seguimiento en `.gitignore`
 
-## 📋 Pasos para Desplegar
+### 2. Variables de Entorno (Secrets en Dokploy)
+Configurar en Dokploy Panel → Aplicación → Secrets:
 
-### 1. Backup de la Base de Datos (RECOMENDADO)
-
-```bash
-# En el servidor de producción
-docker exec itsdev-web cp /app/data/prod.db /app/data/prod.db.backup.$(date +%Y%m%d_%H%M%S)
+**Críticas:**
+```
+DATABASE_URL=postgresql://user:pass@db-host:5432/itsdev_db
+NEXTAUTH_SECRET=<generate: openssl rand -base64 32>
+NEXTAUTH_URL=https://itsdev.cl
+PUBLIC_APP_URL=https://itsdev.cl
 ```
 
-### 2. Subir Cambios al Repositorio
+**Clockify Integration:**
+```
+CLOCKIFY_API_KEY=<from https://clockify.me/user/settings>
+CLOCKIFY_WORKSPACE_ID=<workspace ID>
+```
 
+**Email (Resend):**
+```
+RESEND_API_KEY=re_xxxxxxxxx
+COTIZACION_NOTIFY_EMAILS=contacto@itsdev.cl
+```
+
+**SII / BaseAPI (si usa facturación):**
+```
+BASEAPI_API_KEY=sk_xxxxxxxxx
+BASEAPI_RUT=<rut>
+BASEAPI_PASSWORD=<password>
+BASEAPI_CLAVE_CERTIFICADO=<cert-pass>
+BASEAPI_RUT_EMPRESA=76732709-9
+BASEAPI_AMBIENTE=production
+```
+
+**Seed (primera instalación):**
+```
+SEED_ADMIN_PASSWORD=<strong-password>
+```
+
+### 3. Build Settings en Dokploy
+- **Builder**: Nixpacks (auto-detectado)
+- **Build Command**: (dejado vacío - usa nixpacks.toml)
+- **Start Command**: (dejado vacío - usa nixpacks.toml)
+- **Install Command**: (dejado vacío)
+
+Nixpacks detectará automáticamente:
+- Node.js 20+ (package.json)
+- npm/yarn (package-lock.json)
+- Prisma (schema.prisma)
+- next.config.ts
+
+### 4. Base de Datos
+**Prerequisito:** PostgreSQL 14+ debe estar corriendo y accesible.
+
+En producción, ejecutar DESPUÉS del deploy:
 ```bash
-git add .
-git commit -m "feat: Agregar módulo de Gastos y gráficos de flujo de caja"
+# Ejecutar migraciones
+npm run db:migrate
+
+# (Opcional) Seed inicial si es primera vez
+npm run db:seed
+```
+
+Esto se puede hacer vía:
+- SSH en el contenedor
+- Post-deployment hook en Dokploy (si está disponible)
+- Script de inicialización
+
+## Deploy Steps
+
+### Opción A: Git Push (CI/CD automático)
+```bash
+git add -A
+git commit -m "feat: Clockify integration v1.0"
 git push origin main
 ```
+Dokploy detecta el push y inicia build automático.
 
-### 3. En el Servidor de Producción
+### Opción B: Manual via Dokploy Dashboard
+1. Panel → Aplicaciones → itsdev-web
+2. Click "Deploy"
+3. Seleccionar rama `main`
+4. Confirmar
+
+## Post-Deploy
+
+### 1. Ejecutar Migraciones
+```bash
+# SSH en el contenedor
+docker exec -it <container-id> npm run db:migrate
+# o desde Dokploy Console
+npm run db:migrate
+```
+
+### 2. Verificar Health
+```bash
+curl https://itsdev.cl/api/health
+# Expected: 200 OK
+```
+
+### 3. Validar Endpoints Críticos
+- [ ] **Auth**: POST `/api/auth/signin` (sin errores)
+- [ ] **Clockify**: GET `/api/clockify/workspaces` (necesita CLOCKIFY_API_KEY)
+- [ ] **Clientes**: GET `/api/clientes` (requiere autenticación)
+
+### 4. Configurar Webhook Clockify
+En https://clockify.me/admin/edit-organization-settings:
+1. Workspaces → Settings → Webhooks
+2. URL: `https://itsdev.cl/api/clockify/webhook`
+3. Event: `TIME_ENTRY_UPDATED`
+4. Test: Crear time entry en Clockify y verificar log
+
+## Troubleshooting
+
+### Build falla con `better-sqlite3`
+**Causa**: Falta compilador C++
+**Solución**: Verificar `nixpacks.toml` tiene `nixPkgs = ["python3", "make", "g++", "pkg-config"]`
+
+### Database connection error
+**Causa**: DATABASE_URL inválido o BD no accesible
+**Solución**:
+```bash
+# Verificar conexión
+psql $DATABASE_URL -c "SELECT 1"
+```
+
+### Migrations pending
+**Causa**: Cambios en schema.prisma no aplicados
+**Solución**:
+```bash
+npm run db:migrate
+# o si falla, rollback y retry
+```
+
+### Webhook 404
+**Causa**: Endpoint no expuesto públicamente
+**Solución**: Verificar DNS/proxy está redirigiendo correctamente a `/api/clockify/webhook`
+
+## Rollback
+
+Si algo falla post-deploy:
 
 ```bash
-# Ir al directorio del proyecto
-cd /opt/itsdev/apps/itsdev-web
+# Ver versión anterior
+git log --oneline -5
 
-# Hacer pull de los cambios
-git pull origin main
-
-# Reconstruir la imagen (esto aplicará las migraciones automáticamente)
-docker compose build --no-cache
-
-# Detener el contenedor actual
-docker compose down
-
-# Iniciar con la nueva imagen
-docker compose up -d
-
-# Verificar que las migraciones se aplicaron correctamente
-docker logs itsdev-web | grep -i migration
-
-# Verificar que el contenedor está corriendo
-docker ps | grep itsdev-web
+# Revertir
+git revert <commit-hash>
+git push origin main
+# Dokploy re-deploya automáticamente
 ```
 
-### 4. Verificar Migraciones
+## Performance Notes
 
-Las migraciones se aplican automáticamente al iniciar el contenedor gracias a:
-```dockerfile
-CMD ["sh", "-c", "prisma migrate deploy && node server.js"]
-```
+- **Node.js**: 20-alpine (imagen base en Dockerfile)
+- **Next.js**: Static generation + ISR para públicas
+- **Prisma**: Connection pooling recomendado (PgBouncer en prod)
+- **Uploads**: `/public/uploads` debe ser volumen persistente en Dokploy
 
-Esto ejecuta `prisma migrate deploy` que:
-- ✅ Solo aplica migraciones pendientes
-- ✅ NO modifica datos existentes
-- ✅ Es seguro para producción
+## Security Checklist
 
-### 5. Verificar Funcionalidad
+- [ ] `NEXTAUTH_SECRET` generado con `openssl rand -base64 32`
+- [ ] `DATABASE_URL` usa conexión SSL/TLS
+- [ ] Variables sensibles NO están en `.env` (solo en Dokploy Secrets)
+- [ ] CORS headers configurados correctamente en `next.config.ts`
+- [ ] CSP headers removen referencias a dominios innecesarios
+- [ ] Webhook signature validation implementado (TODO en route.ts)
 
-1. Acceder a https://itsdev.cl/admin
-2. Verificar que el dashboard muestra los gráficos
-3. Verificar que el módulo de Gastos funciona
-4. Verificar que los datos existentes siguen ahí
+---
 
-## 🔒 Seguridad de Datos
-
-- **Volumen Docker**: La base de datos está en `itsdev-data` que persiste independientemente del contenedor
-- **Migraciones**: Prisma solo agrega nuevas tablas/campos, no elimina datos
-- **Backup**: Se recomienda hacer backup antes de cada despliegue
-
-## 📝 Migraciones Pendientes
-
-Las siguientes migraciones se aplicarán automáticamente:
-
-1. `20260127212047_update_factura_estado_default` - Actualiza estado por defecto
-2. `20260127213054_add_numero_sii_factura` - Agrega campo numeroSII
-3. `20260127222132_add_gastos` - Agrega tabla de Gastos
-
-Todas son **NO DESTRUCTIVAS** - solo agregan campos/tablas nuevas.
-
-## 🐛 Troubleshooting
-
-### Si el contenedor no inicia:
-
-```bash
-# Ver logs
-docker logs itsdev-web
-
-# Verificar migraciones
-docker exec itsdev-web npx prisma migrate status
-```
-
-### Si hay problemas con migraciones:
-
-```bash
-# Aplicar migraciones manualmente
-docker exec itsdev-web npx prisma migrate deploy
-```
-
-### Restaurar backup:
-
-```bash
-# Detener contenedor
-docker compose down
-
-# Restaurar backup
-docker run --rm -v itsdev-web_itsdev-data:/data -v $(pwd):/backup alpine cp /backup/prod.db.backup.XXXXXX /data/prod.db
-
-# Reiniciar
-docker compose up -d
-```
+**Contacto de Deploy**: Para issues durante deploy, check logs en Dokploy → Logs tab.
