@@ -100,6 +100,7 @@ export default function CotizacionesPage() {
     const [sendingEmail, setSendingEmail] = useState(false);
     const [convertingToFactura, setConvertingToFactura] = useState(false);
     const [oportunidadVinculada, setOportunidadVinculada] = useState<{ id: string; titulo: string } | null>(null);
+    const [editingCotizacion, setEditingCotizacion] = useState<Cotizacion | null>(null);
 
     useEffect(() => {
         fetchData();
@@ -212,10 +213,45 @@ export default function CotizacionesPage() {
     const closeModal = () => {
         setShowModal(false);
         setViewingCotizacion(null);
+        setEditingCotizacion(null);
         setOportunidadVinculada(null);
         setDestinatarioEmail('');
         setEmailAsunto('');
         setEmailMensaje('');
+    };
+
+    const startEditingCotizacion = (cot: Cotizacion) => {
+        setEditingCotizacion(cot);
+        setFormData({
+            tipo: cot.tipo,
+            clienteId: cot.clienteId || '',
+            nombreProspecto: cot.nombreProspecto || '',
+            emailProspecto: cot.emailProspecto || '',
+            numero: cot.numero,
+            etiquetaOportunidad: cot.etiquetaOportunidad || '',
+            etiquetaComercial: cot.etiquetaComercial || '',
+            fecha: cot.fecha.split('T')[0],
+            validez: cot.validez.split('T')[0],
+            estado: cot.estado,
+            descuento: cot.descuento || 0,
+            tipoCambioUSD: valores.tipoCambioUSD,
+            tipoCambioUF: valores.tipoCambioUF,
+            modoEnvio: cot.modoEnvio || 'Entrega en oficina de cliente',
+            fechaEntrega: cot.fechaEntrega || '24 Hrs posteriores confirmado el pago',
+            formaPago: cot.formaPago || 'Transferencia',
+            duracionValidezDias: cot.duracionValidezDias || 2,
+            items: cot.items || [{ descripcion: '', cantidad: 1, precioUnit: 0 }],
+            notas: '',
+            aplicarIVA: true,
+            precioNeto: cot.subtotal || 0,
+            titulo: cot.titulo || '',
+            contexto: cot.contexto || '',
+            alcance: cot.alcance || '',
+            conceptoInversion: cot.conceptoInversion || '',
+            condicionesGenerales: cot.condicionesGenerales || '',
+            plazoEstimado: cot.plazoEstimado || '',
+        });
+        setTargetType(cot.clienteId ? 'cliente' : 'prospecto');
     };
 
     const addItem = () => {
@@ -344,18 +380,30 @@ export default function CotizacionesPage() {
             };
 
         try {
-            const res = await fetch('/api/cotizaciones', {
-                method: 'POST',
+            const isEditing = editingCotizacion !== null;
+            const method = isEditing ? 'PUT' : 'POST';
+            const endpoint = isEditing ? `/api/cotizaciones/${editingCotizacion!.id}` : '/api/cotizaciones';
+
+            const res = await fetch(endpoint, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
             if (res.ok) {
-                closeModal();
-                fetchData();
+                await fetchData();
+                if (isEditing) {
+                    const updatedRes = await fetch(`/api/cotizaciones/${editingCotizacion!.id}`);
+                    if (updatedRes.ok) {
+                        setViewingCotizacion(await updatedRes.json());
+                        setEditingCotizacion(null);
+                    }
+                } else {
+                    closeModal();
+                }
             } else {
                 const err = await res.json();
-                alert(err.error || 'Error al crear cotización');
+                alert(err.error || 'Error al guardar cotización');
             }
         } catch (error) {
             console.error(error);
@@ -427,6 +475,17 @@ export default function CotizacionesPage() {
         } finally {
             setSendingEmail(false);
         }
+    };
+
+    const getValidStateTransitions = (estado: string): string[] => {
+        const transitions: Record<string, string[]> = {
+            'borrador': ['enviada', 'anulada'],
+            'enviada': ['aprobada', 'rechazada', 'anulada'],
+            'aprobada': ['rechazada', 'anulada'],
+            'rechazada': ['borrador'],
+            'vencida': [],
+        };
+        return transitions[estado] || [];
     };
 
     const handleUpdateEstado = async (id: string, estado: string) => {
@@ -625,14 +684,439 @@ export default function CotizacionesPage() {
                     <div className="relative bg-slate-800 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col">
                         <div className="p-6 border-b border-slate-700/50 flex justify-between items-center sticky top-0 bg-slate-800 z-10">
                             <h2 className="text-xl font-bold text-white">
-                                {viewingCotizacion
+                                {editingCotizacion
+                                    ? `Editar ${editingCotizacion.tipo === 'propuesta' ? 'Propuesta' : 'Cotización'} ${editingCotizacion.numero}`
+                                    : viewingCotizacion
                                     ? `${viewingCotizacion.tipo === 'propuesta' ? 'Propuesta' : 'Cotización'} ${viewingCotizacion.numero}`
                                     : formData.tipo === 'propuesta' ? 'Nueva Propuesta de Servicios' : 'Nueva Cotización'}
                             </h2>
                             <button onClick={closeModal} className="text-slate-400 hover:text-white"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
                         </div>
 
-                        {viewingCotizacion ? (
+                        {editingCotizacion ? (
+                            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">Destinatario</label>
+                                        <div className="flex bg-slate-900 rounded-lg p-1 mb-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setTargetType('cliente')}
+                                                className={`flex-1 py-1.5 text-sm rounded-md transition-all ${targetType === 'cliente' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+                                            >
+                                                Cliente Existente
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setTargetType('prospecto')}
+                                                className={`flex-1 py-1.5 text-sm rounded-md transition-all ${targetType === 'prospecto' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`}
+                                            >
+                                                Prospecto
+                                            </button>
+                                        </div>
+
+                                        {targetType === 'cliente' ? (
+                                            <select
+                                                name="clienteId"
+                                                required
+                                                value={formData.clienteId}
+                                                onChange={e => setFormData({ ...formData, clienteId: e.target.value })}
+                                                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                            >
+                                                <option value="">Seleccionar Cliente</option>
+                                                {clientes.map(c => <option key={c.id} value={c.id}>{c.razonSocial}</option>)}
+                                            </select>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                <input
+                                                    name="nombreProspecto"
+                                                    type="text"
+                                                    placeholder="Nombre Prospecto"
+                                                    required
+                                                    value={formData.nombreProspecto}
+                                                    onChange={e => setFormData({ ...formData, nombreProspecto: e.target.value })}
+                                                    className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                                />
+                                                <input
+                                                    name="emailProspecto"
+                                                    type="email"
+                                                    placeholder="Email Prospecto"
+                                                    value={formData.emailProspecto}
+                                                    onChange={e => setFormData({ ...formData, emailProspecto: e.target.value })}
+                                                    className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">Folio Int.</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            disabled
+                                            value={formData.numero}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white opacity-50 cursor-not-allowed"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">Oportunidad</label>
+                                        <input
+                                            type="text"
+                                            value={formData.etiquetaOportunidad}
+                                            onChange={e => setFormData({ ...formData, etiquetaOportunidad: e.target.value })}
+                                            placeholder="Ej: Renovación licencias endpoint 2026"
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">Alternativa / Etiqueta comercial</label>
+                                        <input
+                                            type="text"
+                                            value={formData.etiquetaComercial}
+                                            onChange={e => setFormData({ ...formData, etiquetaComercial: e.target.value })}
+                                            placeholder="Ej: Alternativa A - Microsoft Defender"
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">Tipo cambio US$</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={formData.tipoCambioUSD}
+                                            onChange={e => setFormData({ ...formData, tipoCambioUSD: Number(e.target.value) || 924 })}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                            placeholder="924"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">Valor UF</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={formData.tipoCambioUF}
+                                            onChange={e => setFormData({ ...formData, tipoCambioUF: Number(e.target.value) || 38000 })}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                            placeholder="38000"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">Modo envío</label>
+                                        <input type="text" value={formData.modoEnvio} onChange={e => setFormData({ ...formData, modoEnvio: e.target.value })} className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white" placeholder="Entrega oficina" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">Fecha entrega</label>
+                                        <input type="text" value={formData.fechaEntrega} onChange={e => setFormData({ ...formData, fechaEntrega: e.target.value })} className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white" placeholder="24 Hrs post pago" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">Forma pago</label>
+                                        <input type="text" value={formData.formaPago} onChange={e => setFormData({ ...formData, formaPago: e.target.value })} className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white" placeholder="Transferencia" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 mb-1">Validez (días)</label>
+                                        <input type="number" min="1" value={formData.duracionValidezDias} onChange={e => setFormData({ ...formData, duracionValidezDias: Number(e.target.value) || 2 })} className="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">Fecha</label>
+                                        <input
+                                            type="date"
+                                            required
+                                            value={formData.fecha}
+                                            onChange={e => setFormData({ ...formData, fecha: e.target.value })}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">Válida hasta</label>
+                                        <input
+                                            type="date"
+                                            required
+                                            value={formData.validez}
+                                            onChange={e => setFormData({ ...formData, validez: e.target.value })}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                {formData.tipo === 'propuesta' ? (
+                                    <div className="space-y-4 bg-slate-900/30 p-4 rounded-xl border border-slate-700/50">
+                                        <h3 className="text-white font-medium border-b border-slate-700/50 pb-2">Contenido de la Propuesta</h3>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-300 mb-1">Título del servicio</label>
+                                            <input
+                                                type="text"
+                                                value={formData.titulo}
+                                                onChange={e => setFormData({ ...formData, titulo: e.target.value })}
+                                                placeholder="Ej: Migración de Sitio WordPress a DigitalOcean"
+                                                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-violet-500 outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-300 mb-1">Contexto y Objetivo</label>
+                                            <textarea
+                                                rows={4}
+                                                value={formData.contexto}
+                                                onChange={e => setFormData({ ...formData, contexto: e.target.value })}
+                                                placeholder="Describe el contexto del cliente y el objetivo del servicio..."
+                                                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-violet-500 outline-none resize-y"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-300 mb-1">Alcance del Servicio</label>
+                                            <p className="text-xs text-slate-500 mb-1">Usa saltos de línea para separar ítems. Puedes incluir subsecciones con títulos en la primera línea.</p>
+                                            <textarea
+                                                rows={8}
+                                                value={formData.alcance}
+                                                onChange={e => setFormData({ ...formData, alcance: e.target.value })}
+                                                placeholder={"Configuración del servidor\n• Aprovisionamiento del Droplet (Ubuntu LTS)\n• Hardening básico: firewall, fail2ban, SSH por llave\n\nMigración del sitio\n• Extracción de archivos y base de datos\n• Restauración en el nuevo servidor"}
+                                                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-violet-500 outline-none resize-y font-mono text-sm"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-300 mb-1">Concepto en tabla de inversión</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.conceptoInversion}
+                                                    onChange={e => setFormData({ ...formData, conceptoInversion: e.target.value })}
+                                                    placeholder="Ej: Migración completa (droplet + sitio + DNS + SSL)"
+                                                    className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-violet-500 outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-300 mb-1">Precio neto (UF)</label>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        required
+                                                        value={formData.precioNeto}
+                                                        onChange={e => setFormData({ ...formData, precioNeto: parseFloat(e.target.value) || 0 })}
+                                                        className="flex-1 bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-violet-500 outline-none"
+                                                        placeholder="12"
+                                                    />
+                                                    <span className="text-slate-400 text-sm">UF</span>
+                                                </div>
+                                                {formData.precioNeto > 0 && (
+                                                    <div className="mt-1 text-xs text-slate-500 space-y-0.5">
+                                                        <p>Neto: {formData.precioNeto.toFixed(2)} UF · IVA: {(formData.precioNeto * 0.19).toFixed(2)} UF</p>
+                                                        <p className="font-medium text-slate-400">Total: {(formData.precioNeto * 1.19).toFixed(2)} UF ≈ ${Math.round(formData.precioNeto * 1.19 * formData.tipoCambioUF).toLocaleString('es-CL')}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-300 mb-1">Plazo estimado</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.plazoEstimado}
+                                                    onChange={e => setFormData({ ...formData, plazoEstimado: e.target.value })}
+                                                    placeholder="Ej: 3 a 5 días hábiles"
+                                                    className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-violet-500 outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-300 mb-1">Forma de pago</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.formaPago}
+                                                    onChange={e => setFormData({ ...formData, formaPago: e.target.value })}
+                                                    placeholder="Ej: 50% al inicio, 50% contra entrega"
+                                                    className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-violet-500 outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-300 mb-1">Condiciones Generales</label>
+                                            <p className="text-xs text-slate-500 mb-1">Una condición por línea.</p>
+                                            <textarea
+                                                rows={5}
+                                                value={formData.condicionesGenerales}
+                                                onChange={e => setFormData({ ...formData, condicionesGenerales: e.target.value })}
+                                                placeholder={"• Forma de pago: 50% al inicio del servicio, 50% contra entrega.\n• Plazo estimado: 3 a 5 días hábiles.\n• El precio no incluye desarrollo de nuevas funcionalidades.\n• Valores expresados en UF más IVA."}
+                                                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:ring-2 focus:ring-violet-500 outline-none resize-y text-sm"
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.aplicarIVA}
+                                                    onChange={(e) => setFormData({ ...formData, aplicarIVA: e.target.checked })}
+                                                    className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-violet-500"
+                                                />
+                                                <span className="text-sm">Aplicar IVA (19%)</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                ) : (
+                                <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-700/50">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-white font-medium">Ítems</h3>
+                                        <button type="button" onClick={addItem} className="text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg transition-colors">
+                                            + Agregar Ítem
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-slate-500 mb-3">Costo: USD, UF (con decimal) o CLP (entero). Se convierten automáticamente a CLP. Precio venta = Costo / (1 - % ganancia). El descuento global se aplica al total.</p>
+                                    <div className="space-y-3">
+                                        {formData.items.map((item, idx) => (
+                                            <div key={idx} className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50 space-y-2">
+                                                <div className="flex gap-2 flex-wrap items-center">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="SKU"
+                                                        value={item.sku || ''}
+                                                        onChange={e => updateItem(idx, 'sku', e.target.value)}
+                                                        className="w-20 bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Descripción *"
+                                                        value={item.descripcion}
+                                                        onChange={e => updateItem(idx, 'descripcion', e.target.value)}
+                                                        className="flex-1 min-w-[160px] bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white"
+                                                        required
+                                                    />
+                                                    <input
+                                                        type="number"
+                                                        placeholder="Cant."
+                                                        value={item.cantidad}
+                                                        onChange={e => updateItem(idx, 'cantidad', Number(e.target.value))}
+                                                        className="w-16 bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white"
+                                                        min="1"
+                                                        required
+                                                    />
+                                                    <span className="text-slate-500 text-xs">Costo:</span>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        placeholder="USD"
+                                                        value={item.precioCompraUSD ?? ''}
+                                                        onChange={e => updateItem(idx, 'precioCompraUSD', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+                                                        className="w-20 bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white"
+                                                        min="0"
+                                                    />
+                                                    <span className="text-slate-500 text-xs">UF</span>
+                                                    <input
+                                                        type="number"
+                                                        step="0.0001"
+                                                        placeholder="UF"
+                                                        value={item.precioCompraUF ?? ''}
+                                                        onChange={e => updateItem(idx, 'precioCompraUF', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+                                                        className="w-20 bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white"
+                                                        min="0"
+                                                    />
+                                                    <span className="text-slate-500 text-xs">CLP</span>
+                                                    <input
+                                                        type="number"
+                                                        step="1"
+                                                        placeholder="CLP"
+                                                        value={item.precioCompraCLP ?? ''}
+                                                        onChange={e => updateItem(idx, 'precioCompraCLP', e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
+                                                        className="w-24 bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white"
+                                                        min="0"
+                                                    />
+                                                    <input
+                                                        type="number"
+                                                        step="0.1"
+                                                        placeholder="% ganancia"
+                                                        value={item.margenPorcentaje ?? ''}
+                                                        onChange={e => updateItem(idx, 'margenPorcentaje', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+                                                        className="w-20 bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white"
+                                                        min="0"
+                                                        max="99.9"
+                                                    />
+                                                    <span className="text-slate-500 text-xs">→</span>
+                                                    <input
+                                                        type="number"
+                                                        step="1"
+                                                        placeholder="Precio venta CLP *"
+                                                        value={item.precioUnit}
+                                                        onChange={e => updateItem(idx, 'precioUnit', parseInt(e.target.value, 10) || 0)}
+                                                        className="w-28 bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white font-mono"
+                                                        min="0"
+                                                        required
+                                                    />
+                                                    <span className="text-slate-400 text-sm font-mono">= {formatPrice((item.total ?? item.cantidad * item.precioUnit))}</span>
+                                                    <button type="button" onClick={() => removeItem(idx)} className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="mt-4 space-y-2">
+                                        <div className="flex gap-4 items-center">
+                                            <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.aplicarIVA}
+                                                    onChange={(e) => setFormData({ ...formData, aplicarIVA: e.target.checked })}
+                                                    className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-2 focus:ring-cyan-500"
+                                                />
+                                                <span className="text-sm">Aplicar IVA (19%)</span>
+                                            </label>
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-sm text-slate-400">Descuento:</label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={formData.descuento}
+                                                    onChange={e => setFormData({ ...formData, descuento: Number(e.target.value) || 0 })}
+                                                    className="w-24 bg-slate-800 border border-slate-600 rounded-lg p-2 text-sm text-white"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end items-start gap-8 text-white pt-2">
+                                            <div className="text-right space-y-1">
+                                                <div className="flex justify-between gap-4 text-slate-400 text-sm">
+                                                    <span>Subtotal:</span>
+                                                    <span className="font-mono">{formatPrice(calculateSubtotal(formData.items))}</span>
+                                                </div>
+                                                {formData.descuento > 0 && (
+                                                    <div className="flex justify-between gap-4 text-slate-400 text-sm">
+                                                        <span>Descuento:</span>
+                                                        <span className="font-mono">-{formatPrice(formData.descuento)}</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex justify-between gap-4 text-slate-400 text-sm">
+                                                    <span>IVA (19%):</span>
+                                                    <span className="font-mono">{formatPrice(calculateIVA(calculateSubtotal(formData.items), formData.aplicarIVA, formData.descuento))}</span>
+                                                </div>
+                                                <div className="flex justify-between gap-4 text-xl font-bold pt-1 border-t border-slate-700">
+                                                    <span>Total:</span>
+                                                    <span className="text-emerald-400">{formatPrice(calculateTotal())}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                )}
+
+                                <div className="flex gap-4 pt-4">
+                                    <button type="button" onClick={() => { setEditingCotizacion(null); closeModal(); }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl transition-colors">Cancelar</button>
+                                    <button
+                                        type="submit"
+                                        disabled={saving}
+                                        className={`flex-1 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all ${
+                                            formData.tipo === 'propuesta'
+                                                ? 'bg-gradient-to-r from-violet-500 to-pink-500 hover:shadow-violet-500/25'
+                                                : 'bg-gradient-to-r from-cyan-500 to-violet-500 hover:shadow-cyan-500/25'
+                                        }`}
+                                    >
+                                        {saving ? 'Guardando...' : 'Guardar Cambios'}
+                                    </button>
+                                </div>
+                            </form>
+                        ) : viewingCotizacion ? (
                             <div className="p-8 space-y-8">
                                 <div className="flex justify-between">
                                     <div>
@@ -654,18 +1138,22 @@ export default function CotizacionesPage() {
                                         <span className={`inline-block mt-1 px-3 py-1 text-sm font-medium rounded-full border capitalize ${getStatusBadge(viewingCotizacion.estado)}`}>
                                             {viewingCotizacion.estado}
                                         </span>
-                                        <div className="mt-2 flex items-center gap-2">
-                                            <select
-                                                value={viewingCotizacion.estado}
-                                                onChange={(e) => handleUpdateEstado(viewingCotizacion.id, e.target.value)}
-                                                className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1 text-xs text-white"
-                                            >
-                                                <option value="borrador">Borrador</option>
-                                                <option value="enviada">Enviada</option>
-                                                <option value="aprobada">Aprobada</option>
-                                                <option value="rechazada">Rechazada</option>
-                                                <option value="vencida">Vencida</option>
-                                            </select>
+                                        <div className="mt-3 space-y-2">
+                                            {getValidStateTransitions(viewingCotizacion.estado).length > 0 ? (
+                                                <div className="flex flex-col gap-2">
+                                                    {getValidStateTransitions(viewingCotizacion.estado).map(newState => (
+                                                        <button
+                                                            key={newState}
+                                                            onClick={() => handleUpdateEstado(viewingCotizacion.id, newState)}
+                                                            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition-colors capitalize"
+                                                        >
+                                                            Marcar como {newState}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-slate-500">Sin transiciones disponibles</p>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -864,12 +1352,23 @@ export default function CotizacionesPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex gap-3 pt-1">
+                                <div className="flex gap-3 pt-1 flex-wrap">
+                                    {viewingCotizacion.estado === 'borrador' && (
+                                        <button
+                                            onClick={() => startEditingCotizacion(viewingCotizacion)}
+                                            className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                            Editar
+                                        </button>
+                                    )}
                                     {viewingCotizacion.estado === 'aprobada' && (!viewingCotizacion.facturas || viewingCotizacion.facturas.length === 0) && (
                                         <button
                                             onClick={() => handleConvertToFactura(viewingCotizacion)}
                                             disabled={convertingToFactura}
-                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50"
+                                            className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50"
                                         >
                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -879,7 +1378,7 @@ export default function CotizacionesPage() {
                                     )}
                                     <button
                                         onClick={() => handleDownloadPDF(viewingCotizacion.id)}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-all"
+                                        className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-all"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -889,7 +1388,7 @@ export default function CotizacionesPage() {
                                     <button
                                         onClick={() => handleSendEmail(viewingCotizacion.id)}
                                         disabled={sendingEmail}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-white font-semibold rounded-xl shadow-lg transition-all disabled:opacity-50"
+                                        className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-white font-semibold rounded-xl shadow-lg transition-all disabled:opacity-50"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />

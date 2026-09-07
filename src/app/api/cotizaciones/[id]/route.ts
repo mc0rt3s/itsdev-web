@@ -31,6 +31,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 }
 
+// Estado transitions helper
+function getValidStateTransitions(currentState: string): string[] {
+    const transitions: Record<string, string[]> = {
+        'borrador': ['enviada', 'anulada'],
+        'enviada': ['aprobada', 'rechazada', 'anulada'],
+        'aprobada': ['rechazada', 'anulada'],
+        'rechazada': ['borrador'],
+        'vencida': [],
+    };
+    return transitions[currentState] || [];
+}
+
 // PUT - Actualizar estado o datos
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const session = await requireSession(request);
@@ -41,11 +53,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     try {
         const data = await request.json();
-        // Validate partial update or full schema?
-        // Using full schema implies recreating items if sent. 
-        // For simplicity, allow updating fields directly if verified, or use schema.
-        // Let's rely on schema for consistency but handling items is complex.
-        // If client sends items, we replace.
 
         // Check if this is a full update (has items array or is a propuesta with precioNeto)
         if (data.items !== undefined || data.precioNeto !== undefined) {
@@ -121,17 +128,23 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             });
             return NextResponse.json(cotizacion);
         } else {
-            // Partial update (e.g. status)
-            // We should validate fields if possible, but strict schema might fail if required fields missing.
-            // So let's assume client sends safe data or we use partial schema.
-            // For now, allow direct update of status.
+            // Partial update (e.g. status or full data without items)
             const { estado } = data;
+            
             if (estado) {
                 const current = await prisma.cotizacion.findUnique({
                     where: { id },
                     select: { id: true, numero: true, estado: true }
                 });
                 if (!current) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
+
+                // Validate state transition
+                const validTransitions = getValidStateTransitions(current.estado);
+                if (!validTransitions.includes(estado)) {
+                    return NextResponse.json({ 
+                        error: `Transición no válida: ${current.estado} → ${estado}. Transiciones disponibles: ${validTransitions.join(', ') || 'ninguna'}` 
+                    }, { status: 400 });
+                }
 
                 const cotizacion = await prisma.cotizacion.update({
                     where: { id },
