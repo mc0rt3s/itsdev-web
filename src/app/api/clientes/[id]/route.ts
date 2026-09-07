@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { auth } from '@/lib/auth';
 import { checkAuth } from '@/lib/api-auth';
-import { syncClienteToKimai } from '@/lib/kimai';
+
 
 // GET - Obtener un cliente específico
 export async function GET(
@@ -93,12 +92,7 @@ export async function PUT(
       },
     });
 
-    // Sincronizar con Kimai (fail-soft)
-    try {
-      await syncClienteToKimai(cliente.id);
-    } catch (e) {
-      console.error('Kimai sync (update):', e);
-    }
+
 
     return NextResponse.json(cliente);
   } catch (error) {
