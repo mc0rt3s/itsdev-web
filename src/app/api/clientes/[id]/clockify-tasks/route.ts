@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/api';
+import prisma from '@/lib/prisma';
 
 const CLOCKIFY_API_BASE = 'https://api.clockify.me/api/v1';
 
