@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -72,6 +72,8 @@ function formatChileDateForInput(date: Date) {
 export default function FinanzasFacturas() {
     const toast = useToast();
     const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
     const [activeTab, setActiveTab] = useState<'dashboard' | 'lista'>('dashboard');
     const [facturas, setFacturas] = useState<Factura[]>([]);
     const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -217,6 +219,11 @@ export default function FinanzasFacturas() {
     };
 
     const closeModal = () => {
+        // Quitar facturaId de la URL: si queda, el effect de facturaIdFromQuery reabre el modal
+        // cada vez que fetchData() refresca la lista.
+        if (searchParams.get('facturaId')) {
+            router.replace(pathname);
+        }
         setShowModal(false);
         setViewingFactura(null);
         setTempEstado(null);
