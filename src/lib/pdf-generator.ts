@@ -90,23 +90,17 @@ export function generateFacturaPDF(data: FacturaData): Buffer {
     // ============================================
     // HEADER - Dark blue background (45mm height)
     // ============================================
-    doc.setFillColor(...darkBlue);
-    doc.rect(0, 0, 210, 45, 'F');
-
-    // Green triangle stripe on the right
-    doc.setFillColor(...green);
-    doc.triangle(150, 0, 210, 0, 210, 45, 'F');
-
-    // Logo box with white background and shadow effect
-    doc.setFillColor(200, 200, 200);
-    doc.roundedRect(13, 9, 62, 28, 3, 3, 'F'); // Shadow
+    // Header blanco con borde azul marino, igual que cotizacion. Logo sin caja, 30x30 mm.
     doc.setFillColor(255, 255, 255);
-    doc.roundedRect(12, 8, 62, 28, 3, 3, 'F');
+    doc.rect(0, 0, 210, 45, 'F');
+    doc.setFillColor(...darkBlue);
+    doc.rect(0, 44, 210, 1, 'F');
+    doc.setFillColor(...green);
+    doc.rect(0, 0, 210, 3, 'F');
 
-    // Logo or text
     if (LOGO_BASE64) {
         try {
-            doc.addImage(LOGO_BASE64, 'PNG', 14, 10, 58, 24);
+            doc.addImage(LOGO_BASE64, 'PNG', 12, 8, 30, 30);
         } catch {
             drawLogoTextFactura(doc);
         }
@@ -115,7 +109,7 @@ export function generateFacturaPDF(data: FacturaData): Buffer {
     }
 
     // Document info (right side in header)
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(...darkBlue);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text('Factura N°:', 120, 28);
@@ -309,7 +303,7 @@ export function generateFacturaPDF(data: FacturaData): Buffer {
     doc.setFont('helvetica', 'normal');
     doc.text('+56 9 9095 8220', 25, 285);
     doc.text('contacto@itsdev.cl', 85, 285);
-    doc.text('Santiago, Chile', 155, 285);
+    doc.text('Casablanca, Chile', 155, 285);
     
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');

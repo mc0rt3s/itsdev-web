@@ -46,7 +46,7 @@ Role check: `requireAuth({ roles: ['admin'] })`. Returns `{ session }` on succes
 
 **BaseAPI integration** (`src/lib/baseapi.ts`) — Chilean SII (tax authority) e-invoicing. Configured via `BASEAPI_*` env vars. `afectaIva: true` emits `factura`, false emits `factura-exenta`. Has automatic retry logic for transient navigation errors.
 
-**PDF generation** — `src/lib/pdf-generator.ts` using jsPDF. Logos embedded as base64 in `src/lib/logo-base64.ts`.
+**PDF generation** — `src/lib/pdf-generator.ts` using jsPDF. Logo loaded from `public/logo-pdf.png` (base64 at runtime).
 
 **Deploy** — Docker with `output: 'standalone'`. `better-sqlite3` and Prisma adapter are `serverExternalPackages`. Container CMD runs `prisma migrate deploy && node server.js` so migrations apply automatically on startup. DB persists in Docker volume `itsdev-data`.
 
