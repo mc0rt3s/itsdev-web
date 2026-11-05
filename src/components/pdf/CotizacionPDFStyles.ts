@@ -68,11 +68,23 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 20,
     paddingHorizontal: 20,
-    gap: 30,
+    gap: 20,
   },
 
+  // Columna izquierda (Cliente): crece y SE PUEDE ENCoger para que
+  // un nombre muy largo no desplace la columna de la cotización.
+  // `minWidth: 0` es clave en flexbox: sin él el contenido mínimo
+  // del texto impide que la columna se encoja debajo de su tamaño.
   clientColumn: {
     flex: 1,
+    minWidth: 0,
+    overflow: 'hidden',
+  },
+
+  // Columna derecha (Cotización): fija, no se encoge ni se desplaza.
+  clientColumnFixed: {
+    flexShrink: 0,
+    width: 190,
   },
 
   infoLabel: {

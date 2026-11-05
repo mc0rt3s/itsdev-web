@@ -127,7 +127,7 @@ const ClientInfo: React.FC<ClientInfoProps> = ({
       </View>
 
       {/* COLUMNA DERECHA: COTIZACIÓN */}
-      <View style={styles.clientColumn}>
+      <View style={styles.clientColumnFixed}>
         <Text style={styles.infoLabel}>Cotización</Text>
         <View style={styles.infoField}>
           <Text style={styles.infoFieldLabel}>Número</Text>
