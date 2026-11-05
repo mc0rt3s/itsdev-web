@@ -365,21 +365,18 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     const totalPages = Math.ceil(data.items.length / itemsPerPage);
 
     const drawPageHeader = (pageNum: number) => {
-        doc.setFillColor(...palette.navy);
+        // Header blanco con borde inferior azul marino. Logo sin caja, proporción real (638x660).
+        doc.setFillColor(...palette.white);
         doc.rect(0, 0, 210, 34, 'F');
+        doc.setFillColor(...palette.navy);
+        doc.rect(0, 33, 210, 1, 'F');
         doc.setFillColor(...palette.green);
-        doc.rect(0, 0, 210, 4, 'F');
-        doc.setFillColor(...palette.green);
-        doc.triangle(162, 34, 210, 34, 210, 22, 'F');
+        doc.rect(0, 0, 210, 3, 'F');
 
         // Logo
-        doc.setFillColor(200, 200, 200);
-        doc.roundedRect(13, 7, 28, 20, 2, 2, 'F');
-        doc.setFillColor(255, 255, 255);
-        doc.roundedRect(12, 6, 28, 20, 2, 2, 'F');
         if (LOGO_BASE64) {
             try {
-                doc.addImage(LOGO_BASE64, 'PNG', 14, 8, 24, 16);
+                doc.addImage(LOGO_BASE64, 'PNG', 12, 5, 24, 24);
             } catch {
                 drawLogoTextCotizacion(doc, 14, 17);
             }
@@ -387,12 +384,13 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
             drawLogoTextCotizacion(doc, 14, 17);
         }
 
-        doc.setTextColor(...palette.white);
+        doc.setTextColor(...palette.navy);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(14);
         doc.text('COTIZACIÓN', 194, 16, { align: 'right' });
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8.5);
+        doc.setTextColor(...palette.muted);
         doc.text('ITSDev (IT Specialists)', 194, 23, { align: 'right' });
 
         // Info cliente (solo página 1)
