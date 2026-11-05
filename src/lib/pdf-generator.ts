@@ -62,15 +62,19 @@ try {
     const candidates = [
         path.join(process.cwd(), 'public', 'logo-transparent.png'),
         path.join(process.cwd(), 'public', 'logo-dark.png'),
-        path.join(process.cwd(), 'public', 'logo-pdf.png')
+        path.join(process.cwd(), 'public', 'logo-pdf.png'),
+        path.join(process.cwd(), 'public', 'logo.png')
     ];
     const selected = candidates.find((candidate) => fs.existsSync(candidate));
     if (selected) {
         const logoBuffer = fs.readFileSync(selected);
         LOGO_BASE64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+        console.log(`Logo loaded from: ${selected}`);
+    } else {
+        console.warn('No logo file found in public/');
     }
-} catch {
-    console.warn('Logo not found, will use text fallback');
+} catch (err) {
+    console.warn('Error loading logo:', err);
 }
 
 export function generateFacturaPDF(data: FacturaData): Buffer {
@@ -346,140 +350,181 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
     const clientEmail = data.cliente?.email || data.emailProspecto || 'N/A';
     const clientContacto = data.cliente?.contacto || 'N/A';
 
-    doc.setFillColor(...palette.navy);
-    doc.rect(0, 0, 210, 34, 'F');
-    doc.setFillColor(...palette.green);
-    doc.rect(0, 0, 210, 4, 'F');
-    doc.setFillColor(...palette.green);
-    doc.triangle(162, 34, 210, 34, 210, 22, 'F');
-
-    if (LOGO_BASE64) {
-        try {
-            doc.addImage(LOGO_BASE64, 'PNG', 14, 8, 58, 16);
-        } catch {
-            drawLogoTextCotizacion(doc, 14, 17);
-        }
-    } else {
-        drawLogoTextCotizacion(doc, 14, 17);
-    }
-
-    doc.setTextColor(...palette.white);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.text('COTIZACIÓN', 194, 16, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.text('ITSDev (IT Specialists)', 194, 23, { align: 'right' });
-
-    doc.setTextColor(...palette.text);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(22);
-    doc.text('Cotización', 14, 48);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...palette.muted);
-    doc.setFontSize(9);
-    doc.text('Detalle de productos y condiciones comerciales', 14, 53);
-    if (data.etiquetaComercial) {
-        doc.setTextColor(...palette.green);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9);
-        doc.text(data.etiquetaComercial, 14, 58);
-    }
-
-    const cardY = data.etiquetaComercial ? 66 : 60;
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(...palette.green);
-    doc.text('CLIENTE', 14, cardY + 2);
-
-    doc.setTextColor(...palette.text);
-    doc.setFontSize(10.5);
-    doc.text(clientName, 14, cardY + 8);
-    doc.text(`Cotización Nro: ${data.numero}`, 110, cardY + 8);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(`Contacto: ${clientContacto}`, 14, cardY + 12.5);
-    doc.text(`Email: ${clientEmail}`, 14, cardY + 16.5);
-    doc.text(`RUT: ${data.cliente?.rut || '-'}`, 14, cardY + 20.5);
-    doc.text(`Fecha: ${formatDate(data.fecha)}`, 110, cardY + 12.5);
-    doc.text(`Validez: ${formatDate(data.validez)}`, 110, cardY + 16.5);
-    if (data.oportunidad) {
-        doc.text(`Oportunidad: ${data.oportunidad}`, 110, cardY + 20.5);
-    }
-    doc.setDrawColor(...palette.line);
-    doc.line(14, cardY + 24, 196, cardY + 24);
-
-    let yPos = data.etiquetaComercial ? 98 : 92;
+    // Parámetros de tabla
     const hasSku = data.items.some((i) => i.sku && i.sku.trim() !== '');
     const cols = hasSku
-        ? { idx: 12, sku: 19, desc: 73, qty: 18, unit: 30, total: 30 }
-        : { idx: 12, sku: 0, desc: 92, qty: 18, unit: 30, total: 30 };
+        ? { idx: 10, sku: 16, desc: 75, qty: 16, unit: 28, total: 28 }
+        : { idx: 10, sku: 0, desc: 91, qty: 16, unit: 28, total: 28 };
     const tableW = cols.idx + cols.sku + cols.desc + cols.qty + cols.unit + cols.total;
     const tableRight = 14 + tableW;
+    const headerH = 8;
+    const maxRowH = 6.5;
+    const itemsPerPage = 9; // Máximo items por página antes de totales
 
-    const drawHeader = (y: number) => {
-        let x = 14;
+    // Calcular páginas
+    const totalPages = Math.ceil(data.items.length / itemsPerPage);
+
+    const drawPageHeader = (pageNum: number) => {
         doc.setFillColor(...palette.navy);
-        doc.rect(x, y, tableW, 9, 'F');
+        doc.rect(0, 0, 210, 34, 'F');
+        doc.setFillColor(...palette.green);
+        doc.rect(0, 0, 210, 4, 'F');
+        doc.setFillColor(...palette.green);
+        doc.triangle(162, 34, 210, 34, 210, 22, 'F');
+
+        // Logo
+        doc.setFillColor(200, 200, 200);
+        doc.roundedRect(13, 7, 28, 20, 2, 2, 'F');
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(12, 6, 28, 20, 2, 2, 'F');
+        if (LOGO_BASE64) {
+            try {
+                doc.addImage(LOGO_BASE64, 'PNG', 14, 8, 24, 16);
+            } catch {
+                drawLogoTextCotizacion(doc, 14, 17);
+            }
+        } else {
+            drawLogoTextCotizacion(doc, 14, 17);
+        }
+
         doc.setTextColor(...palette.white);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8.2);
-        doc.text('N', x + cols.idx / 2, y + 6, { align: 'center' });
-        x += cols.idx;
-        if (hasSku) {
-            doc.text('SKU', x + cols.sku / 2, y + 6, { align: 'center' });
-            x += cols.sku;
+        doc.setFontSize(14);
+        doc.text('COTIZACIÓN', 194, 16, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.text('ITSDev (IT Specialists)', 194, 23, { align: 'right' });
+
+        // Info cliente (solo página 1)
+        if (pageNum === 1) {
+            doc.setTextColor(...palette.text);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(22);
+            doc.text('Cotización', 14, 48);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(...palette.muted);
+            doc.setFontSize(9);
+            doc.text('Detalle de productos y condiciones comerciales', 14, 53);
+            if (data.etiquetaComercial) {
+                doc.setTextColor(...palette.green);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(9);
+                doc.text(data.etiquetaComercial, 14, 58);
+            }
+
+            const cardY = data.etiquetaComercial ? 66 : 60;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.setTextColor(...palette.green);
+            doc.text('CLIENTE', 14, cardY + 2);
+
+            doc.setTextColor(...palette.text);
+            doc.setFontSize(10.5);
+            doc.text(doc.splitTextToSize(clientName, 90)[0], 14, cardY + 8);
+            doc.text(`Cotización Nro: ${data.numero}`, 110, cardY + 8);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.text(`Contacto: ${clientContacto}`, 14, cardY + 12.5);
+            doc.text(`Email: ${clientEmail}`, 14, cardY + 16.5);
+            doc.text(`RUT: ${data.cliente?.rut || '-'}`, 14, cardY + 20.5);
+            doc.text(`Fecha: ${formatDate(data.fecha)}`, 110, cardY + 12.5);
+            doc.text(`Validez: ${formatDate(data.validez)}`, 110, cardY + 16.5);
+            if (data.oportunidad) {
+                doc.text(`Oportunidad: ${data.oportunidad}`, 110, cardY + 20.5);
+            }
+            doc.setDrawColor(...palette.line);
+            doc.line(14, cardY + 24, 196, cardY + 24);
         }
-        doc.text('DESCRIPCIÓN', x + cols.desc / 2, y + 6, { align: 'center' });
-        x += cols.desc;
-        doc.text('CANT.', x + cols.qty / 2, y + 6, { align: 'center' });
-        x += cols.qty;
-        doc.text('P. UNIT', x + cols.unit / 2, y + 6, { align: 'center' });
-        x += cols.unit;
-        doc.text('TOTAL', x + cols.total / 2, y + 6, { align: 'center' });
     };
 
-    drawHeader(yPos);
-    yPos += 9;
-
-    data.items.forEach((item, index) => {
-        const descLines = doc.splitTextToSize(item.descripcion, cols.desc - 4);
-        const rowH = Math.max(10, 4 + descLines.length * 4.2);
-        if (yPos + rowH > 232) {
-            doc.addPage();
-            yPos = 18;
-            drawHeader(yPos);
-            yPos += 9;
+    const drawTableHeader = (y: number) => {
+        let x = 14;
+        doc.setFillColor(...palette.navy);
+        doc.rect(x, y, tableW, headerH, 'F');
+        doc.setTextColor(...palette.white);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.8);
+        doc.text('N', x + cols.idx / 2, y + 5.2, { align: 'center' });
+        x += cols.idx;
+        if (hasSku) {
+            doc.text('SKU', x + cols.sku / 2, y + 5.2, { align: 'center' });
+            x += cols.sku;
         }
+        doc.text('DESCRIPCIÓN', x + cols.desc / 2, y + 5.2, { align: 'center' });
+        x += cols.desc;
+        doc.text('CANT.', x + cols.qty / 2, y + 5.2, { align: 'center' });
+        x += cols.qty;
+        doc.text('P. UNIT', x + cols.unit / 2, y + 5.2, { align: 'center' });
+        x += cols.unit;
+        doc.text('TOTAL', x + cols.total / 2, y + 5.2, { align: 'center' });
+    };
+
+    const drawPageFooter = (pageNum: number, isLastPage: boolean) => {
+        doc.setFillColor(...palette.navy);
+        doc.rect(0, 274, 210, 23, 'F');
+        doc.setTextColor(...palette.white);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text('+56 9 9095 8220   contacto@itsdev.cl   Santiago, Chile', 14, 287);
+        doc.text(`Página ${pageNum} de ${totalPages} | Generado: ${new Date().toLocaleString('es-CL')}`, 195, 287, { align: 'right' });
+    };
+
+    // Renderizar páginas
+    let currentPage = 1;
+    let yPos = data.etiquetaComercial ? 96 : 90;
+
+    drawPageHeader(currentPage);
+    drawTableHeader(yPos);
+    yPos += headerH + 2;
+
+    // Renderizar items (máx 9 por página)
+    for (let itemIndex = 0; itemIndex < data.items.length; itemIndex++) {
+        const item = data.items[itemIndex];
+        const itemsRenderedOnPage = itemIndex % itemsPerPage;
+        
+        // Si ya renderizó 9 items en esta página, pasar a la siguiente
+        if (itemsRenderedOnPage === 0 && itemIndex > 0) {
+            drawPageFooter(currentPage, currentPage === totalPages);
+            doc.addPage();
+            currentPage++;
+            yPos = 42;
+            drawPageHeader(currentPage);
+            drawTableHeader(yPos);
+            yPos += headerH + 2;
+        }
+
+        const descLines = doc.splitTextToSize(item.descripcion, cols.desc - 3);
+        const rowH = Math.min(maxRowH, Math.max(5.8, 2 + descLines.length * 3.2));
 
         let x = 14;
         doc.setTextColor(...palette.text);
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
-        doc.text(String(index + 1).padStart(2, '0'), x + cols.idx / 2, yPos + 6, { align: 'center' });
+        doc.setFontSize(7.5);
+        doc.text(String(itemIndex + 1).padStart(2, '0'), x + cols.idx / 2, yPos + 4.5, { align: 'center' });
         x += cols.idx;
 
         if (hasSku) {
-            doc.text((item.sku || '-').slice(0, 12), x + cols.sku / 2, yPos + 6, { align: 'center' });
+            doc.text((item.sku || '-').slice(0, 10), x + cols.sku / 2, yPos + 4.5, { align: 'center' });
             x += cols.sku;
         }
 
-        doc.text(descLines, x + 2, yPos + 5.7);
+        doc.text(descLines.slice(0, 1), x + 1.5, yPos + 4.2);
         x += cols.desc;
-        doc.text(String(item.cantidad), x + cols.qty / 2, yPos + 6, { align: 'center' });
+        doc.text(String(item.cantidad), x + cols.qty / 2, yPos + 4.5, { align: 'center' });
         x += cols.qty;
-        doc.text(formatMoney(item.precioUnit), x + cols.unit - 2, yPos + 6, { align: 'right' });
+        doc.text(formatMoney(item.precioUnit), x + cols.unit - 1.5, yPos + 4.5, { align: 'right' });
         x += cols.unit;
         doc.setFont('helvetica', 'bold');
-        doc.text(formatMoney(item.total), x + cols.total - 2, yPos + 6, { align: 'right' });
+        doc.text(formatMoney(item.total), x + cols.total - 1.5, yPos + 4.5, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
 
         doc.setDrawColor(...palette.line);
         doc.line(14, yPos + rowH, tableRight, yPos + rowH);
         yPos += rowH;
-    });
+    }
 
+    // Totales SOLO en la última página
     yPos += 4;
     const summaryRows = [
         { label: 'Subtotal', value: formatMoney(data.subtotal), isTotal: false },
@@ -490,81 +535,56 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
         { label: 'TOTAL', value: formatMoney(data.total), isTotal: true }
     ];
 
-    const summaryLabelX = tableRight - cols.total - 6;
-    yPos += 2;
+    const summaryLabelX = tableRight - cols.total - 5;
     summaryRows.forEach((row) => {
-        const rowH = row.isTotal ? 8 : 7;
-        if (yPos + rowH > 232) {
-            doc.addPage();
-            yPos = 20;
-        }
-
         if (row.isTotal) {
             doc.setTextColor(...palette.green);
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(10);
-            doc.text(row.label, summaryLabelX, yPos + 5.4, { align: 'right' });
-            doc.text(row.value, tableRight - 2, yPos + 5.4, { align: 'right' });
+            doc.setFontSize(9);
+            doc.text(row.label, summaryLabelX, yPos + 4.8, { align: 'right' });
+            doc.text(row.value, tableRight - 1.5, yPos + 4.8, { align: 'right' });
+            yPos += 6.5;
         } else {
             doc.setTextColor(...palette.text);
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(9);
-            doc.text(row.label, summaryLabelX, yPos + 4.8, { align: 'right' });
-            doc.text(row.value, tableRight - 2, yPos + 4.8, { align: 'right' });
+            doc.setFontSize(8);
+            doc.text(row.label, summaryLabelX, yPos + 4, { align: 'right' });
+            doc.text(row.value, tableRight - 1.5, yPos + 4, { align: 'right' });
+            yPos += 5;
         }
-
-        yPos += rowH;
     });
 
-    yPos += 8;
-    if (yPos > 220) {
-        doc.addPage();
-        yPos = 18;
-    }
-
-    yPos = Math.max(yPos, 230);
+    yPos += 4;
+    const footerStartY = yPos + 2;
     doc.setDrawColor(...palette.line);
-    doc.line(14, yPos, 102, yPos);
-    doc.line(108, yPos, 196, yPos);
+    doc.line(14, footerStartY, 102, footerStartY);
+    doc.line(108, footerStartY, 196, footerStartY);
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
+    doc.setFontSize(7.8);
     doc.setTextColor(...palette.green);
-    doc.text('CONDICIONES', 14, yPos + 6);
-    doc.text('DATOS DE PAGO', 108, yPos + 6);
+    doc.text('CONDICIONES', 14, footerStartY + 5);
+    doc.text('DATOS DE PAGO', 108, footerStartY + 5);
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...palette.text);
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     const terms = [
-        `- Modo de envío: ${data.modoEnvio || 'Entrega en oficina del cliente'}`,
-        `- Fecha de entrega: ${data.fechaEntrega || '24 hrs después del pago'}`,
-        `- Forma de pago: ${data.formaPago || 'Transferencia'}`,
-        `- Validez: ${data.duracionValidezDias ? `${data.duracionValidezDias * 24} horas` : '48 horas'}`
+        `Envío: ${data.modoEnvio || 'Oficina cliente'}`,
+        `Entrega: ${data.fechaEntrega || '24 hrs'}`,
+        `Pago: ${data.formaPago || 'Transferencia'}`,
+        `Validez: ${data.duracionValidezDias ? `${data.duracionValidezDias * 24}h` : '48h'}`
     ];
-    terms.forEach((line, index) => doc.text(line, 14, yPos + 11.5 + index * 5.8));
-
-    if (data.notas) {
-        doc.setTextColor(...palette.muted);
-        doc.setFont('helvetica', 'italic');
-        doc.text(doc.splitTextToSize(`Nota: ${data.notas}`, 82).slice(0, 2), 18, yPos + 37);
-    }
+    terms.forEach((line, index) => doc.text(line, 14, footerStartY + 10.5 + index * 4.2));
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...palette.text);
-    doc.text('Banco Santander', 108, yPos + 11.5);
-    doc.text('Cuenta Corriente: 0-000-8814903-3', 108, yPos + 17.3);
-    doc.text('Titular: Servicios Informáticos Marcelo Cortés EIRL', 108, yPos + 23.1);
-    doc.text('RUT: 76.732.709-9', 108, yPos + 28.9);
-    doc.text('Email: contacto@itsdev.cl', 108, yPos + 34.7);
+    doc.text('Banco Santander', 108, footerStartY + 10.5);
+    doc.text('Cta Cte: 0-000-8814903-3', 108, footerStartY + 14.7);
+    doc.text('RUT: 76.732.709-9', 108, footerStartY + 18.9);
 
-    doc.setFillColor(...palette.navy);
-    doc.rect(0, 274, 210, 23, 'F');
-    doc.setTextColor(...palette.white);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text('+56 9 9095 8220   contacto@itsdev.cl   Santiago, Chile', 14, 287);
-    doc.text(`Generado: ${new Date().toLocaleString('es-CL')}`, 195, 287, { align: 'right' });
+    // Footer en última página
+    drawPageFooter(currentPage, true);
 
     return Buffer.from(doc.output('arraybuffer'));
 }
