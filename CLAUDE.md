@@ -33,7 +33,6 @@ npm run user:create  # Create initial admin user
 
 **Auth pattern** — use `requireAuth()` from `src/lib/api.ts` in every API route. It accepts two auth methods:
 1. NextAuth session (web UI)
-2. `Authorization: Bearer <ESTRELLA_API_TOKEN>` header (Estrella/Electron app)
 
 Role check: `requireAuth({ roles: ['admin'] })`. Returns `{ session }` on success or `{ response }` to return early.
 
@@ -60,7 +59,6 @@ NEXTAUTH_URL
 RESEND_API_KEY        # Email sending
 CALENDLY_API_TOKEN
 CLOCKIFY_API_KEY
-ESTRELLA_API_TOKEN    # Bearer token for Electron app
 BASEAPI_API_KEY       # SII e-invoicing
 BASEAPI_RUT / BASEAPI_PASSWORD / BASEAPI_CLAVE_CERTIFICADO
 BASEAPI_RUT_EMPRESA / BASEAPI_AMBIENTE  # sandbox | produccion

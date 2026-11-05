@@ -15,7 +15,6 @@ Cal.diy (citas.itsdev.cl) -> webhook -> Actividad tipo "reunion" -> (manual) Opo
 
 ## Var de entorno
 - CAL_WEBHOOK_SECRET=<valor> (en env de la app en Coolify)
-- ESTRELLA_API_TOKEN (auth de la API, ya existente)
 
 ## Suscripción en Cal.diy (Dashboard -> Event Types -> Webhooks)
 - URL: <CRM_URL>/api/webhooks/cal
