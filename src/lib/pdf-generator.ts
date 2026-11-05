@@ -464,7 +464,7 @@ export function generateCotizacionPDF(data: CotizacionData): Buffer {
         doc.setTextColor(...palette.white);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
-        doc.text('+56 9 9095 8220   contacto@itsdev.cl   Santiago, Chile', 14, 287);
+        doc.text('+56 9 9095 8220   contacto@itsdev.cl   Casablanca, Chile', 14, 287);
         doc.text(`Página ${pageNum} de ${totalPages} | Generado: ${new Date().toLocaleString('es-CL')}`, 195, 287, { align: 'right' });
     };
 

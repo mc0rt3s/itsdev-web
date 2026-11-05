@@ -351,7 +351,7 @@ const Footer: React.FC<FooterProps> = ({ fechaGeneracion }) => (
     <View style={styles.footerContact}>
       <Text>+56 9 9095 8220</Text>
       <Text>contacto@itsdev.cl</Text>
-      <Text>Santiago, Chile</Text>
+      <Text>Casablanca, Chile</Text>
     </View>
     <Text style={styles.footerDate}>
       Generado: {new Date(fechaGeneracion).toLocaleString('es-CL')}
