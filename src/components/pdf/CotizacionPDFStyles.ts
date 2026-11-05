@@ -23,8 +23,10 @@ export const styles = StyleSheet.create({
 
   // === HEADER ===
   headerContainer: {
-    backgroundColor: COLORS.navy,
-    padding: '15px 20px',
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 2,
+    borderBottomColor: COLORS.navy,
+    padding: '12px 20px',
     marginBottom: 20,
     display: 'flex',
     flexDirection: 'row',
@@ -39,25 +41,26 @@ export const styles = StyleSheet.create({
     gap: 10,
   },
 
+  // logo-pdf.png recortado a contenido: 638x660 (~1:1). No deformar.
   logo: {
-    width: 50,
-    height: 20,
+    width: 40,
+    height: 41,
   },
 
   headerTitle: {
-    color: COLORS.white,
+    color: COLORS.navy,
     fontSize: 18,
     fontWeight: 'bold',
   },
 
   headerSubtitle: {
-    color: COLORS.white,
+    color: COLORS.slate,
     fontSize: 8,
     marginTop: 2,
   },
 
   headerDate: {
-    color: COLORS.white,
+    color: COLORS.navy,
     fontSize: 9,
     textAlign: 'right',
   },
