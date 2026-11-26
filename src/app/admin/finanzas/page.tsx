@@ -43,6 +43,50 @@ const currentMonthStr = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
 
+function IvaCard({ month }: { month: string }) {
+  const [iva, setIva] = useState<{ periodo: string; vencimiento: string; debito: number; credito: number; saldo: number } | null>(null);
+  const [ivaError, setIvaError] = useState(false);
+
+  useEffect(() => {
+    let cancelado = false;
+    // month es el período de venta; la API declara el mes anterior al mes de vencimiento
+    const [y, m] = month.split('-').map(Number);
+    const siguiente = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`;
+    fetch(`/api/finanzas/iva?mes=${siguiente}`)
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('iva'))))
+      .then(d => { if (!cancelado) { setIva(d); setIvaError(false); } })
+      .catch(() => { if (!cancelado) setIvaError(true); });
+    return () => { cancelado = true; };
+  }, [month]);
+
+  if (ivaError) return null;
+  if (!iva) return null;
+
+  const aPagar = iva.saldo > 0;
+  return (
+    <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-bold text-white">IVA {iva.periodo}</h2>
+        <span className="text-xs text-slate-400">Vence {iva.vencimiento}</span>
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <p className="text-xs text-slate-400 uppercase">Débito (ventas)</p>
+          <p className="text-xl font-bold text-emerald-400">{CLP(iva.debito)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-400 uppercase">Crédito (gastos)</p>
+          <p className="text-xl font-bold text-cyan-400">{CLP(iva.credito)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-400 uppercase">{aPagar ? 'A pagar al SII' : 'Remanente a favor'}</p>
+          <p className={`text-xl font-bold ${aPagar ? 'text-rose-400' : 'text-emerald-400'}`}>{CLP(Math.abs(iva.saldo))}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DashboardTab() {
   const [month, setMonth] = useState(currentMonthStr());
   const [data, setData] = useState<DashData | null>(null);
@@ -112,6 +156,7 @@ function DashboardTab() {
             ))}
           </div>
 
+          <IvaCard month={month} />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6">
               <h2 className="text-lg font-bold text-white mb-4">Tendencia 6 meses</h2>
