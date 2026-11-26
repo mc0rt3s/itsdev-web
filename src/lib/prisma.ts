@@ -1,20 +1,14 @@
 import { PrismaClient } from '@prisma/client';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { PrismaPg } from '@prisma/adapter-pg';
-import path from 'path';
 import { Pool } from 'pg';
 
-// Detectar si DATABASE_URL apunta a PostgreSQL o SQLite y crear el adapter adecuado.
-// - PostgreSQL: DATABASE_URL tipo postgresql://... (producción, Supabase)
-// - SQLite: DATABASE_URL tipo file:... (desarrollo local)
+// PostgreSQL es la única base (local y producción). DATABASE_URL obligatorio.
 export function createPrismaAdapter() {
-  const dbUrl = process.env.DATABASE_URL || `file:${path.join(process.cwd(), 'prisma', 'dev.db')}`;
-
-  if (dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://')) {
-    return new PrismaPg(new Pool({ connectionString: dbUrl }));
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl || !/^postgres(ql)?:\/\//.test(dbUrl)) {
+    throw new Error('DATABASE_URL debe ser postgresql://... (ver .env.example)');
   }
-
-  return new PrismaBetterSqlite3({ url: dbUrl });
+  return new PrismaPg(new Pool({ connectionString: dbUrl }));
 }
 
 function createPrismaClient() {

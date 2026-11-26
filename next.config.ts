@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   typescript: { ignoreBuildErrors: true },
 
   // Paquetes que deben ejecutarse en el servidor (no bundleados)
-  serverExternalPackages: ['better-sqlite3', '@prisma/adapter-better-sqlite3'],
+  serverExternalPackages: ['pg', '@prisma/adapter-pg'],
   async redirects() {
     return [
       { source: '/admin/facturas', destination: '/admin/finanzas', permanent: true },
