@@ -57,10 +57,6 @@ export default function ProyectosPage() {
     const [clockifyWorkspaceId, setClockifyWorkspaceId] = useState('');
     const [loadingClockify, setLoadingClockify] = useState(false);
 
-    useEffect(() => {
-        fetchProyectos();
-        fetchClientes();
-    }, []);
 
     // Abrir modal "Nuevo proyecto" con cliente preseleccionado si viene desde detalle del cliente
     const nuevoClienteIdFromUrl = searchParams.get('nuevoClienteId');
@@ -280,6 +276,11 @@ export default function ProyectosPage() {
         };
         return map[priority] || map.media;
     };
+
+    useEffect(() => {
+        fetchProyectos();
+        fetchClientes();
+    }, []);
 
     return (
         <div className="space-y-6">

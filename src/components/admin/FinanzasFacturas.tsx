@@ -129,9 +129,6 @@ export default function FinanzasFacturas() {
     });
     const facturaIdFromQuery = searchParams.get('facturaId');
 
-    useEffect(() => {
-        fetchData();
-    }, []);
 
     useEffect(() => {
         const openFacturaFromQuery = async () => {
@@ -696,6 +693,10 @@ export default function FinanzasFacturas() {
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(price);
     };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     return (
         <div className="space-y-6">

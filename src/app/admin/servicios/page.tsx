@@ -30,9 +30,6 @@ export default function ServiciosPage() {
     const [formError, setFormError] = useState('');
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
-        fetchServicios();
-    }, []);
 
     const fetchServicios = async () => {
         try {
@@ -134,6 +131,10 @@ export default function ServiciosPage() {
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(price);
     };
+
+    useEffect(() => {
+        fetchServicios();
+    }, []);
 
     return (
         <div className="space-y-6">

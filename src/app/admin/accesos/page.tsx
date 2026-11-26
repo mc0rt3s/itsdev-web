@@ -98,10 +98,6 @@ export default function AccesosPage() {
   const [informeError, setInformeError] = useState('');
   const [informeSuccess, setInformeSuccess] = useState('');
 
-  useEffect(() => {
-    fetchAccesos();
-    fetchClientes();
-  }, []);
 
   const fetchAccesos = async () => {
     try {
@@ -490,6 +486,11 @@ export default function AccesosPage() {
   const getAccesosCount = (clienteId: string) => {
     return accesos.filter(a => a.clienteId === clienteId).length;
   };
+
+  useEffect(() => {
+    fetchAccesos();
+    fetchClientes();
+  }, []);
 
   return (
     <div className="space-y-6">

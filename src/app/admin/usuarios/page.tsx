@@ -27,9 +27,6 @@ export default function UsuariosPage() {
   const [saving, setSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  useEffect(() => {
-    fetchUsuarios();
-  }, []);
 
   const fetchUsuarios = async () => {
     try {
@@ -151,6 +148,10 @@ export default function UsuariosPage() {
     setFormData({ ...formData, password });
     setShowPassword(true);
   };
+
+  useEffect(() => {
+    fetchUsuarios();
+  }, []);
 
   return (
     <div className="space-y-6">

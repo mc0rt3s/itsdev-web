@@ -105,10 +105,6 @@ export default function CotizacionesPage() {
     const [oportunidadVinculada, setOportunidadVinculada] = useState<{ id: string; titulo: string } | null>(null);
     const [editingCotizacion, setEditingCotizacion] = useState<Cotizacion | null>(null);
 
-    useEffect(() => {
-        fetchData();
-        fetchValores();
-    }, []);
 
     const fetchValores = async () => {
         try {
@@ -584,6 +580,11 @@ export default function CotizacionesPage() {
         };
         return styles[status] || styles.borrador;
     };
+
+    useEffect(() => {
+        fetchData();
+        fetchValores();
+    }, []);
 
     return (
         <div className="space-y-6">

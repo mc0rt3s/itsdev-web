@@ -46,9 +46,6 @@ export default function NotasPage() {
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    fetchNotas();
-  }, []);
 
   const fetchNotas = async () => {
     try {
@@ -153,6 +150,10 @@ export default function NotasPage() {
     const matchesFavoritas = !filterFavoritas || n.favorita;
     return matchesSearch && matchesFavoritas;
   });
+
+  useEffect(() => {
+    fetchNotas();
+  }, []);
 
   return (
     <div className="space-y-6">

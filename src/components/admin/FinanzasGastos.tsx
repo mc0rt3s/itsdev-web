@@ -78,11 +78,6 @@ export default function FinanzasGastos() {
     const [comprobanteFile, setComprobanteFile] = useState<File | null>(null);
     const [comprobantePreview, setComprobantePreview] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchData();
-        fetchMetrics();
-        fetchProveedores();
-    }, []);
 
     const fetchProveedores = async () => {
         try {
@@ -314,6 +309,12 @@ export default function FinanzasGastos() {
     const getCategoriaLabel = (categoria: string) => {
         return categorias.find(c => c.value === categoria)?.label || categoria;
     };
+
+    useEffect(() => {
+        fetchData();
+        fetchMetrics();
+        fetchProveedores();
+    }, []);
 
     if (loading || loadingMetrics) {
         return (

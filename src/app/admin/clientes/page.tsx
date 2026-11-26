@@ -44,9 +44,6 @@ export default function ClientesPage() {
   const [clockifyWorkspaceId, setClockifyWorkspaceId] = useState('');
   const [loadingClockify, setLoadingClockify] = useState(false);
 
-  useEffect(() => {
-    fetchClientes();
-  }, []);
 
   useEffect(() => {
     if (editingCliente?.clockifyClientId && clockifyWorkspaces.length > 0) {
@@ -248,6 +245,10 @@ export default function ClientesPage() {
     };
     return styles[estado] || styles.activo;
   };
+
+  useEffect(() => {
+    fetchClientes();
+  }, []);
 
   return (
     <div className="space-y-6">

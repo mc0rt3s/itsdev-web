@@ -50,9 +50,6 @@ export default function SuscripcionesPage() {
     const [formError, setFormError] = useState('');
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
-        fetchData();
-    }, []);
 
     const fetchData = async () => {
         try {
@@ -191,6 +188,10 @@ export default function SuscripcionesPage() {
         if (!dateString) return '-';
         return new Date(dateString).toLocaleDateString('es-CL');
     };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     return (
         <div className="space-y-6">
