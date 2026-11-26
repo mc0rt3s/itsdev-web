@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
 interface Cliente {
@@ -45,11 +45,6 @@ export default function ClientesPage() {
   const [loadingClockify, setLoadingClockify] = useState(false);
 
 
-  useEffect(() => {
-    if (editingCliente?.clockifyClientId && clockifyWorkspaces.length > 0) {
-      findWorkspaceForClient(editingCliente.clockifyClientId);
-    }
-  }, [editingCliente, clockifyWorkspaces]);
 
   const fetchClientes = async () => {
     try {
@@ -108,7 +103,7 @@ export default function ClientesPage() {
     fetchClockifyClients(workspaceId);
   };
 
-  const findWorkspaceForClient = async (clientId: string) => {
+  const findWorkspaceForClient = useCallback(async (clientId: string) => {
     if (!clientId || !clockifyWorkspaces.length) return;
     // Buscar el workspace que contiene este cliente
     for (const ws of clockifyWorkspaces) {
@@ -126,7 +121,13 @@ export default function ClientesPage() {
         // continue
       }
     }
-  };
+  }, [clockifyWorkspaces]);
+
+  useEffect(() => {
+    if (editingCliente?.clockifyClientId && clockifyWorkspaces.length > 0) {
+      findWorkspaceForClient(editingCliente.clockifyClientId);
+    }
+  }, [editingCliente, clockifyWorkspaces, findWorkspaceForClient]);
 
   const openModal = async (cliente?: Cliente) => {
     if (cliente) {

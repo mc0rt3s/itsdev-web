@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 interface Proyecto {
@@ -60,28 +60,6 @@ export default function ProyectosPage() {
 
     // Abrir modal "Nuevo proyecto" con cliente preseleccionado si viene desde detalle del cliente
     const nuevoClienteIdFromUrl = searchParams.get('nuevoClienteId');
-    useEffect(() => {
-        if (!nuevoClienteIdFromUrl || clientes.length === 0) return;
-        setEditingProyecto(null);
-        setFormData((prev) => ({
-            ...prev,
-            nombre: '',
-            descripcion: '',
-            clienteId: nuevoClienteIdFromUrl,
-            estado: 'planificacion',
-            prioridad: 'media',
-            fechaInicio: '',
-            fechaFin: '',
-            presupuesto: 0,
-            avance: 0,
-            clockifyProjectId: null,
-        }));
-        setClockifyWorkspaceId('');
-        setClockifyProjects([]);
-        setShowModal(true);
-        fetchClockifyWorkspaces();
-        window.history.replaceState({}, '', '/admin/proyectos');
-    }, [nuevoClienteIdFromUrl, clientes.length]);
 
     const fetchProyectos = async () => {
         try {
@@ -109,7 +87,7 @@ export default function ProyectosPage() {
         }
     };
 
-    const fetchClockifyWorkspaces = async () => {
+    const fetchClockifyWorkspaces = useCallback(async () => {
         setLoadingClockify(true);
         try {
             const res = await fetch('/api/clockify/workspaces');
@@ -124,7 +102,30 @@ export default function ProyectosPage() {
         } finally {
             setLoadingClockify(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        if (!nuevoClienteIdFromUrl || clientes.length === 0) return;
+        setEditingProyecto(null);
+        setFormData((prev) => ({
+            ...prev,
+            nombre: '',
+            descripcion: '',
+            clienteId: nuevoClienteIdFromUrl,
+            estado: 'planificacion',
+            prioridad: 'media',
+            fechaInicio: '',
+            fechaFin: '',
+            presupuesto: 0,
+            avance: 0,
+            clockifyProjectId: null,
+        }));
+        setClockifyWorkspaceId('');
+        setClockifyProjects([]);
+        setShowModal(true);
+        fetchClockifyWorkspaces();
+        window.history.replaceState({}, '', '/admin/proyectos');
+    }, [nuevoClienteIdFromUrl, clientes.length, fetchClockifyWorkspaces]);
 
     const fetchClockifyProjects = async (workspaceId: string, clockifyClientId?: string | null) => {
         if (!workspaceId) {

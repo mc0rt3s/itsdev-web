@@ -69,7 +69,7 @@ export default function CotizacionesPage() {
     const [targetType, setTargetType] = useState<'cliente' | 'prospecto'>('cliente');
 
     const [valores, setValores] = useState<{ tipoCambioUSD: number; tipoCambioUF: number }>({ tipoCambioUSD: 924, tipoCambioUF: 38000 });
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState(() => ({
         tipo: 'cotizacion' as 'cotizacion' | 'propuesta',
         clienteId: '',
         nombreProspecto: '',
@@ -98,7 +98,7 @@ export default function CotizacionesPage() {
         conceptoInversion: '',
         condicionesGenerales: '',
         plazoEstimado: '',
-    });
+    }));
     const [saving, setSaving] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
     const [convertingToFactura, setConvertingToFactura] = useState(false);

@@ -72,7 +72,11 @@ export default function ReunionesPage() {
 
   async function convertir(reunionId: string) {
     setWorking(true);
-    const body: any = { reunionId };
+    const body: {
+      reunionId: string;
+      clienteId?: string;
+      crearCliente?: { rut: string; razonSocial: string; contacto: string; email: string };
+    } = { reunionId };
     if (mode === "existente" && selCliente) body.clienteId = selCliente;
     if (mode === "nuevo") {
       body.crearCliente = { rut: nuevo.rut, razonSocial: nuevo.razonSocial, contacto: nuevo.contacto, email: nuevo.email };
