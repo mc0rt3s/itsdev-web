@@ -120,7 +120,7 @@ function DashboardTab() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                   <XAxis dataKey="mes" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000000).toFixed(1)}M`} />
-                  <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12 }} labelStyle={{ color: '#fff' }} formatter={(v: number | undefined) => [CLP(v ?? 0)]} />
+                  <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12 }} labelStyle={{ color: '#fff' }} formatter={(v) => [CLP(Number(v) || 0)]} />
                   <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
                   <Bar dataKey="ingresos" name="Ingresos" fill="#10b981" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="gastos" name="Gastos" fill="#ef4444" radius={[4, 4, 0, 0]} />
@@ -141,7 +141,7 @@ function DashboardTab() {
                           <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }} formatter={(v: number | undefined) => [CLP(v ?? 0)]} />
+                      <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }} formatter={(v) => [CLP(Number(v) || 0)]} />
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="space-y-1 mt-2">
@@ -167,7 +167,7 @@ function DashboardTab() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis dataKey="mes" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000000).toFixed(1)}M`} />
-                <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12 }} formatter={(v: number | undefined) => [CLP(v ?? 0)]} />
+                <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12 }} formatter={(v) => [CLP(Number(v) || 0)]} />
                 <Bar dataKey="balance" name="Balance" radius={[4, 4, 0, 0]}>
                   {data.trend.map((entry, i) => (
                     <Cell key={i} fill={entry.balance >= 0 ? '#10b981' : '#ef4444'} />

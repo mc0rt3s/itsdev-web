@@ -60,7 +60,7 @@ async function main() {
 
     const hashedPassword = await bcrypt.hash(password, 12);
     const user = await prisma.user.create({
-      data: { email, name, password: hashedPassword, role: role as any },
+      data: { email, name, password: hashedPassword, role },
     });
 
     console.log(`✅ Usuario creado: ${user.email} (${user.name} / ${user.role})`);
@@ -99,7 +99,7 @@ async function main() {
 
   const hashedPassword = await bcrypt.hash(password, 12);
   const user = await prisma.user.create({
-    data: { email, name, password: hashedPassword, role: finalRole as any },
+    data: { email, name, password: hashedPassword, role: finalRole },
   });
 
   console.log(`\n✅ Usuario creado: ${user.email} (${user.name} / ${user.role})`);

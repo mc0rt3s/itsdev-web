@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Script para optimizar logo.png para PDFs
  * Crea una versión más pequeña (240x192) para reducir tamaño del PDF

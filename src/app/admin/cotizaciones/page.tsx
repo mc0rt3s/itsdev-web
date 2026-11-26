@@ -33,6 +33,9 @@ interface Cotizacion {
     plazoEstimado?: string | null;
     formaPago?: string | null;
     seccionesAdicionales?: string | null;
+    modoEnvio?: string | null;
+    fechaEntrega?: string | null;
+    duracionValidezDias?: number | null;
 }
 
 interface ItemCotizacion {

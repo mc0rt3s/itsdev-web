@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Firma inválida" }, { status: 401 });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- payload de Cal.com sin schema fijo
   let body: any;
   try {
     body = JSON.parse(raw);
@@ -144,7 +145,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ ok: false, ignored: true, trigger });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Error en webhook de Cal:", err);
     return NextResponse.json({ error: "Error procesando webhook" }, { status: 500 });
   }

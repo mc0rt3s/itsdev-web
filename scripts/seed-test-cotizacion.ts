@@ -46,8 +46,6 @@ async function main() {
       cantidad: 1,
       precioUnit: 1000000,
       total: 1000000,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     },
   });
 

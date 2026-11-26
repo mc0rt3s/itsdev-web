@@ -113,13 +113,13 @@ export default function FlujoCajaCharts({ datosMensuales, gastosPorCategoria }: 
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value: number | undefined) =>
+                formatter={(value) =>
                   value
                     ? new Intl.NumberFormat('es-CL', {
                         style: 'currency',
                         currency: 'CLP',
                         maximumFractionDigits: 0,
-                      }).format(value)
+                      }).format(Number(value))
                     : ''
                 }
                 contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px' }}
