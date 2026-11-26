@@ -23,7 +23,7 @@ npm run user:create  # Create initial admin user
 
 ## Architecture
 
-**Stack:** Next.js 16 App Router + React 19 + TypeScript, Prisma 7 + SQLite (`better-sqlite3`), NextAuth v5, Tailwind CSS 4.
+**Stack:** Next.js 16 App Router + React 19 + TypeScript, Prisma 7 + PostgreSQL (`@prisma/adapter-pg`), NextAuth v5, Tailwind CSS 4.
 
 **Two surfaces in one app:**
 - `src/app/` (public) — marketing site at `/`, contact form, Calendly widgets
@@ -38,7 +38,7 @@ Role check: `requireAuth({ roles: ['admin'] })`. Returns `{ session }` on succes
 
 **Zod validation** — call `parseJsonBody(request, schema)` from `src/lib/api.ts` after `requireAuth`. All schemas are centralized in `src/lib/schemas.ts`.
 
-**Prisma client** — singleton in `src/lib/prisma.ts` using `better-sqlite3` adapter. In dev it reads from `prisma/dev.db`; in production from `DATABASE_URL`.
+**Prisma client** — singleton in `src/lib/prisma.ts` using `@prisma/adapter-pg`. Local and production both use PostgreSQL via `DATABASE_URL` (local: `postgresql://postgres@127.0.0.1:5432/itsdev_web`). Schema provider is `postgresql`. SQLite is no longer used.
 
 **Rate limiting** — in-memory via `src/lib/rate-limit.ts`. Used on sensitive endpoints (e.g., access report emails).
 
@@ -48,12 +48,12 @@ Role check: `requireAuth({ roles: ['admin'] })`. Returns `{ session }` on succes
 
 **PDF generation** — `src/lib/pdf-generator.ts` using jsPDF. Logo loaded from `public/logo-pdf.png` (base64 at runtime).
 
-**Deploy** — Docker with `output: 'standalone'`. `better-sqlite3` and Prisma adapter are `serverExternalPackages`. Container CMD runs `prisma migrate deploy && node server.js` so migrations apply automatically on startup. DB persists in Docker volume `itsdev-data`.
+**Deploy** — Coolify (server `ItsDev-apps`) with Docker, `output: 'standalone'`. Production DB is Coolify PostgreSQL `postgresql-itsdev-web-db`. Container CMD runs `prisma migrate deploy && node server.js`.
 
 ## Key env vars
 
 ```
-DATABASE_URL          # SQLite file path (production)
+DATABASE_URL          # PostgreSQL connection string (local and production)
 NEXTAUTH_SECRET
 NEXTAUTH_URL
 RESEND_API_KEY        # Email sending
