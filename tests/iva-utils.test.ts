@@ -9,7 +9,7 @@ test('rango octubre 2026 en Chile: inicio 00:00 local, fin 00:00 nov local', () 
     assert.equal(hasta.toISOString(), '2026-11-01T03:00:00.000Z');
 });
 
-test('rango enero (invierno, UTC-4) usa offset correcto', () => {
+test('rango enero (verano Chile, UTC-3) usa offset correcto', () => {
     const { desde } = rangoMesChile(2026, 1);
     assert.equal(desde.toISOString(), '2026-01-01T03:00:00.000Z');
 });
