@@ -121,7 +121,7 @@ En https://clockify.me/admin/edit-organization-settings:
 ## Troubleshooting
 
 ### Build falla al generar Prisma Client
-**Causa**: `DATABASE_URL` no definido en el entorno de build (Prisma 7 lo necesita para `prisma generate`/`next build`). El proyecto usa solo PostgreSQL (`@prisma/adapter-pg`); no hay módulo nativo SQLite.
+**Causa**: `DATABASE_URL` ausente o sin prefijo `postgresql://` en el entorno de build. `src/lib/prisma.ts` lo valida y falla con `DATABASE_URL debe ser postgresql://... (ver .env.example)`. El proyecto usa solo PostgreSQL (`@prisma/adapter-pg`); no hay módulo nativo SQLite.
 **Solución**: Definir `DATABASE_URL` como secret del build. Para validar localmente sin BD real, usar un valor dummy: `DATABASE_URL="postgresql://u:p@localhost:5432/dummy" npx next build`.
 
 ### Database connection error
