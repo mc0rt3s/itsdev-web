@@ -23,8 +23,7 @@ test('calcularTotalesCotizacion aplica descuento e iva', () => {
       { descripcion: 'Item 1', cantidad: 2, precioUnit: 1000 },
       { descripcion: 'Item 2', cantidad: 1, precioUnit: 3000 },
     ],
-    500,
-    true
+    500
   );
 
   // subtotal bruto = 5000, base neta = 4500

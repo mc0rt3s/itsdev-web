@@ -63,7 +63,6 @@ export async function GET(
                 total: cotizacion.total,
                 moneda: cotizacion.moneda,
                 tipoCambioUF: cotizacion.tipoCambioUF,
-                aplicarIVA: cotizacion.impuesto > 0,
                 condicionesGenerales: cotizacion.condicionesGenerales,
                 plazoEstimado: cotizacion.plazoEstimado,
                 formaPago: cotizacion.formaPago,

@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
         const {
             clienteId, nombreProspecto, emailProspecto, numero, etiquetaOportunidad, etiquetaComercial, fecha, validez, estado, moneda,
             descuento = 0, tipoCambioUSD, tipoCambioUF, modoEnvio, fechaEntrega, formaPago, duracionValidezDias,
-            notas, items, aplicarIVA, oportunidadId,
+            notas, items, oportunidadId,
             tipo, precioNeto, titulo, contexto, alcance, conceptoInversion, condicionesGenerales, plazoEstimado, seccionesAdicionales,
         } = parsed.data;
 
@@ -67,10 +67,10 @@ export async function POST(request: NextRequest) {
 
         if (tipo === 'propuesta') {
             subtotal = precioNeto ?? 0;
-            impuesto = aplicarIVA ? Math.round(subtotal * 19) / 100 : 0;
+            impuesto = Math.round(subtotal * 0.19);
             total = subtotal + impuesto;
         } else {
-            ({ itemsWithTotal, subtotal, impuesto, total } = calcularTotalesCotizacion(items, descuento, aplicarIVA));
+            ({ itemsWithTotal, subtotal, impuesto, total } = calcularTotalesCotizacion(items, descuento));
         }
 
         const cotizacion = await prisma.cotizacion.create({

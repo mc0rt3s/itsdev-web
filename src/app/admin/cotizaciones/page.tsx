@@ -89,7 +89,6 @@ export default function CotizacionesPage() {
         duracionValidezDias: 2,
         items: [{ descripcion: '', cantidad: 1, precioUnit: 0 }] as ItemCotizacion[],
         notas: '',
-        aplicarIVA: true,
         // Propuesta
         precioNeto: 0,
         titulo: '',
@@ -181,7 +180,6 @@ export default function CotizacionesPage() {
         duracionValidezDias: tipo === 'propuesta' ? 10 : 2,
         items: [{ descripcion: '', cantidad: 1, precioUnit: 0 }] as ItemCotizacion[],
         notas: '',
-        aplicarIVA: true,
         precioNeto: 0,
         titulo: '',
         contexto: '',
@@ -241,7 +239,6 @@ export default function CotizacionesPage() {
             duracionValidezDias: cot.duracionValidezDias || 2,
             items: cot.items || [{ descripcion: '', cantidad: 1, precioUnit: 0 }],
             notas: '',
-            aplicarIVA: true,
             precioNeto: cot.subtotal || 0,
             titulo: cot.titulo || '',
             contexto: cot.contexto || '',
@@ -330,15 +327,15 @@ export default function CotizacionesPage() {
         return items.reduce((sum, item) => sum + (item.cantidad * item.precioUnit), 0);
     };
 
-    const calculateIVA = (subtotal: number, aplicar: boolean, descuento = 0) => {
+    const calculateIVA = (subtotal: number, descuento = 0) => {
         const base = Math.max(0, subtotal - descuento);
-        return aplicar ? Math.round(base * 0.19) : 0;
+        return Math.round(base * 0.19); // Todas las cotizaciones son afectas a IVA
     };
 
     const calculateTotal = () => {
         const sub = calculateSubtotal(formData.items);
         const desc = formData.descuento || 0;
-        const iva = calculateIVA(sub, formData.aplicarIVA, desc);
+        const iva = calculateIVA(sub, desc);
         return Math.max(0, sub - desc) + iva;
     };
 
@@ -950,15 +947,6 @@ export default function CotizacionesPage() {
                                             />
                                         </div>
                                         <div className="flex items-center gap-4">
-                                            <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={formData.aplicarIVA}
-                                                    onChange={(e) => setFormData({ ...formData, aplicarIVA: e.target.checked })}
-                                                    className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-violet-500"
-                                                />
-                                                <span className="text-sm">Aplicar IVA (19%)</span>
-                                            </label>
                                         </div>
                                     </div>
                                 ) : (
@@ -1059,15 +1047,6 @@ export default function CotizacionesPage() {
                                     </div>
                                     <div className="mt-4 space-y-2">
                                         <div className="flex gap-4 items-center">
-                                            <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={formData.aplicarIVA}
-                                                    onChange={(e) => setFormData({ ...formData, aplicarIVA: e.target.checked })}
-                                                    className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-2 focus:ring-cyan-500"
-                                                />
-                                                <span className="text-sm">Aplicar IVA (19%)</span>
-                                            </label>
                                             <div className="flex items-center gap-2">
                                                 <label className="text-sm text-slate-400">Descuento:</label>
                                                 <input
@@ -1093,7 +1072,7 @@ export default function CotizacionesPage() {
                                                 )}
                                                 <div className="flex justify-between gap-4 text-slate-400 text-sm">
                                                     <span>IVA (19%):</span>
-                                                    <span className="font-mono">{formatPrice(calculateIVA(calculateSubtotal(formData.items), formData.aplicarIVA, formData.descuento))}</span>
+                                                    <span className="font-mono">{formatPrice(calculateIVA(calculateSubtotal(formData.items), formData.descuento))}</span>
                                                 </div>
                                                 <div className="flex justify-between gap-4 text-xl font-bold pt-1 border-t border-slate-700">
                                                     <span>Total:</span>
@@ -1665,15 +1644,6 @@ export default function CotizacionesPage() {
                                             />
                                         </div>
                                         <div className="flex items-center gap-4">
-                                            <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={formData.aplicarIVA}
-                                                    onChange={(e) => setFormData({ ...formData, aplicarIVA: e.target.checked })}
-                                                    className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-violet-500"
-                                                />
-                                                <span className="text-sm">Aplicar IVA (19%)</span>
-                                            </label>
                                         </div>
                                     </div>
                                 ) : (
@@ -1774,15 +1744,6 @@ export default function CotizacionesPage() {
                                     </div>
                                     <div className="mt-4 space-y-2">
                                         <div className="flex gap-4 items-center">
-                                            <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={formData.aplicarIVA}
-                                                    onChange={(e) => setFormData({ ...formData, aplicarIVA: e.target.checked })}
-                                                    className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-2 focus:ring-cyan-500"
-                                                />
-                                                <span className="text-sm">Aplicar IVA (19%)</span>
-                                            </label>
                                             <div className="flex items-center gap-2">
                                                 <label className="text-sm text-slate-400">Descuento:</label>
                                                 <input
@@ -1808,7 +1769,7 @@ export default function CotizacionesPage() {
                                                 )}
                                                 <div className="flex justify-between gap-4 text-slate-400 text-sm">
                                                     <span>IVA (19%):</span>
-                                                    <span className="font-mono">{formatPrice(calculateIVA(calculateSubtotal(formData.items), formData.aplicarIVA, formData.descuento))}</span>
+                                                    <span className="font-mono">{formatPrice(calculateIVA(calculateSubtotal(formData.items), formData.descuento))}</span>
                                                 </div>
                                                 <div className="flex justify-between gap-4 text-xl font-bold pt-1 border-t border-slate-700">
                                                     <span>Total:</span>

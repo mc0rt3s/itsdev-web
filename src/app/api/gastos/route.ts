@@ -52,12 +52,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { monto, motivo, categoria, fecha, proveedor, notas } = validationResult.data;
+        const { monto, iva, motivo, categoria, fecha, proveedor, notas } = validationResult.data;
         const comprobante = data.comprobante || null;
 
         const gasto = await prisma.gasto.create({
             data: {
                 monto,
+                iva,
                 motivo,
                 categoria,
                 fecha,

@@ -56,8 +56,7 @@ export function resolveTipoCambioUF(input: number | null | undefined, configValu
 
 export function calcularTotalesCotizacion(
   items: CotizacionItemInput[],
-  descuento: number,
-  aplicarIVA: boolean
+  descuento: number
 ): {
   itemsWithTotal: CotizacionItemWithTotal[];
   subtotal: number;
@@ -84,7 +83,7 @@ export function calcularTotalesCotizacion(
   });
 
   const subtotalDescontado = Math.max(0, subtotal - descuento);
-  const impuesto = aplicarIVA ? Math.round(subtotalDescontado * 0.19) : 0;
+  const impuesto = Math.round(subtotalDescontado * 0.19); // Todas afectas a IVA
   const total = subtotalDescontado + impuesto;
 
   return {

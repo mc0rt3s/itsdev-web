@@ -53,7 +53,7 @@ export async function PATCH(
     try {
         const { id } = await params;
         const data = await request.json();
-        const { estado, numeroSII, notas, ordenCompra, fechaEmision, fechaVenc, formaPago, items, aplicarIVA } = data;
+        const { estado, numeroSII, notas, ordenCompra, fechaEmision, fechaVenc, formaPago, items } = data;
         const actual = await prisma.factura.findUnique({
             where: { id },
             include: { items: true }
@@ -81,8 +81,7 @@ export async function PATCH(
             || fechaEmision !== undefined
             || fechaVenc !== undefined
             || formaPago !== undefined
-            || items !== undefined
-            || aplicarIVA !== undefined;
+            || items !== undefined;
 
         if (paidOnlyAllowsCancel) {
             if (hasNonEstadoChanges) {
@@ -123,8 +122,7 @@ export async function PATCH(
                 return NextResponse.json({ error: 'Los ítems de la factura son inválidos' }, { status: 400 });
             }
 
-            const useIva = typeof aplicarIVA === 'boolean' ? aplicarIVA : actual.impuesto > 0;
-            const { itemsWithTotal, subtotal, impuesto, total } = calcularTotalesFactura(sanitizedItems, useIva);
+            const { itemsWithTotal, subtotal, impuesto, total } = calcularTotalesFactura(sanitizedItems);
 
             updateData.subtotal = subtotal;
             updateData.impuesto = impuesto;

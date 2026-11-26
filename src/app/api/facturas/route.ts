@@ -58,9 +58,9 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { clienteId, numero, numeroSII, fechaEmision, fechaVenc, estado, formaPago, moneda, notas, ordenCompra, proyectoId, items, aplicarIVA } = validationResult.data;
+        const { clienteId, numero, numeroSII, fechaEmision, fechaVenc, estado, formaPago, moneda, notas, ordenCompra, proyectoId, items } = validationResult.data;
 
-        const { itemsWithTotal, subtotal, impuesto, total } = calcularTotalesFactura(items, aplicarIVA);
+        const { itemsWithTotal, subtotal, impuesto, total } = calcularTotalesFactura(items);
 
         const factura = await prisma.factura.create({
             data: {

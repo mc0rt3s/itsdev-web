@@ -18,7 +18,8 @@ export function buildFacturaWhere(clienteId: string | null, estado: string | nul
   return where;
 }
 
-export function calcularTotalesFactura(items: FacturaItemInput[], aplicarIVA: boolean): {
+// Todas las facturas son afectas a IVA (19%). No existen facturas exentas.
+export function calcularTotalesFactura(items: FacturaItemInput[]): {
   itemsWithTotal: FacturaItemWithTotal[];
   subtotal: number;
   impuesto: number;
@@ -34,7 +35,7 @@ export function calcularTotalesFactura(items: FacturaItemInput[], aplicarIVA: bo
     };
   });
 
-  const impuesto = aplicarIVA ? Math.round(subtotal * 0.19) : 0;
+  const impuesto = Math.round(subtotal * 0.19);
   const total = subtotal + impuesto;
 
   return {

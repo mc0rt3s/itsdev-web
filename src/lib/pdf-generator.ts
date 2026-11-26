@@ -610,7 +610,6 @@ interface PropuestaData {
     total: number;
     moneda: string;
     tipoCambioUF?: number | null;
-    aplicarIVA: boolean;
     condicionesGenerales?: string | null;
     plazoEstimado?: string | null;
     formaPago?: string | null;
@@ -788,7 +787,7 @@ export function generatePropuestaPDF(data: PropuestaData): Buffer {
     const conceptLabel = data.conceptoInversion || data.titulo || 'Servicio profesional';
     const invRows: [string, string, boolean][] = [
         [conceptLabel, fmtVal(data.subtotal), false],
-        ...(data.aplicarIVA ? [['IVA (19%)', fmtVal(data.impuesto), false] as [string, string, boolean]] : []),
+        ['IVA (19%)', fmtVal(data.impuesto), false] as [string, string, boolean],
         ['Total (con IVA)', fmtVal(data.total), true],
     ];
 

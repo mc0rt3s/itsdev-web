@@ -60,7 +60,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
             if (!validation.success) return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
 
             const {
-                items, aplicarIVA = true, descuento = 0,
+                items, descuento = 0,
                 tipoCambioUSD, modoEnvio, fechaEntrega, formaPago, duracionValidezDias,
                 oportunidadId, precioNeto,
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -72,7 +72,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
             if (rest.tipo === 'propuesta') {
                 subtotal = precioNeto ?? 0;
-                impuesto = aplicarIVA ? Math.round(subtotal * 19) / 100 : 0;
+                impuesto = Math.round(subtotal * 0.19);
                 total = subtotal + impuesto;
             } else {
                 let sub = 0;
@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
                 });
                 const subtotalDescontado = Math.max(0, sub - descuento);
                 subtotal = sub;
-                impuesto = aplicarIVA ? Math.round(subtotalDescontado * 0.19) : 0;
+                impuesto = Math.round(subtotalDescontado * 0.19);
                 total = subtotalDescontado + impuesto;
             }
 

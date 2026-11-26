@@ -150,7 +150,6 @@ export const facturaSchema = z.object({
   notas: z.string().optional().nullable(),
   ordenCompra: z.string().optional().nullable(),
   proyectoId: z.string().optional().nullable(),
-  aplicarIVA: z.boolean().optional().default(true),
 });
 export type FacturaInput = z.infer<typeof facturaSchema>;
 
@@ -185,7 +184,6 @@ export const cotizacionSchema = z.object({
   duracionValidezDias: z.number().int().min(1).optional().nullable(),
   items: z.array(itemCotizacionSchema).default([]),
   notas: z.string().optional().nullable(),
-  aplicarIVA: z.boolean().optional().default(true),
   oportunidadId: z.string().optional().nullable(),
   // Propuesta de servicios
   tipo: z.enum(['cotizacion', 'propuesta']).default('cotizacion'),
@@ -228,6 +226,7 @@ export type ComunicacionInput = z.infer<typeof comunicacionSchema>;
 
 export const gastoSchema = z.object({
   monto: z.number().positive('El monto debe ser mayor a 0'),
+  iva: z.number().min(0, 'El IVA no puede ser negativo').default(0),
   motivo: z.string().min(1, 'El motivo es requerido'),
   categoria: z.enum(['servicios', 'insumos', 'software', 'hardware', 'marketing', 'otros']).default('otros'),
   fecha: z.string().transform((str) => new Date(str)),

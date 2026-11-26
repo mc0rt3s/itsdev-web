@@ -94,7 +94,6 @@ export default function FinanzasFacturas() {
         items: [{ descripcion: '', cantidad: 1, precioUnit: 0 }],
         notas: '',
         ordenCompra: '',
-        aplicarIVA: true
     });
     const [updatingEstado, setUpdatingEstado] = useState(false);
     const [tempEstado, setTempEstado] = useState<string | null>(null);
@@ -104,7 +103,6 @@ export default function FinanzasFacturas() {
     const [tempFechaEmision, setTempFechaEmision] = useState<string | null>(null);
     const [tempFechaVenc, setTempFechaVenc] = useState<string | null>(null);
     const [tempItems, setTempItems] = useState<ItemFactura[]>([]);
-    const [tempAplicaIVA, setTempAplicaIVA] = useState(true);
     const [savingNumeroSII, setSavingNumeroSII] = useState(false);
     const [savingFechas, setSavingFechas] = useState(false);
     const [savingItems, setSavingItems] = useState(false);
@@ -198,7 +196,6 @@ export default function FinanzasFacturas() {
             items: [{ descripcion: '', cantidad: 1, precioUnit: 0 }],
             notas: '',
             ordenCompra: '',
-            aplicarIVA: true
         });
         setShowModal(true);
     };
@@ -211,7 +208,6 @@ export default function FinanzasFacturas() {
         setTempFechaEmision(null);
         setTempFechaVenc(null);
         setTempItems(factura.items.map((item) => ({ ...item })));
-        setTempAplicaIVA(factura.impuesto > 0);
         setShowModal(true);
     };
 
@@ -254,8 +250,9 @@ export default function FinanzasFacturas() {
         return items.reduce((sum, item) => sum + (item.cantidad * item.precioUnit), 0);
     };
 
-    const calculateIVA = (subtotal: number, aplicar: boolean) => {
-        return aplicar ? Math.round(subtotal * 0.19) : 0;
+    // Todas las facturas son afectas a IVA (19%).
+    const calculateIVA = (subtotal: number) => {
+        return Math.round(subtotal * 0.19);
     };
 
     const getEstadoOptions = (estadoActual: string) => {
@@ -626,7 +623,6 @@ export default function FinanzasFacturas() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     items: sanitizedItems,
-                    aplicarIVA: tempAplicaIVA,
                 }),
             });
 
@@ -638,7 +634,6 @@ export default function FinanzasFacturas() {
 
             setViewingFactura(payload);
             setTempItems(payload.items.map((item: ItemFactura) => ({ ...item })));
-            setTempAplicaIVA(payload.impuesto > 0);
             fetchData();
             toast.success('Ítems actualizados');
         } catch {
@@ -1157,16 +1152,6 @@ export default function FinanzasFacturas() {
                                     <div className="flex items-center justify-between mb-4 border-b border-slate-700/50 pb-2">
                                         <h3 className="text-white font-semibold">Ítems</h3>
                                         <div className="flex items-center gap-3">
-                                            <label className="flex items-center gap-2 text-sm text-slate-300">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={tempAplicaIVA}
-                                                    onChange={(e) => setTempAplicaIVA(e.target.checked)}
-                                                    disabled={!canEditFactura(viewingFactura)}
-                                                    className="rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500"
-                                                />
-                                                Aplicar IVA
-                                            </label>
                                             <button
                                                 type="button"
                                                 onClick={addTempItem}
@@ -1236,11 +1221,11 @@ export default function FinanzasFacturas() {
                                         </div>
                                         <div className="flex justify-between text-slate-300">
                                             <span>IVA (19%):</span>
-                                            <span className="font-mono">{formatPrice(calculateIVA(calculateSubtotal(tempItems), tempAplicaIVA))}</span>
+                                            <span className="font-mono">{formatPrice(calculateIVA(calculateSubtotal(tempItems)))}</span>
                                         </div>
                                         <div className="flex justify-between text-white text-xl font-bold pt-2 border-t border-slate-700">
                                             <span>TOTAL:</span>
-                                            <span className="text-emerald-400">{formatPrice(calculateSubtotal(tempItems) + calculateIVA(calculateSubtotal(tempItems), tempAplicaIVA))}</span>
+                                            <span className="text-emerald-400">{formatPrice(calculateSubtotal(tempItems) + calculateIVA(calculateSubtotal(tempItems)))}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1421,15 +1406,6 @@ export default function FinanzasFacturas() {
                                         ))}
                                     </div>
                                     <div className="mt-4 space-y-2">
-                                        <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={formData.aplicarIVA}
-                                                onChange={(e) => setFormData({ ...formData, aplicarIVA: e.target.checked })}
-                                                className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-2 focus:ring-cyan-500"
-                                            />
-                                            <span className="text-sm">Aplicar IVA (19%)</span>
-                                        </label>
                                         <div className="flex justify-end items-start gap-8 text-white pt-2">
                                             <div className="text-right space-y-1">
                                                 <div className="flex justify-between gap-4 text-slate-400 text-sm">
@@ -1438,11 +1414,11 @@ export default function FinanzasFacturas() {
                                                 </div>
                                                 <div className="flex justify-between gap-4 text-slate-400 text-sm">
                                                     <span>IVA (19%):</span>
-                                                    <span className="font-mono">{formatPrice(calculateIVA(calculateSubtotal(formData.items), formData.aplicarIVA))}</span>
+                                                    <span className="font-mono">{formatPrice(calculateIVA(calculateSubtotal(formData.items)))}</span>
                                                 </div>
                                                 <div className="flex justify-between gap-4 text-xl font-bold pt-1 border-t border-slate-700">
                                                     <span>Total:</span>
-                                                    <span className="text-emerald-400">{formatPrice(calculateSubtotal(formData.items) + calculateIVA(calculateSubtotal(formData.items), formData.aplicarIVA))}</span>
+                                                    <span className="text-emerald-400">{formatPrice(calculateSubtotal(formData.items) + calculateIVA(calculateSubtotal(formData.items)))}</span>
                                                 </div>
                                             </div>
                                         </div>

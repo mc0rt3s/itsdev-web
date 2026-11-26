@@ -14,12 +14,17 @@ test('calcularTotalesFactura calcula subtotal, iva y total', () => {
     [
       { descripcion: 'A', cantidad: 2, precioUnit: 1000 },
       { descripcion: 'B', cantidad: 1, precioUnit: 500 },
-    ],
-    true
+    ]
   );
 
   assert.equal(result.subtotal, 2500);
   assert.equal(result.impuesto, 475);
   assert.equal(result.total, 2975);
   assert.equal(result.itemsWithTotal[0].total, 2000);
+});
+
+test('calcularTotalesFactura siempre aplica IVA 19% (no hay exentas)', () => {
+  const result = calcularTotalesFactura([{ descripcion: 'A', cantidad: 1, precioUnit: 1000 }]);
+  assert.equal(result.impuesto, 190);
+  assert.equal(result.total, 1190);
 });
