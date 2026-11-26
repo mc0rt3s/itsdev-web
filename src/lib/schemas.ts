@@ -226,7 +226,11 @@ export type ComunicacionInput = z.infer<typeof comunicacionSchema>;
 
 export const gastoSchema = z.object({
   monto: z.number().positive('El monto debe ser mayor a 0'),
-  iva: z.number().min(0, 'El IVA no puede ser negativo').default(0),
+  iva: z.number().min(0, 'El IVA no puede ser negativo').optional().nullable(),
+  moneda: z.enum(['CLP', 'USD', 'UF']).default('CLP'),
+  montoOriginal: z.number().positive('El monto original debe ser mayor a 0').optional().nullable(),
+  tipoCambio: z.number().positive('El tipo de cambio debe ser mayor a 0').optional().nullable(),
+  tipoDocumento: z.enum(['factura', 'boleta', 'silvestre', 'suscripcion', 'otro']).default('otro'),
   motivo: z.string().min(1, 'El motivo es requerido'),
   categoria: z.enum(['servicios', 'insumos', 'software', 'hardware', 'marketing', 'otros']).default('otros'),
   fecha: z.string().transform((str) => new Date(str)),

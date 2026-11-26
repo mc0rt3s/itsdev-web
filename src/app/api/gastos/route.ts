@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { gastoSchema } from '@/lib/schemas';
 import { checkAuth } from '@/lib/api-auth';
+import { normalizarGasto } from '@/lib/gastos-utils';
 
 // GET - Listar todos los gastos
 export async function GET(request: NextRequest) {
@@ -52,13 +53,19 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { monto, iva, motivo, categoria, fecha, proveedor, notas } = validationResult.data;
+        const { monto, iva, motivo, categoria, fecha, proveedor, notas, moneda, montoOriginal, tipoCambio, tipoDocumento } = validationResult.data;
+        const norm = normalizarGasto({ monto, iva, moneda, montoOriginal, tipoCambio, tipoDocumento });
+        if (!norm.ok) return NextResponse.json({ error: norm.error }, { status: 400 });
         const comprobante = data.comprobante || null;
 
         const gasto = await prisma.gasto.create({
             data: {
-                monto,
-                iva,
+                monto: norm.data.monto,
+                iva: norm.data.iva,
+                moneda,
+                montoOriginal: norm.data.montoOriginal,
+                tipoCambio: norm.data.tipoCambio,
+                tipoDocumento,
                 motivo,
                 categoria,
                 fecha,

@@ -15,6 +15,11 @@ interface Gasto {
     proveedor: string | null;
     comprobante: string | null;
     notas: string | null;
+    iva?: number | null;
+    moneda?: string | null;
+    montoOriginal?: number | null;
+    tipoCambio?: number | null;
+    tipoDocumento?: string | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -67,6 +72,11 @@ export default function FinanzasGastos() {
 
     const [formData, setFormData] = useState({
         monto: '',
+        iva: '',
+        moneda: 'CLP' as 'CLP' | 'USD' | 'UF',
+        montoOriginal: '',
+        tipoCambio: '',
+        tipoDocumento: 'otro' as 'factura' | 'boleta' | 'silvestre' | 'suscripcion' | 'otro',
         motivo: '',
         categoria: 'otros',
         fecha: new Date().toISOString().split('T')[0],
@@ -181,7 +191,12 @@ export default function FinanzasGastos() {
             }
 
             const payload = {
-                monto: parseFloat(formData.monto),
+                monto: formData.moneda === 'CLP' ? parseFloat(formData.monto) : 0,
+                iva: formData.tipoDocumento === 'factura' && formData.iva !== '' ? parseFloat(formData.iva) : null,
+                moneda: formData.moneda,
+                montoOriginal: formData.moneda === 'CLP' ? null : parseFloat(formData.montoOriginal),
+                tipoCambio: formData.moneda === 'CLP' ? null : parseFloat(formData.tipoCambio),
+                tipoDocumento: formData.tipoDocumento,
                 motivo: formData.motivo,
                 categoria: formData.categoria,
                 fecha: formData.fecha,
@@ -240,6 +255,11 @@ export default function FinanzasGastos() {
     const openNewModal = () => {
         setFormData({
             monto: '',
+            iva: '',
+            moneda: 'CLP' as 'CLP' | 'USD' | 'UF',
+            montoOriginal: '',
+            tipoCambio: '',
+            tipoDocumento: 'otro' as 'factura' | 'boleta' | 'silvestre' | 'suscripcion' | 'otro',
             motivo: '',
             categoria: 'otros',
             fecha: new Date().toISOString().split('T')[0],
@@ -257,6 +277,11 @@ export default function FinanzasGastos() {
         setViewingGasto(gasto);
         setFormData({
             monto: gasto.monto.toString(),
+            iva: gasto.iva != null ? gasto.iva.toString() : '',
+            moneda: (gasto.moneda ?? 'CLP') as 'CLP' | 'USD' | 'UF',
+            montoOriginal: gasto.montoOriginal != null ? gasto.montoOriginal.toString() : '',
+            tipoCambio: gasto.tipoCambio != null ? gasto.tipoCambio.toString() : '',
+            tipoDocumento: (gasto.tipoDocumento ?? 'otro') as 'factura' | 'boleta' | 'silvestre' | 'suscripcion' | 'otro',
             motivo: gasto.motivo,
             categoria: gasto.categoria,
             fecha: new Date(gasto.fecha).toISOString().split('T')[0],
@@ -480,18 +505,89 @@ export default function FinanzasGastos() {
                         <form onSubmit={handleSubmit} className="p-8 space-y-6">
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Monto *</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        required
-                                        value={formData.monto}
-                                        onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">Tipo de documento *</label>
+                                    <select
+                                        value={formData.tipoDocumento}
+                                        onChange={(e) => setFormData({ ...formData, tipoDocumento: e.target.value as typeof formData.tipoDocumento, iva: e.target.value === 'factura' ? formData.iva : '' })}
                                         className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
-                                        placeholder="0.00"
-                                    />
+                                    >
+                                        <option value="otro">Otro</option>
+                                        <option value="factura">Factura (con IVA)</option>
+                                        <option value="boleta">Boleta</option>
+                                        <option value="silvestre">Boleta silvestre</option>
+                                        <option value="suscripcion">Suscripción</option>
+                                    </select>
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">Moneda</label>
+                                    <select
+                                        value={formData.moneda}
+                                        onChange={(e) => setFormData({ ...formData, moneda: e.target.value as 'CLP' | 'USD' | 'UF' })}
+                                        className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                    >
+                                        <option value="CLP">CLP</option>
+                                        <option value="USD">USD</option>
+                                        <option value="UF">UF</option>
+                                    </select>
+                                </div>
+                                {formData.moneda === 'CLP' ? (
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">Monto (CLP) *</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            required
+                                            value={formData.monto}
+                                            onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-300 mb-2">Monto ({formData.moneda}) *</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                required
+                                                value={formData.montoOriginal}
+                                                onChange={(e) => setFormData({ ...formData, montoOriginal: e.target.value })}
+                                                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-300 mb-2">Tipo de cambio (CLP por {formData.moneda}) *</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                required
+                                                value={formData.tipoCambio}
+                                                onChange={(e) => setFormData({ ...formData, tipoCambio: e.target.value })}
+                                                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                                {formData.tipoDocumento === 'factura' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">IVA crédito fiscal (opcional)</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={formData.iva}
+                                            onChange={(e) => setFormData({ ...formData, iva: e.target.value })}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-cyan-500 outline-none"
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-300 mb-2">Fecha *</label>
                                     <input

@@ -357,6 +357,10 @@ model Gasto {
   id          String   @id @default(cuid())
   monto       Float
   iva         Float    @default(0) // Credito fiscal; IVA incluido en monto, 0 si no hay factura afecta
+  moneda      String   @default("CLP") // CLP, USD, UF
+  montoOriginal Float? // Monto en moneda original (si no es CLP)
+  tipoCambio  Float?   // CLP por unidad de moneda original
+  tipoDocumento String @default("otro") // factura, boleta, silvestre, suscripcion, otro
   motivo     String   // Descripción del gasto
   categoria   String   // servicios, insumos, software, hardware, marketing, otros
   fecha       DateTime @default(now())
