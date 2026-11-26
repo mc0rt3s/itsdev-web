@@ -1,12 +1,12 @@
 # itsdev-web
 
-Plataforma web de ItsDev construida con Next.js (App Router), Prisma y SQLite.
+Plataforma web de ItsDev construida con Next.js (App Router), Prisma y PostgreSQL.
 Incluye sitio público, panel admin, CRM básico, facturación, cotizaciones, gastos e integraciones (Resend, Calendly, Clockify).
 
 ## Stack
 
 - Next.js 16 + React 19 + TypeScript
-- Prisma 7 + SQLite (`better-sqlite3`)
+- Prisma 7 + PostgreSQL (`@prisma/adapter-pg`)
 - NextAuth v5 (credenciales)
 - Tailwind CSS 4
 

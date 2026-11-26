@@ -6,22 +6,9 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { createPrismaAdapter } from '../src/lib/prisma';
 import bcrypt from 'bcryptjs';
-import path from 'path';
-import { Pool } from 'pg';
 
-function createPrismaAdapter() {
-  const dbUrl = process.env.DATABASE_URL || `file:${path.join(process.cwd(), 'prisma', 'dev.db')}`;
-  console.log('Conectando a:', dbUrl);
-
-  if (dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://')) {
-    return new PrismaPg(new Pool({ connectionString: dbUrl }));
-  }
-
-  return new PrismaBetterSqlite3({ url: dbUrl });
-}
 
 const adapter = createPrismaAdapter();
 const prisma = new PrismaClient({ adapter });
