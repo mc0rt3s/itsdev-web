@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import Logo from './Logo';
 
 const navLinks = [
@@ -111,9 +112,9 @@ export default function Footer() {
             © {currentYear} ItsDev. Todos los derechos reservados.
           </p>
           <div className="flex gap-6 text-sm">
-            <a href="#" className="text-slate-500 hover:text-slate-300 transition-colors">
+            <Link href="/privacidad" className="text-slate-500 hover:text-slate-300 transition-colors">
               Política de Privacidad
-            </a>
+            </Link>
             <a href="#" className="text-slate-500 hover:text-slate-300 transition-colors">
               Términos de Servicio
             </a>

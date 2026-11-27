@@ -13,6 +13,7 @@ export default function Contacto() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [consent, setConsent] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -249,9 +250,19 @@ export default function Contacto() {
                   )}
                 </button>
 
-                <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
-                  Al enviar este formulario aceptas nuestra política de privacidad.
-                </p>
+                <label className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    className="mt-1 h-4 w-4 accent-[#7AA228]"
+                  />
+                  <span>
+                    Acepto que ItsDev use mis datos para responder mi consulta, según la{' '}
+                    <a href="/privacidad" className="text-[#7AA228] underline">Política de Privacidad</a>.
+                  </span>
+                </label>
               </form>
             )}
           </div>
