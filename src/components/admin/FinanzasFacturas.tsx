@@ -907,8 +907,8 @@ export default function FinanzasFacturas() {
                                             </div>
                                         </td>
                                         <td className="p-4 text-white font-medium">{f.cliente.razonSocial}</td>
-                                        <td className="p-4 text-slate-400">{new Date(f.fechaEmision).toLocaleDateString('es-CL')}</td>
-                                        <td className="p-4 text-slate-400">{new Date(f.fechaVenc).toLocaleDateString('es-CL')}</td>
+                                        <td className="p-4 text-slate-400">{new Date(f.fechaEmision).toLocaleDateString('es-CL', { timeZone: 'America/Santiago' })}</td>
+                                        <td className="p-4 text-slate-400">{new Date(f.fechaVenc).toLocaleDateString('es-CL', { timeZone: 'America/Santiago' })}</td>
                                         <td className="p-4 text-white font-bold">{formatPrice(f.total)}</td>
                                         <td className="p-4">
                                             <select

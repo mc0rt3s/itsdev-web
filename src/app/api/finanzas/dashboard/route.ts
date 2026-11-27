@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { checkAuth } from '@/lib/api-auth';
+import { rangoMesChile } from '@/lib/iva-utils';
 
 export async function GET(request: NextRequest) {
   const ok = await checkAuth(request);
@@ -19,10 +20,9 @@ export async function GET(request: NextRequest) {
     month = m - 1;
   }
 
-  const inicioMes = new Date(year, month, 1);
-  const finMes = new Date(year, month + 1, 0, 23, 59, 59);
-  const inicioMesAnt = new Date(year, month - 1, 1);
-  const finMesAnt = new Date(year, month, 0, 23, 59, 59);
+  // Rangos en zona Chile (no hora del servidor, que en Dokploy es UTC). hasta es exclusivo.
+  const { desde: inicioMes, hasta: finMesEx } = rangoMesChile(year, month + 1);
+  const { desde: inicioMesAnt, hasta: inicioMesEx } = rangoMesChile(year, month);
 
   try {
     const nombresMeses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -30,11 +30,11 @@ export async function GET(request: NextRequest) {
     // Current month
     const [facturasPagadas, gastos, facturasPendientes, facturasPagadasAnt, gastosAnt] = await Promise.all([
       prisma.factura.findMany({
-        where: { estado: 'pagada', fechaEmision: { gte: inicioMes, lte: finMes } },
+        where: { estado: 'pagada', fechaEmision: { gte: inicioMes, lt: finMesEx } },
         select: { total: true, moneda: true },
       }),
       prisma.gasto.findMany({
-        where: { fecha: { gte: inicioMes, lte: finMes } },
+        where: { fecha: { gte: inicioMes, lt: finMesEx } },
         select: { monto: true, categoria: true },
       }),
       prisma.factura.findMany({
@@ -43,11 +43,11 @@ export async function GET(request: NextRequest) {
       }),
       // Previous month
       prisma.factura.findMany({
-        where: { estado: 'pagada', fechaEmision: { gte: inicioMesAnt, lte: finMesAnt } },
+        where: { estado: 'pagada', fechaEmision: { gte: inicioMesAnt, lt: inicioMesEx } },
         select: { total: true },
       }),
       prisma.gasto.findMany({
-        where: { fecha: { gte: inicioMesAnt, lte: finMesAnt } },
+        where: { fecha: { gte: inicioMesAnt, lt: inicioMesEx } },
         select: { monto: true },
       }),
     ]);
@@ -70,11 +70,10 @@ export async function GET(request: NextRequest) {
     // Last 6 months trend
     const trend = [];
     for (let i = 5; i >= 0; i--) {
-      const d = new Date(year, month - i, 1);
-      const dEnd = new Date(year, month - i + 1, 0, 23, 59, 59);
+      const { desde: d, hasta: dEndEx } = rangoMesChile(year, month - i + 1);
       const [fi, gi] = await Promise.all([
-        prisma.factura.findMany({ where: { estado: 'pagada', fechaEmision: { gte: d, lte: dEnd } }, select: { total: true } }),
-        prisma.gasto.findMany({ where: { fecha: { gte: d, lte: dEnd } }, select: { monto: true } }),
+        prisma.factura.findMany({ where: { estado: 'pagada', fechaEmision: { gte: d, lt: dEndEx } }, select: { total: true } }),
+        prisma.gasto.findMany({ where: { fecha: { gte: d, lt: dEndEx } }, select: { monto: true } }),
       ]);
       const ing = fi.reduce((s, f) => s + f.total, 0);
       const gas = gi.reduce((s, g) => s + g.monto, 0);
